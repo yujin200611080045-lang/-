@@ -5,7 +5,7 @@ import Memo from '../components/Memo'
 import NavBar from '../components/NavBar'
 import '../styles/Home.css'
 
-const START_DATE = new Date('2025-06-15')
+const START_DATE = new Date('2026-06-15')
 function daysSince() {
   const now = new Date()
   const diff = Math.floor((now - START_DATE) / (1000 * 60 * 60 * 24))
@@ -40,7 +40,7 @@ function Header() {
           </div>
           <img src="/cats/white.png" className="cat-icon" alt="" />
         </div>
-        <div className="header-date">Since Jun 15, 2025</div>
+        <div className="header-date">Since Jun 15, 2026</div>
       </div>
       <span className="fleur">&#10087;</span>
     </div>
