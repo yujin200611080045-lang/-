@@ -112,7 +112,7 @@
 
   let SIZE, CELL, PAD;
   let board = [];
-  let current = 1; // 1=黑 2=白
+  let current = 1;
   let history = [];
   let gameOver = false;
 
@@ -156,7 +156,6 @@
       ctx.stroke();
     }
 
-    // 星位
     const stars = [3, 7, 11];
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     for (let r of stars) {
@@ -174,7 +173,7 @@
     }
   }
 
-  function drawPiece(r, c, player, highlight) {
+  function drawPiece(r, c, player) {
     const x = PAD + c * CELL;
     const y = PAD + r * CELL;
     const radius = CELL * 0.45;
@@ -190,11 +189,6 @@
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fillStyle = grad;
     ctx.fill();
-    if (highlight) {
-      ctx.strokeStyle = '#e74c3c';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
   }
 
   function getPos(e) {
@@ -202,9 +196,10 @@
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     let cx, cy;
-    if (e.touches) {
-      cx = (e.touches[0].clientX - rect.left) * scaleX;
-      cy = (e.touches[0].clientY - rect.top) * scaleY;
+    const touch = e.changedTouches ? e.changedTouches[0] : null;
+    if (touch) {
+      cx = (touch.clientX - rect.left) * scaleX;
+      cy = (touch.clientY - rect.top) * scaleY;
     } else {
       cx = (e.clientX - rect.left) * scaleX;
       cy = (e.clientY - rect.top) * scaleY;
@@ -262,12 +257,10 @@
     draw();
   }
 
-  function resetGame() {
-    initBoard();
-  }
+  function resetGame() { initBoard(); }
 
+  canvas.addEventListener('touchend', placeStone, { passive: false });
   canvas.addEventListener('click', placeStone);
-  canvas.addEventListener('touchend', placeStone);
   window.addEventListener('resize', resize);
 
   resize();
