@@ -17,12 +17,12 @@ function CatSlot({ src, alt }) {
   const [failed, setFailed] = useState(false)
   return (
     <div className="cat-slot">
-      <span className="cat-sym">[</span>
+      <span className="cat-sym">‹</span>
       {failed
         ? <div className="cat-placeholder">{alt[0]}</div>
         : <img src={src} alt={alt} className="cat-img" onError={() => setFailed(true)} />
       }
-      <span className="cat-sym">]</span>
+      <span className="cat-sym">›</span>
     </div>
   )
 }
