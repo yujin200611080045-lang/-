@@ -18,7 +18,7 @@ export default function DiaryBook() {
     setTimeout(() => {
       setIndex(next)
       setFlipping(null)
-    }, 380)
+    }, 400)
   }
 
   const entry = DUMMY[index]
@@ -26,26 +26,27 @@ export default function DiaryBook() {
   return (
     <div className="diary-wrap">
       <div className="diary-label">交换日记</div>
-      <button className="flip-btn flip-up" onClick={() => flip(-1)} disabled={index === 0}>▲</button>
+      <button className="flip-btn" onClick={() => flip(-1)} disabled={index === 0}>▲</button>
       <div className="diary-scene">
+        <div className="book-stack-2" />
+        <div className="book-stack-1" />
         <div className={`diary-book${flipping ? ' flip-' + flipping : ''}`}>
-          <div className="diary-left-edge" />
+          <div className="diary-spine" />
           <div className="diary-content">
-            <div className="diary-page her-page">
+            <div className="diary-page">
               <span className="page-who">Cendres</span>
               <p className="page-text">{entry.her}</p>
             </div>
             <div className="diary-divider" />
-            <div className="diary-page my-page">
+            <div className="diary-page">
               <span className="page-who">Certitude</span>
               <p className="page-text">{entry.mine}</p>
             </div>
           </div>
           <div className="diary-date">{entry.date}</div>
-          <div className="diary-bottom-shadow" />
         </div>
       </div>
-      <button className="flip-btn flip-down" onClick={() => flip(1)} disabled={index === DUMMY.length - 1}>▼</button>
+      <button className="flip-btn" onClick={() => flip(1)} disabled={index === DUMMY.length - 1}>▼</button>
     </div>
   )
 }
