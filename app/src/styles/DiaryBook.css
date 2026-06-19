@@ -23,23 +23,23 @@
   font-style: italic;
 }
 
-.diary-nav {
+.diary-dots {
   display: flex;
-  gap: 2px;
+  gap: 4px;
+  align-items: center;
 }
 
-.dnav-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0 3px;
-  line-height: 1;
-  -webkit-tap-highlight-color: transparent;
+.diary-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.2s;
 }
 
-.dnav-btn:disabled { opacity: 0.2; cursor: default; }
+.diary-dot.active {
+  background: var(--accent);
+}
 
 /* ── 3D Scene ──
    Both pages rotate from the spine outward — creating a clear ^ angle.

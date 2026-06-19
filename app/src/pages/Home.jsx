@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import WeekBar from '../components/WeekBar'
 import CountdownBar from '../components/CountdownBar'
 import DiaryBook from '../components/DiaryBook'
@@ -14,11 +15,17 @@ function getDayCount() {
 
 function CatSlot({ src, alt }) {
   const [failed, setFailed] = useState(false)
-  if (failed) return <div className="cat-placeholder">{alt[0]}</div>
-  return <img src={src} alt={alt} className="cat-img" onError={() => setFailed(true)} />
+  return (
+    <div className="cat-slot">
+      <span className="cat-sym">[</span>
+      {failed
+        ? <div className="cat-placeholder">{alt[0]}</div>
+        : <img src={src} alt={alt} className="cat-img" onError={() => setFailed(true)} />
+      }
+      <span className="cat-sym">]</span>
+    </div>
+  )
 }
-
-import { useState } from 'react'
 
 export default function Home() {
   const days = getDayCount()

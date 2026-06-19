@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import '../styles/DiaryBook.css'
 
 const NOTES = [
@@ -11,24 +11,42 @@ const NOTES = [
 
 export default function DiaryBook() {
   const [idx, setIdx] = useState(0)
+  const touchStartY = useRef(null)
   const note = NOTES[idx]
 
+  function onTouchStart(e) {
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  function onTouchEnd(e) {
+    if (touchStartY.current === null) return
+    const delta = e.changedTouches[0].clientY - touchStartY.current
+    touchStartY.current = null
+    if (Math.abs(delta) < 28) return
+    if (delta < 0) setIdx(i => Math.min(NOTES.length - 1, i + 1))
+    else setIdx(i => Math.max(0, i - 1))
+  }
+
   return (
-    <div className="diary-wrap">
-      {/* minimal nav, no title */}
+    <div
+      className="diary-wrap"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="diary-topbar">
         <span className="diary-date-label">{note.date}</span>
-        <div className="diary-nav">
-          <button className="dnav-btn" onClick={() => setIdx(i => Math.max(0, i - 1))} disabled={idx === 0}>‹</button>
-          <button className="dnav-btn" onClick={() => setIdx(i => Math.min(NOTES.length - 1, i + 1))} disabled={idx === NOTES.length - 1}>›</button>
-        </div>
+        {NOTES.length > 1 && (
+          <div className="diary-dots">
+            {NOTES.map((_, i) => (
+              <span key={i} className={`diary-dot${i === idx ? ' active' : ''}`} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* 3D Book */}
       <div className="diary-scene">
         <div className="diary-book">
 
-          {/* Upper page — tilts top-away-from-viewer (opens upward) */}
           <div className="page-upper-wrap">
             <div className="page-stack ps-b" />
             <div className="page-stack ps-a" />
@@ -38,10 +56,8 @@ export default function DiaryBook() {
             </div>
           </div>
 
-          {/* Spine */}
           <div className="book-spine" />
 
-          {/* Lower page — tilts bottom-toward-viewer (opens downward) */}
           <div className="page-lower-wrap">
             <div className="page-lower">
               <span className="page-who">Certitude</span>
