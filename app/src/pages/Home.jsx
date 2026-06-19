@@ -30,7 +30,7 @@ function Header() {
   const day = daysSince()
   return (
     <div className="home-header">
-      <span className="fleur">&#10087;</span>
+      <span className="fleur">❮</span>
       <div className="header-center">
         <div className="header-cats">
           <img src="/cats/black.png" className="cat-icon" alt="" />
@@ -42,7 +42,7 @@ function Header() {
         </div>
         <div className="header-date">Since Jun 15, 2026</div>
       </div>
-      <span className="fleur">&#10087;</span>
+      <span className="fleur">❯</span>
     </div>
   )
 }
