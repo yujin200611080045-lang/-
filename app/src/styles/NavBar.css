@@ -4,9 +4,9 @@
   align-items: center;
   padding: 10px 0;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border);
   flex-shrink: 0;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .nav-item {
@@ -15,7 +15,7 @@
   font-family: 'Georgia', 'Times New Roman', serif;
   font-style: italic;
   font-size: 13px;
-  color: #ccc;
+  color: var(--text-muted);
   cursor: pointer;
   letter-spacing: 0.5px;
   padding: 4px 8px;
@@ -23,5 +23,5 @@
 }
 
 .nav-item.active {
-  color: #111;
+  color: var(--text-primary);
 }

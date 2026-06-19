@@ -1,8 +1,9 @@
 .week-bar {
   display: flex;
   justify-content: space-around;
-  padding: 6px 12px 8px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 8px 12px 10px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -10,31 +11,42 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .wd-name {
-  font-size: 10px;
-  color: #bbb;
+  font-size: 9px;
+  color: var(--text-muted);
   letter-spacing: 0;
 }
 
 .wd-date {
   font-size: 13px;
-  color: #333;
+  color: var(--text-secondary);
   font-weight: 300;
 }
 
+.week-day.today .wd-name {
+  color: var(--accent);
+}
+
 .week-day.today .wd-date {
-  color: #111;
+  color: var(--text-primary);
   font-weight: 500;
+  background: var(--accent-light);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mood-dot {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   background: transparent;
   cursor: pointer;
   font-size: 11px;
@@ -47,10 +59,10 @@
 }
 
 .mood-dot.filled {
-  border-color: #bbb;
-  background: #fafafa;
+  border-color: var(--accent);
+  background: var(--accent-light);
 }
 
 .week-day.today .mood-dot {
-  border-color: #999;
+  border-color: var(--accent);
 }
