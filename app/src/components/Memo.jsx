@@ -25,6 +25,7 @@ export default function Memo() {
   return (
     <div className="memo-wrap">
       <div className="memo-label">备忘</div>
+      <div className="memo-spacer" />
       <div className="memo-section">
         <span className="memo-who">她的</span>
         {items.hers.map((item, i) => (

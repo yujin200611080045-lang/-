@@ -15,6 +15,11 @@
   text-transform: uppercase;
 }
 
+.memo-spacer {
+  height: 22px;
+  flex-shrink: 0;
+}
+
 .memo-section {
   display: flex;
   flex-direction: column;
