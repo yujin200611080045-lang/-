@@ -1,0 +1,68 @@
+.memo-wrap {
+  width: 110px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  padding-top: 0;
+}
+
+.memo-title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.memo-title-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.memo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.memo-section-label {
+  font-size: 10px;
+  color: var(--accent);
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  margin-bottom: 2px;
+}
+
+.memo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.memo-check {
+  font-size: 11px;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+  width: 10px;
+  text-align: center;
+}
+
+.memo-text {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.memo-item.done .memo-text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.memo-item.done .memo-check {
+  color: var(--text-muted);
+}

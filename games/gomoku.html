@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>五子棋 · 对战小克</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0ede6;display:flex;flex-direction:column;align-items:center;min-height:100vh;font-family:-apple-system,sans-serif;padding:16px;touch-action:none}
+h1{font-size:18px;color:#3a3028;margin:12px 0 4px;letter-spacing:1px}
+.subtitle{font-size:12px;color:#9a8c7e;margin-bottom:12px}
+.status{font-size:14px;color:#5c4f40;margin-bottom:10px;min-height:20px;text-align:center}
+canvas{border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,0.18);touch-action:none;cursor:pointer}
+.controls{display:flex;gap:10px;margin-top:14px}
+button{padding:8px 20px;border:none;border-radius:20px;font-size:13px;cursor:pointer;transition:all .2s}
+.btn-primary{background:#7b6b5a;color:#fff}
+.btn-primary:hover{background:#5c4f40}
+.btn-secondary{background:#e8e0d4;color:#5c4f40}
+.btn-secondary:hover{background:#d4c8b8}
+.mode-row{display:flex;gap:8px;margin-bottom:8px}
+.mode-btn{padding:6px 16px;border:1.5px solid #c0b4a4;border-radius:16px;background:#fff;font-size:12px;color:#7b6b5a;cursor:pointer}
+.mode-btn.active{background:#7b6b5a;color:#fff;border-color:#7b6b5a}
+</style>
+</head>
+<body>
+<h1>五子棋</h1>
+<div class="subtitle">黑子先手</div>
+<div class="mode-row">
+  <button class="mode-btn active" id="modeAI">对战小克</button>
+  <button class="mode-btn" id="mode2P">双人对战</button>
+</div>
+<div class="status" id="status">黑子落子</div>
+<canvas id="board"></canvas>
+<div class="controls">
+  <button class="btn-primary" onclick="resetGame()">重新开始</button>
+  <button class="btn-secondary" onclick="undoMove()">悔棋</button>
+</div>
+
+<script>
+const N = 15, CELL = 36, PAD = 24
+const W = (N - 1) * CELL + PAD * 2
+let canvas, ctx, board, current, gameOver, history, vsAI = true, thinking = false
+
+function init() {
+  canvas = document.getElementById('board')
+  canvas.width = canvas.height = W
+  ctx = canvas.getContext('2d')
+  canvas.addEventListener('click', onTap)
+  canvas.addEventListener('touchend', e => { e.preventDefault(); onTap(e.changedTouches[0]) }, { passive: false })
+  document.getElementById('modeAI').onclick = () => setMode(true)
+  document.getElementById('mode2P').onclick = () => setMode(false)
+  resetGame()
+}
+
+function setMode(ai) {
+  vsAI = ai
+  document.getElementById('modeAI').className = 'mode-btn' + (ai ? ' active' : '')
+  document.getElementById('mode2P').className = 'mode-btn' + (!ai ? ' active' : '')
+  resetGame()
+}
+
+function resetGame() {
+  board = Array.from({length:N}, () => Array(N).fill(0))
+  current = 1; gameOver = false; history = []; thinking = false
+  setStatus('黑子落子')
+  draw()
+}
+
+function setStatus(s) { document.getElementById('status').textContent = s }
+
+function onTap(e) {
+  if (gameOver || thinking) return
+  const rect = canvas.getBoundingClientRect()
+  const scaleX = canvas.width / rect.width
+  const x = (e.clientX - rect.left) * scaleX
+  const y = (e.clientY - rect.top) * scaleX
+  const col = Math.round((x - PAD) / CELL)
+  const row = Math.round((y - PAD) / CELL)
+  if (col < 0 || col >= N || row < 0 || row >= N) return
+  if (board[row][col] !== 0) return
+  place(row, col, current)
+  if (checkWin(row, col, current)) { endGame(current); return }
+  if (isFull()) { setStatus('平局！'); gameOver = true; return }
+  current = 3 - current
+  if (vsAI && current === 2) { thinking = true; setStatus('小克思考中…'); setTimeout(aiMove, 80) }
+  else setStatus(current === 1 ? '黑子落子' : '白子落子')
+}
+
+function place(r, c, p) { board[r][c] = p; history.push([r,c]); draw() }
+
+function undoMove() {
+  if (gameOver || history.length === 0) return
+  const steps = vsAI && history.length >= 2 ? 2 : 1
+  for (let i = 0; i < steps && history.length; i++) {
+    const [r,c] = history.pop(); board[r][c] = 0
+  }
+  current = 1; gameOver = false; thinking = false
+  setStatus('黑子落子'); draw()
+}
+
+function endGame(p) {
+  gameOver = true
+  setStatus(vsAI
+    ? (p === 1 ? '你赢了！' : '小克赢了～')
+    : (p === 1 ? '黑子获胜！' : '白子获胜！'))
+  drawWin(p)
+}
+
+function isFull() { return board.every(row => row.every(c => c !== 0)) }
+
+/* ── AI ── */
+function aiMove() {
+  thinking = false
+  const move = findBestMove()
+  if (!move) return
+  place(move[0], move[1], 2)
+  if (checkWin(move[0], move[1], 2)) { endGame(2); return }
+  if (isFull()) { setStatus('平局！'); gameOver = true; return }
+  current = 1; setStatus('黑子落子')
+}
+
+function findBestMove() {
+  let best = null, bestScore = -Infinity
+  const candidates = getCandidates()
+  for (const [r,c] of candidates) {
+    if (board[r][c] !== 0) continue
+    const s = scoreMove(r, c)
+    if (s > bestScore) { bestScore = s; best = [r,c] }
+  }
+  return best
+}
+
+function getCandidates() {
+  const set = new Set(), radius = 2
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    if (board[r][c] === 0) continue
+    for (let dr = -radius; dr <= radius; dr++) for (let dc = -radius; dc <= radius; dc++) {
+      const nr = r+dr, nc = c+dc
+      if (nr>=0&&nr<N&&nc>=0&&nc<N&&board[nr][nc]===0) set.add(nr*N+nc)
+    }
+  }
+  if (set.size === 0) { set.add(7*N+7) }
+  return [...set].map(v => [Math.floor(v/N), v%N])
+}
+
+function scoreMove(r, c) {
+  board[r][c] = 2
+  const atk = evalPos(r, c, 2)
+  board[r][c] = 1
+  const def = evalPos(r, c, 1)
+  board[r][c] = 0
+  return Math.max(atk * 1.1, def)
+}
+
+const DIRS = [[0,1],[1,0],[1,1],[1,-1]]
+function evalPos(r, c, p) {
+  let score = 0
+  for (const [dr,dc] of DIRS) {
+    const line = getLine(r, c, dr, dc, p)
+    score += lineScore(line)
+  }
+  return score
+}
+
+function getLine(r, c, dr, dc, p) {
+  let line = [p]
+  for (let d = 1; d <= 4; d++) {
+    const nr=r+dr*d, nc=c+dc*d
+    if (nr<0||nr>=N||nc<0||nc>=N) { line.push(-1); break }
+    line.push(board[nr][nc])
+  }
+  for (let d = 1; d <= 4; d++) {
+    const nr=r-dr*d, nc=c-dc*d
+    if (nr<0||nr>=N||nc<0||nc>=N) { line.unshift(-1); break }
+    line.unshift(board[nr][nc])
+  }
+  return line
+}
+
+function lineScore(line) {
+  const s = line.join('')
+  const p = line[Math.floor(line.length/2)]
+  const x = p === 1 ? '1' : '2'
+  const xx = x+x, xxx = xx+x, xxxx = xxx+x, xxxxx = xxxx+x
+  if (s.includes(xxxxx)) return 1e8
+  if (s.includes('0'+xxxx+'0')) return 1e6
+  if (s.includes(xxxx+'0') || s.includes('0'+xxxx)) return 9e5
+  if (s.includes('0'+xxx+'0')) return 5e4
+  if (s.includes(xxx)) return 1e4
+  if (s.includes('0'+xx+'0')) return 1e3
+  if (s.includes(xx)) return 100
+  return 10
+}
+
+/* ── Win check ── */
+function checkWin(r, c, p) {
+  for (const [dr,dc] of DIRS) {
+    let cnt = 1
+    for (let d=1;d<=4;d++){const nr=r+dr*d,nc=c+dc*d;if(nr<0||nr>=N||nc<0||nc>=N||board[nr][nc]!==p)break;cnt++}
+    for (let d=1;d<=4;d++){const nr=r-dr*d,nc=c-dc*d;if(nr<0||nr>=N||nc<0||nc>=N||board[nr][nc]!==p)break;cnt++}
+    if (cnt >= 5) return true
+  }
+  return false
+}
+
+/* ── Draw ── */
+function draw() {
+  ctx.clearRect(0, 0, W, W)
+  // Board background
+  ctx.fillStyle = '#d4ba8a'
+  ctx.fillRect(0, 0, W, W)
+  // Grid
+  ctx.strokeStyle = '#b8a070'
+  ctx.lineWidth = 0.8
+  for (let i = 0; i < N; i++) {
+    ctx.beginPath(); ctx.moveTo(PAD + i*CELL, PAD); ctx.lineTo(PAD + i*CELL, PAD+(N-1)*CELL); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(PAD, PAD+i*CELL); ctx.lineTo(PAD+(N-1)*CELL, PAD+i*CELL); ctx.stroke()
+  }
+  // Star points
+  [[3,3],[3,11],[11,3],[11,11],[7,7]].forEach(([r,c])=>{
+    ctx.beginPath(); ctx.arc(PAD+c*CELL, PAD+r*CELL, 3.5, 0, Math.PI*2)
+    ctx.fillStyle='#b8a070'; ctx.fill()
+  })
+  // Stones
+  for (let r=0;r<N;r++) for (let c=0;c<N;c++) {
+    if (board[r][c]===0) continue
+    const x=PAD+c*CELL, y=PAD+r*CELL, radius=CELL*0.44
+    const grad = ctx.createRadialGradient(x-radius*0.3, y-radius*0.3, radius*0.05, x, y, radius)
+    if (board[r][c]===1) {
+      grad.addColorStop(0,'#686868'); grad.addColorStop(1,'#0a0a0a')
+    } else {
+      grad.addColorStop(0,'#ffffff'); grad.addColorStop(1,'#d0d0d0')
+    }
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI*2)
+    ctx.fillStyle=grad; ctx.fill()
+  }
+}
+
+function drawWin(p) {
+  // Flash last stone
+  const [lr,lc] = history[history.length-1]
+  const x=PAD+lc*CELL, y=PAD+lr*CELL
+  ctx.beginPath(); ctx.arc(x, y, CELL*0.44, 0, Math.PI*2)
+  ctx.strokeStyle = p===1 ? '#ff6b6b' : '#6b9eff'
+  ctx.lineWidth = 3; ctx.stroke()
+}
+
+init()
+</script>
+</body>
+</html>

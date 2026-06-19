@@ -1,0 +1,194 @@
+.diary-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Header row ── */
+.diary-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.diary-title-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.diary-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.diary-nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.diary-nav-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+
+.diary-nav-num {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ── 3D Scene ── */
+/*
+  perspective-origin: 50% -60%  puts the vanishing point ABOVE the book.
+  This makes the upper page's far edge converge upward — the natural look
+  of an open book lying flat on a table when viewed from the front/slightly-above.
+*/
+.diary-scene {
+  flex: 1;
+  perspective: 460px;
+  perspective-origin: 50% -60%;
+  overflow: visible;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.diary-book {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 4px;
+  position: relative;
+}
+
+/* ── Upper section ──
+   The ENTIRE upper section (main page + stacked pages) rotates together.
+   rotateX with transform-origin at the bottom = top goes away from viewer.
+
+   Stacked pages inside are translateY'd upward in LOCAL space.
+   Because the section is rotated, "local up" maps to "further from viewer" in 3D.
+   Result: stacks peek out from the back/top, simulating real book page depth.
+*/
+.upper-section {
+  flex: 1;
+  position: relative;
+  transform-origin: bottom center;
+  transform: rotateX(-42deg);
+  min-height: 0;
+  border-radius: 4px 4px 0 0;
+}
+
+/* Stacked page layers — inside .upper-section, so they rotate with it */
+.page-stack {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px 4px 0 0;
+  pointer-events: none;
+}
+
+/* page-stack-a: 1 page behind */
+.page-stack-a {
+  background: #dde0e7;
+  transform: translateY(-5px);
+  z-index: 0;
+}
+
+/* page-stack-b: 2 pages behind */
+.page-stack-b {
+  background: #d0d4dc;
+  transform: translateY(-10px);
+  z-index: -1;
+}
+
+/* Main upper page content */
+.page-upper {
+  position: absolute;
+  inset: 0;
+  background: #eef0f4;
+  border-radius: 4px 4px 0 0;
+  padding: 12px 12px 10px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+/* ── Spine (hinge between pages) ── */
+.book-spine {
+  flex-shrink: 0;
+  height: 7px;
+  background: linear-gradient(to bottom,
+    #b8bcc8 0%,
+    #9ea3b2 40%,
+    #b8bcc8 100%
+  );
+  position: relative;
+  z-index: 10;
+}
+
+.spine-shadow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.12));
+}
+
+/* ── Lower page (flat, faces viewer) ── */
+.page-lower {
+  flex: 1;
+  background: #f5f6f9;
+  border-radius: 0 0 4px 4px;
+  padding: 10px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* ── Text styles ── */
+.page-who {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.page-text {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+
+.diary-date {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: auto;
+  flex-shrink: 0;
+  font-style: italic;
+}

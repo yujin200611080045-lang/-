@@ -1,0 +1,68 @@
+.home-wrapper {
+  height: 100vh;
+  height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── Header ── */
+.home-header {
+  flex-shrink: 0;
+  padding: 10px 16px 4px;
+}
+
+.cats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cat-slot {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cat-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.header-center {
+  flex: 1;
+  text-align: center;
+}
+
+.day-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+  font-family: 'Georgia', serif;
+}
+
+.since-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* ── Body (Diary + Memo side-by-side) ── */
+.home-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  padding: 4px 12px 6px;
+  overflow: hidden;
+  min-height: 0;
+}

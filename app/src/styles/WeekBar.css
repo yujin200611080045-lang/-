@@ -1,0 +1,52 @@
+.week-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 16px 4px;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  flex: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.week-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.today .week-label {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.mood-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.25s ease;
+  position: relative;
+}
+
+.today .mood-dot {
+  box-shadow: 0 0 0 2px var(--accent-light), 0 0 0 3px var(--accent);
+}
+
+.mood-char {
+  font-size: 8px;
+  color: white;
+  font-weight: 700;
+  line-height: 1;
+}

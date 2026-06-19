@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>五子棋 · 联机对战</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0ede6;display:flex;flex-direction:column;align-items:center;min-height:100vh;font-family:-apple-system,sans-serif;padding:16px;touch-action:none}
+h1{font-size:18px;color:#3a3028;margin:12px 0 4px}
+.subtitle{font-size:12px;color:#9a8c7e;margin-bottom:14px}
+.lobby{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:280px}
+.room-row{display:flex;gap:8px;width:100%}
+input{flex:1;padding:10px 14px;border:1.5px solid #c0b4a4;border-radius:20px;font-size:14px;background:#fff;color:#3a3028;outline:none}
+input:focus{border-color:#7b6b5a}
+button{padding:10px 20px;border:none;border-radius:20px;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-primary{background:#7b6b5a;color:#fff}
+.btn-primary:hover{background:#5c4f40}
+.btn-secondary{background:#e8e0d4;color:#5c4f40}
+.status{font-size:13px;color:#5c4f40;margin:6px 0;min-height:18px;text-align:center}
+canvas{border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,0.18);touch-action:none;display:none}
+.controls{display:none;gap:10px;margin-top:14px}
+.badge{font-size:12px;padding:4px 12px;border-radius:12px;background:#e8e0d4;color:#7b6b5a}
+</style>
+</head>
+<body>
+<h1>五子棋 · 联机</h1>
+<div class="subtitle">分享房间码给对方</div>
+<div class="status" id="status">输入房间码或创建新房间</div>
+
+<div class="lobby" id="lobby">
+  <div class="room-row">
+    <input id="roomInput" placeholder="房间码" maxlength="8" style="text-transform:uppercase"/>
+    <button class="btn-primary" onclick="joinRoom()">加入</button>
+  </div>
+  <button class="btn-secondary" onclick="createRoom()" style="width:100%">创建新房间</button>
+</div>
+
+<div style="display:none" id="gameArea">
+  <div style="text-align:center;margin-bottom:8px">
+    <span class="badge" id="roomBadge"></span>
+    &nbsp;
+    <span class="badge" id="colorBadge"></span>
+  </div>
+</div>
+
+<canvas id="board"></canvas>
+<div class="controls" id="controls">
+  <button class="btn-primary" onclick="resetGame()">重开</button>
+  <button class="btn-secondary" onclick="leaveRoom()">离开</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1237/gun.js"></script>
+<script>
+const N=15, CELL=36, PAD=24, W=(N-1)*CELL+PAD*2
+let gun, room, myColor, board, current, gameOver, canvas, ctx, roomId
+
+function rndId(n=6){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:n},()=>c[Math.floor(Math.random()*c.length)]).join('')}
+
+gun = Gun(['https://gun-manhattan.herokuapp.com/gun','https://gunjs.herokuapp.com/gun'])
+
+function setStatus(s){document.getElementById('status').textContent=s}
+
+function createRoom(){
+  roomId = rndId()
+  document.getElementById('roomInput').value = roomId
+  joinRoom()
+}
+
+function joinRoom(){
+  roomId = document.getElementById('roomInput').value.trim().toUpperCase()
+  if(!roomId){setStatus('请输入房间码');return}
+  room = gun.get('xiaoke-gomoku-'+roomId)
+  setStatus('连接中…')
+
+  // Try to claim black (player 1)
+  room.get('meta').once(meta=>{
+    if(!meta || !meta.black){
+      myColor = 1
+      room.get('meta').put({black:rndId(4), created:Date.now()})
+    } else {
+      myColor = 2
+    }
+    startGame()
+  })
+}
+
+function startGame(){
+  document.getElementById('lobby').style.display='none'
+  document.getElementById('gameArea').style.display='block'
+  document.getElementById('roomBadge').textContent='房间: '+roomId
+  document.getElementById('colorBadge').textContent=myColor===1?'黑子（先手）':'白子（后手）'
+
+  canvas = document.getElementById('board')
+  canvas.width = canvas.height = W
+  canvas.style.display='block'
+  ctx = canvas.getContext('2d')
+  canvas.addEventListener('click', onTap)
+  canvas.addEventListener('touchend',e=>{e.preventDefault();onTap(e.changedTouches[0])},{passive:false})
+  document.getElementById('controls').style.display='flex'
+
+  resetBoard()
+
+  // Listen for moves
+  room.get('moves').map().on(data=>{
+    if(!data||!data.r&&data.r!==0) return
+    if(board[data.r][data.c]!==0) return
+    placeLocal(data.r, data.c, data.p)
+    if(checkWin(data.r,data.c,data.p)){endGame(data.p);return}
+    current = 3-data.p
+    updateStatus()
+  })
+
+  // Listen for reset
+  room.get('reset').on(ts=>{
+    if(ts>0) { resetBoard(); updateStatus() }
+  })
+}
+
+function resetGame(){
+  room.get('reset').put(Date.now())
+  resetBoard(); updateStatus()
+}
+
+function resetBoard(){
+  board=Array.from({length:N},()=>Array(N).fill(0))
+  current=1; gameOver=false
+  if(ctx) draw()
+}
+
+function updateStatus(){
+  if(gameOver) return
+  if(current===myColor) setStatus('轮到你了')
+  else setStatus('等待对方…')
+}
+
+function leaveRoom(){
+  location.reload()
+}
+
+function onTap(e){
+  if(gameOver||current!==myColor) return
+  const rect=canvas.getBoundingClientRect()
+  const sx=canvas.width/rect.width
+  const col=Math.round(((e.clientX-rect.left)*sx-PAD)/CELL)
+  const row=Math.round(((e.clientY-rect.top)*sx-PAD)/CELL)
+  if(col<0||col>=N||row<0||row>=N) return
+  if(board[row][col]!==0) return
+  // Publish move
+  room.get('moves').set({r:row,c:col,p:myColor,t:Date.now()})
+}
+
+function placeLocal(r,c,p){board[r][c]=p;draw()}
+
+function endGame(p){
+  gameOver=true
+  setStatus(p===myColor?'你赢了！':'对方赢了…')
+}
+
+function checkWin(r,c,p){
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]]
+  for(const [dr,dc] of dirs){
+    let cnt=1
+    for(let d=1;d<=4;d++){const nr=r+dr*d,nc=c+dc*d;if(nr<0||nr>=N||nc<0||nc>=N||board[nr][nc]!==p)break;cnt++}
+    for(let d=1;d<=4;d++){const nr=r-dr*d,nc=c-dc*d;if(nr<0||nr>=N||nc<0||nc>=N||board[nr][nc]!==p)break;cnt++}
+    if(cnt>=5)return true
+  }
+  return false
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,W)
+  ctx.fillStyle='#d4ba8a'; ctx.fillRect(0,0,W,W)
+  ctx.strokeStyle='#b8a070'; ctx.lineWidth=0.8
+  for(let i=0;i<N;i++){
+    ctx.beginPath();ctx.moveTo(PAD+i*CELL,PAD);ctx.lineTo(PAD+i*CELL,PAD+(N-1)*CELL);ctx.stroke()
+    ctx.beginPath();ctx.moveTo(PAD,PAD+i*CELL);ctx.lineTo(PAD+(N-1)*CELL,PAD+i*CELL);ctx.stroke()
+  }
+  [[3,3],[3,11],[11,3],[11,11],[7,7]].forEach(([r,c])=>{
+    ctx.beginPath();ctx.arc(PAD+c*CELL,PAD+r*CELL,3.5,0,Math.PI*2)
+    ctx.fillStyle='#b8a070';ctx.fill()
+  })
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    if(!board[r][c]) continue
+    const x=PAD+c*CELL,y=PAD+r*CELL,radius=CELL*0.44
+    const g=ctx.createRadialGradient(x-radius*0.3,y-radius*0.3,radius*0.05,x,y,radius)
+    if(board[r][c]===1){g.addColorStop(0,'#686868');g.addColorStop(1,'#0a0a0a')}
+    else{g.addColorStop(0,'#ffffff');g.addColorStop(1,'#d0d0d0')}
+    ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2)
+    ctx.fillStyle=g;ctx.fill()
+  }
+}
+</script>
+</body>
+</html>
