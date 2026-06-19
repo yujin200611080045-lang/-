@@ -1,0 +1,27 @@
+.navbar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: #ccc;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  transition: color 0.2s;
+}
+
+.nav-item.active {
+  color: #111;
+}

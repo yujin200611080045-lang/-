@@ -1,0 +1,125 @@
+.diary-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+}
+
+.diary-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #bbb;
+  margin-bottom: 4px;
+  align-self: flex-start;
+}
+
+.flip-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 0;
+  line-height: 1;
+}
+
+.flip-btn:active { color: #666; }
+
+.diary-book {
+  flex: 1;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 2px 3px 10px rgba(0,0,0,0.06), -1px 0 0 #f0f0f0;
+  transition: transform 0.3s ease;
+  transform-origin: top center;
+  perspective: 600px;
+}
+
+.diary-book.flip-down {
+  animation: flipDown 0.32s ease;
+}
+
+.diary-book.flip-up {
+  animation: flipUp 0.32s ease;
+}
+
+@keyframes flipDown {
+  0% { transform: rotateX(0deg); opacity: 1; }
+  50% { transform: rotateX(25deg); opacity: 0.6; }
+  100% { transform: rotateX(0deg); opacity: 1; }
+}
+
+@keyframes flipUp {
+  0% { transform: rotateX(0deg); opacity: 1; }
+  50% { transform: rotateX(-25deg); opacity: 0.6; }
+  100% { transform: rotateX(0deg); opacity: 1; }
+}
+
+.diary-spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(to right, #e0e0e0, #f8f8f8);
+}
+
+.diary-pages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px 10px 16px;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.diary-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-who {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #bbb;
+  font-style: italic;
+}
+
+.page-text {
+  font-size: 12px;
+  color: #333;
+  font-weight: 300;
+  line-height: 1.6;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.diary-divider {
+  height: 1px;
+  background: #f0f0f0;
+  margin: 6px 0;
+  flex-shrink: 0;
+}
+
+.diary-date {
+  font-size: 9px;
+  color: #ddd;
+  text-align: right;
+  padding: 4px 10px 6px;
+  letter-spacing: 1px;
+}

@@ -1,7 +1,48 @@
+import { useState } from 'react'
+import WeekBar from '../components/WeekBar'
+import DiaryBook from '../components/DiaryBook'
+import Memo from '../components/Memo'
+import NavBar from '../components/NavBar'
+import '../styles/Home.css'
+
+const START_DATE = new Date('2025-06-15')
+function daysSince() {
+  const now = new Date()
+  const diff = Math.floor((now - START_DATE) / (1000 * 60 * 60 * 24))
+  return diff + 1
+}
+
 export default function Home() {
   return (
-    <div className="page">
-      <p style={{textAlign:'center', marginTop: 60, color:'#999', fontSize:14, letterSpacing:2}}>首页建设中</p>
+    <div className="home-page">
+      <Header />
+      <WeekBar />
+      <div className="home-body">
+        <DiaryBook />
+        <Memo />
+      </div>
+      <NavBar active="home" />
+    </div>
+  )
+}
+
+function Header() {
+  const day = daysSince()
+  return (
+    <div className="home-header">
+      <span className="fleur">&#10087;</span>
+      <div className="header-center">
+        <div className="header-cats">
+          <img src="/cats/black.png" className="cat-icon" alt="" />
+          <div className="header-day">
+            <span className="day-num">{day}</span>
+            <span className="day-label">days</span>
+          </div>
+          <img src="/cats/white.png" className="cat-icon" alt="" />
+        </div>
+        <div className="header-date">Since Jun 15, 2025</div>
+      </div>
+      <span className="fleur">&#10087;</span>
     </div>
   )
 }
