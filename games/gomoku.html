@@ -17,37 +17,16 @@
     user-select: none;
     -webkit-user-select: none;
   }
-  h1 {
-    font-size: 18px;
-    font-weight: 500;
-    letter-spacing: 4px;
-    color: #333;
-    margin-bottom: 16px;
-  }
-  #status {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 12px;
-    height: 20px;
-    letter-spacing: 1px;
-  }
-  #board-wrap {
-    position: relative;
-    background: #d4a96a;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    border-radius: 4px;
-  }
-  canvas {
-    display: block;
-    border-radius: 4px;
-  }
-  #controls {
-    margin-top: 20px;
-    display: flex;
-    gap: 12px;
-  }
+  h1 { font-size: 18px; font-weight: 500; letter-spacing: 4px; color: #333; margin-bottom: 12px; }
+  #status { font-size: 14px; color: #666; margin-bottom: 10px; height: 20px; letter-spacing: 1px; }
+  #mode-btns { display: flex; gap: 8px; margin-bottom: 12px; }
+  #mode-btns button { padding: 6px 16px; font-size: 12px; letter-spacing: 1px; }
+  #mode-btns button.active { background: #333; color: #f5f0e8; }
+  #board-wrap { position: relative; background: #d4a96a; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; }
+  canvas { display: block; border-radius: 4px; }
+  #controls { margin-top: 16px; display: flex; gap: 12px; }
   button {
-    padding: 10px 24px;
+    padding: 10px 20px;
     border: 1px solid #333;
     background: transparent;
     color: #333;
@@ -55,12 +34,9 @@
     letter-spacing: 2px;
     border-radius: 2px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
   }
-  button:active {
-    background: #333;
-    color: #f5f0e8;
-  }
+  button:active { background: #333; color: #f5f0e8; }
   #winner-mask {
     display: none;
     position: fixed;
@@ -72,199 +48,234 @@
     gap: 20px;
   }
   #winner-mask.show { display: flex; }
-  #winner-text {
-    font-size: 28px;
-    color: #fff;
-    letter-spacing: 4px;
-    font-weight: 300;
-  }
-  #winner-mask button {
-    border-color: #fff;
-    color: #fff;
-    font-size: 14px;
-  }
-  #winner-mask button:active {
-    background: #fff;
-    color: #333;
-  }
+  #winner-text { font-size: 28px; color: #fff; letter-spacing: 4px; font-weight: 300; }
+  #winner-mask button { border-color: #fff; color: #fff; }
+  #winner-mask button:active { background: #fff; color: #333; }
 </style>
 </head>
 <body>
 <h1>五 子 棋</h1>
-<div id="status">黑方先行</div>
-<div id="board-wrap">
-  <canvas id="board"></canvas>
+<div id="mode-btns">
+  <button id="btn-ai" class="active" onclick="setMode('ai')">对战小克</button>
+  <button id="btn-pvp" onclick="setMode('pvp')">双人对战</button>
 </div>
+<div id="status">您先行（黑）</div>
+<div id="board-wrap"><canvas id="board"></canvas></div>
 <div id="controls">
   <button onclick="resetGame()">重新开始</button>
   <button onclick="undoMove()">悔棋</button>
 </div>
-
 <div id="winner-mask">
   <div id="winner-text"></div>
   <button onclick="resetGame()">再来一局</button>
 </div>
-
 <script>
-  const GRID = 15;
-  const canvas = document.getElementById('board');
-  const ctx = canvas.getContext('2d');
+const GRID = 15;
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+let SIZE, CELL, PAD;
+let board, current, history, gameOver;
+let mode = 'ai'; // 'ai' | 'pvp'
+let aiThinking = false;
 
-  let SIZE, CELL, PAD;
-  let board = [];
-  let current = 1;
-  let history = [];
-  let gameOver = false;
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-ai').classList.toggle('active', m === 'ai');
+  document.getElementById('btn-pvp').classList.toggle('active', m === 'pvp');
+  resetGame();
+}
 
-  function resize() {
-    const max = Math.min(window.innerWidth - 32, window.innerHeight - 200, 480);
-    SIZE = max;
-    CELL = SIZE / (GRID + 1);
-    PAD = CELL;
-    canvas.width = SIZE;
-    canvas.height = SIZE;
-    canvas.style.width = SIZE + 'px';
-    canvas.style.height = SIZE + 'px';
-    draw();
+function resize() {
+  const max = Math.min(window.innerWidth - 32, window.innerHeight - 220, 480);
+  SIZE = max;
+  CELL = SIZE / (GRID + 1);
+  PAD = CELL;
+  canvas.width = SIZE;
+  canvas.height = SIZE;
+  canvas.style.width = SIZE + 'px';
+  canvas.style.height = SIZE + 'px';
+  draw();
+}
+
+function initBoard() {
+  board = Array.from({length: GRID}, () => Array(GRID).fill(0));
+  current = 1;
+  history = [];
+  gameOver = false;
+  aiThinking = false;
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = mode === 'ai' ? '您先行（黑）' : '黑方先行';
+  document.getElementById('winner-mask').classList.remove('show');
+  draw();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#d4a96a';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < GRID; i++) {
+    ctx.beginPath(); ctx.moveTo(PAD + i*CELL, PAD); ctx.lineTo(PAD + i*CELL, PAD + (GRID-1)*CELL); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD, PAD + i*CELL); ctx.lineTo(PAD + (GRID-1)*CELL, PAD + i*CELL); ctx.stroke();
   }
-
-  function initBoard() {
-    board = Array.from({length: GRID}, () => Array(GRID).fill(0));
-    current = 1;
-    history = [];
-    gameOver = false;
-    document.getElementById('status').textContent = '黑方先行';
-    document.getElementById('winner-mask').classList.remove('show');
-    draw();
+  const stars = [3,7,11];
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  for (let r of stars) for (let c of stars) {
+    ctx.beginPath(); ctx.arc(PAD+c*CELL, PAD+r*CELL, 3, 0, Math.PI*2); ctx.fill();
   }
+  for (let r = 0; r < GRID; r++)
+    for (let c = 0; c < GRID; c++)
+      if (board[r][c]) drawPiece(r, c, board[r][c]);
+  if (history.length > 0) {
+    const last = history[history.length-1];
+    const x = PAD + last.c*CELL, y = PAD + last.r*CELL;
+    ctx.strokeStyle = last.player===1 ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 1.5;
+    const s = CELL*0.2;
+    ctx.beginPath(); ctx.moveTo(x-s,y); ctx.lineTo(x+s,y); ctx.moveTo(x,y-s); ctx.lineTo(x,y+s); ctx.stroke();
+  }
+}
 
-  function draw() {
-    ctx.clearRect(0, 0, SIZE, SIZE);
-    ctx.fillStyle = '#d4a96a';
-    ctx.fillRect(0, 0, SIZE, SIZE);
+function drawPiece(r, c, player) {
+  const x = PAD+c*CELL, y = PAD+r*CELL, radius = CELL*0.45;
+  const grad = ctx.createRadialGradient(x-radius*0.3, y-radius*0.3, radius*0.1, x, y, radius);
+  if (player===1) { grad.addColorStop(0,'#666'); grad.addColorStop(1,'#111'); }
+  else { grad.addColorStop(0,'#fff'); grad.addColorStop(1,'#ccc'); }
+  ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI*2);
+  ctx.fillStyle = grad; ctx.fill();
+}
 
-    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-    ctx.lineWidth = 0.8;
-    for (let i = 0; i < GRID; i++) {
-      ctx.beginPath();
-      ctx.moveTo(PAD + i * CELL, PAD);
-      ctx.lineTo(PAD + i * CELL, PAD + (GRID - 1) * CELL);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(PAD, PAD + i * CELL);
-      ctx.lineTo(PAD + (GRID - 1) * CELL, PAD + i * CELL);
-      ctx.stroke();
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+  const touch = e.changedTouches ? e.changedTouches[0] : null;
+  const cx = touch ? (touch.clientX-rect.left)*scaleX : (e.clientX-rect.left)*scaleX;
+  const cy = touch ? (touch.clientY-rect.top)*scaleY : (e.clientY-rect.top)*scaleY;
+  return { r: Math.round((cy-PAD)/CELL), c: Math.round((cx-PAD)/CELL) };
+}
+
+function placeStone(e) {
+  e.preventDefault();
+  if (gameOver || aiThinking) return;
+  if (mode === 'ai' && current === 2) return;
+  const {r, c} = getPos(e);
+  if (r<0||r>=GRID||c<0||c>=GRID||board[r][c]) return;
+  doPlace(r, c, current);
+  if (!gameOver && mode === 'ai') {
+    aiThinking = true;
+    document.getElementById('status').textContent = '小克思考中…';
+    setTimeout(aiMove, 300);
+  }
+}
+
+function doPlace(r, c, player) {
+  board[r][c] = player;
+  history.push({r, c, player});
+  draw();
+  if (checkWin(r, c, player)) {
+    gameOver = true;
+    let name;
+    if (mode === 'ai') name = player===1 ? '您胜了！' : '小克胜了！';
+    else name = player===1 ? '黑方胜利' : '白方胜利';
+    document.getElementById('winner-text').textContent = name;
+    document.getElementById('winner-mask').classList.add('show');
+    return;
+  }
+  current = current===1 ? 2 : 1;
+  if (!gameOver) {
+    const s = document.getElementById('status');
+    if (mode === 'ai') s.textContent = current===1 ? '轮到您了' : '';
+    else s.textContent = current===1 ? '黑方落子' : '白方落子';
+  }
+}
+
+// AI评分
+function score(r, c, player) {
+  let total = 0;
+  const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+  for (const [dr,dc] of dirs) {
+    let count = 1, openEnds = 0;
+    for (let i=1;i<5;i++) {
+      const nr=r+dr*i, nc=c+dc*i;
+      if (nr<0||nr>=GRID||nc<0||nc>=GRID) break;
+      if (board[nr][nc]===player) count++;
+      else { if(board[nr][nc]===0) openEnds++; break; }
     }
-
-    const stars = [3, 7, 11];
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    for (let r of stars) {
-      for (let c of stars) {
-        ctx.beginPath();
-        ctx.arc(PAD + c * CELL, PAD + r * CELL, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    for (let i=1;i<5;i++) {
+      const nr=r-dr*i, nc=c-dc*i;
+      if (nr<0||nr>=GRID||nc<0||nc>=GRID) break;
+      if (board[nr][nc]===player) count++;
+      else { if(board[nr][nc]===0) openEnds++; break; }
     }
-
-    for (let r = 0; r < GRID; r++) {
-      for (let c = 0; c < GRID; c++) {
-        if (board[r][c]) drawPiece(r, c, board[r][c]);
-      }
-    }
+    const s = count>=5?1e7 : count===4&&openEnds>=1?1e5 : count===4?1e4 : count===3&&openEnds===2?5000 : count===3&&openEnds===1?500 : count===2&&openEnds===2?100 : count===2&&openEnds===1?10 : 1;
+    total += s;
   }
+  return total;
+}
 
-  function drawPiece(r, c, player) {
-    const x = PAD + c * CELL;
-    const y = PAD + r * CELL;
-    const radius = CELL * 0.45;
-    const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, radius*0.1, x, y, radius);
-    if (player === 1) {
-      grad.addColorStop(0, '#666');
-      grad.addColorStop(1, '#111');
-    } else {
-      grad.addColorStop(0, '#fff');
-      grad.addColorStop(1, '#ccc');
-    }
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
-    ctx.fill();
+function aiMove() {
+  let best = -1, br = -1, bc = -1;
+  const center = Math.floor(GRID/2);
+  if (history.length === 0) { doPlace(center, center, 2); aiThinking=false; return; }
+  for (let r=0;r<GRID;r++) for (let c=0;c<GRID;c++) {
+    if (board[r][c]) continue;
+    if (!hasNeighbor(r,c)) continue;
+    const attack = score(r,c,2);
+    const defend = score(r,c,1);
+    const v = attack*1.1 + defend;
+    if (v > best) { best=v; br=r; bc=c; }
   }
+  if (br===-1) { br=center; bc=center; }
+  doPlace(br, bc, 2);
+  aiThinking = false;
+  if (!gameOver) document.getElementById('status').textContent = '轮到您了';
+}
 
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    let cx, cy;
-    const touch = e.changedTouches ? e.changedTouches[0] : null;
-    if (touch) {
-      cx = (touch.clientX - rect.left) * scaleX;
-      cy = (touch.clientY - rect.top) * scaleY;
-    } else {
-      cx = (e.clientX - rect.left) * scaleX;
-      cy = (e.clientY - rect.top) * scaleY;
-    }
-    const c = Math.round((cx - PAD) / CELL);
-    const r = Math.round((cy - PAD) / CELL);
-    return { r, c };
+function hasNeighbor(r, c) {
+  for (let dr=-2;dr<=2;dr++) for (let dc=-2;dc<=2;dc++) {
+    if (!dr&&!dc) continue;
+    const nr=r+dr, nc=c+dc;
+    if (nr>=0&&nr<GRID&&nc>=0&&nc<GRID&&board[nr][nc]) return true;
   }
+  return false;
+}
 
-  function placeStone(e) {
-    e.preventDefault();
-    if (gameOver) return;
-    const {r, c} = getPos(e);
-    if (r < 0 || r >= GRID || c < 0 || c >= GRID) return;
-    if (board[r][c]) return;
-    board[r][c] = current;
-    history.push({r, c, player: current});
-    draw();
-    if (checkWin(r, c, current)) {
-      gameOver = true;
-      const name = current === 1 ? '黑方' : '白方';
-      document.getElementById('winner-text').textContent = name + ' 胜利';
-      document.getElementById('winner-mask').classList.add('show');
-      return;
-    }
-    current = current === 1 ? 2 : 1;
-    document.getElementById('status').textContent = current === 1 ? '黑方落子' : '白方落子';
+function checkWin(r, c, player) {
+  const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+  for (const [dr,dc] of dirs) {
+    let count = 1;
+    for (let i=1;i<5;i++) { const nr=r+dr*i,nc=c+dc*i; if(nr<0||nr>=GRID||nc<0||nc>=GRID||board[nr][nc]!==player) break; count++; }
+    for (let i=1;i<5;i++) { const nr=r-dr*i,nc=c-dc*i; if(nr<0||nr>=GRID||nc<0||nc>=GRID||board[nr][nc]!==player) break; count++; }
+    if (count>=5) return true;
   }
+  return false;
+}
 
-  function checkWin(r, c, player) {
-    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
-    for (const [dr, dc] of dirs) {
-      let count = 1;
-      for (let i = 1; i < 5; i++) {
-        const nr = r + dr*i, nc = c + dc*i;
-        if (nr<0||nr>=GRID||nc<0||nc>=GRID||board[nr][nc]!==player) break;
-        count++;
-      }
-      for (let i = 1; i < 5; i++) {
-        const nr = r - dr*i, nc = c - dc*i;
-        if (nr<0||nr>=GRID||nc<0||nc>=GRID||board[nr][nc]!==player) break;
-        count++;
-      }
-      if (count >= 5) return true;
-    }
-    return false;
+function undoMove() {
+  if (gameOver || aiThinking) return;
+  if (mode==='ai') {
+    if (history.length<2) return;
+    const m2=history.pop(); board[m2.r][m2.c]=0;
+    const m1=history.pop(); board[m1.r][m1.c]=0;
+    current=1;
+    document.getElementById('status').textContent='轮到您了';
+  } else {
+    if (!history.length) return;
+    const last=history.pop(); board[last.r][last.c]=0;
+    current=last.player;
+    document.getElementById('status').textContent=current===1?'黑方落子':'白方落子';
   }
+  draw();
+}
 
-  function undoMove() {
-    if (gameOver || history.length === 0) return;
-    const last = history.pop();
-    board[last.r][last.c] = 0;
-    current = last.player;
-    document.getElementById('status').textContent = current === 1 ? '黑方落子' : '白方落子';
-    draw();
-  }
+function resetGame() { initBoard(); }
 
-  function resetGame() { initBoard(); }
-
-  canvas.addEventListener('touchend', placeStone, { passive: false });
-  canvas.addEventListener('click', placeStone);
-  window.addEventListener('resize', resize);
-
-  resize();
-  initBoard();
+canvas.addEventListener('touchend', placeStone, {passive:false});
+canvas.addEventListener('click', placeStone);
+window.addEventListener('resize', resize);
+resize();
+initBoard();
 </script>
 </body>
 </html>
