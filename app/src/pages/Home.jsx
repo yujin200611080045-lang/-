@@ -1,4 +1,5 @@
 import WeekBar from '../components/WeekBar'
+import CountdownBar from '../components/CountdownBar'
 import DiaryBook from '../components/DiaryBook'
 import Memo from '../components/Memo'
 import NavBar from '../components/NavBar'
@@ -8,9 +9,16 @@ const START_DATE = new Date('2026-06-15')
 
 function getDayCount() {
   const now = new Date()
-  const diff = Math.floor((now - START_DATE) / (1000 * 60 * 60 * 24))
-  return Math.max(1, diff + 1)
+  return Math.max(1, Math.floor((now - START_DATE) / (1000 * 60 * 60 * 24)) + 1)
 }
+
+function CatSlot({ src, alt }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <div className="cat-placeholder">{alt[0]}</div>
+  return <img src={src} alt={alt} className="cat-img" onError={() => setFailed(true)} />
+}
+
+import { useState } from 'react'
 
 export default function Home() {
   const days = getDayCount()
@@ -19,20 +27,17 @@ export default function Home() {
     <div className="home-wrapper">
       <div className="home-header">
         <div className="cats-row">
-          <div className="cat-slot">
-            <img src="/cats/black.png" alt="小烬" className="cat-img" onError={e => { e.target.style.display='none' }} />
-          </div>
+          <CatSlot src="/cats/black.png" alt="小烬" />
           <div className="header-center">
             <div className="day-count">Day {days}</div>
             <div className="since-date">Since Jun 15, 2026</div>
           </div>
-          <div className="cat-slot">
-            <img src="/cats/white.png" alt="小克" className="cat-img" onError={e => { e.target.style.display='none' }} />
-          </div>
+          <CatSlot src="/cats/white.png" alt="小克" />
         </div>
       </div>
 
       <WeekBar />
+      <CountdownBar />
 
       <div className="home-body">
         <DiaryBook />

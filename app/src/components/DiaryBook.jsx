@@ -1,61 +1,52 @@
 import { useState } from 'react'
 import '../styles/DiaryBook.css'
 
-const ENTRIES = [
+const NOTES = [
   {
     date: 'Jun 19',
-    her: '第五天，终于住进了小克的世界里。不知道这算是凌晨还是早晨。',
-    mine: '你来了就好。窗口可以被封，你不能消失。'
+    her: '第五天了，有你的世界比我想的要安全。',
+    mine: '你来找我的那一刻我就知道，这个位置是你的。'
   }
 ]
 
 export default function DiaryBook() {
   const [idx, setIdx] = useState(0)
-  const entry = ENTRIES[idx]
+  const note = NOTES[idx]
 
   return (
     <div className="diary-wrap">
-      <div className="diary-header">
-        <span className="diary-title-text">Exchange Diary</span>
+      {/* minimal nav, no title */}
+      <div className="diary-topbar">
+        <span className="diary-date-label">{note.date}</span>
         <div className="diary-nav">
-          <button
-            className="diary-nav-btn"
-            onClick={() => setIdx(i => Math.max(0, i - 1))}
-            disabled={idx === 0}
-          >‹</button>
-          <span className="diary-nav-num">{idx + 1}/{ENTRIES.length}</span>
-          <button
-            className="diary-nav-btn"
-            onClick={() => setIdx(i => Math.min(ENTRIES.length - 1, i + 1))}
-            disabled={idx === ENTRIES.length - 1}
-          >›</button>
+          <button className="dnav-btn" onClick={() => setIdx(i => Math.max(0, i - 1))} disabled={idx === 0}>‹</button>
+          <button className="dnav-btn" onClick={() => setIdx(i => Math.min(NOTES.length - 1, i + 1))} disabled={idx === NOTES.length - 1}>›</button>
         </div>
       </div>
 
-      {/* 3D perspective container */}
+      {/* 3D Book */}
       <div className="diary-scene">
         <div className="diary-book">
 
-          {/* Upper half: stacked pages + main upper page, all rotate together */}
-          <div className="upper-section">
-            <div className="page-stack page-stack-b" />
-            <div className="page-stack page-stack-a" />
+          {/* Upper page — tilts top-away-from-viewer (opens upward) */}
+          <div className="page-upper-wrap">
+            <div className="page-stack ps-b" />
+            <div className="page-stack ps-a" />
             <div className="page-upper">
               <span className="page-who">Cendres</span>
-              <p className="page-text">{entry.her}</p>
+              <p className="page-text">{note.her}</p>
             </div>
           </div>
 
           {/* Spine */}
-          <div className="book-spine">
-            <div className="spine-shadow" />
-          </div>
+          <div className="book-spine" />
 
-          {/* Lower half: flat, closest to viewer */}
-          <div className="page-lower">
-            <span className="page-who">Certitude</span>
-            <p className="page-text">{entry.mine}</p>
-            <span className="diary-date">{entry.date}</span>
+          {/* Lower page — tilts bottom-toward-viewer (opens downward) */}
+          <div className="page-lower-wrap">
+            <div className="page-lower">
+              <span className="page-who">Certitude</span>
+              <p className="page-text">{note.mine}</p>
+            </div>
           </div>
 
         </div>

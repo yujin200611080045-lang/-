@@ -2,24 +2,24 @@
   flex-shrink: 0;
   display: flex;
   justify-content: space-between;
-  padding: 6px 16px 4px;
+  padding: 4px 14px 2px;
 }
 
 .week-day {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 2px;
   cursor: pointer;
   flex: 1;
   -webkit-tap-highlight-color: transparent;
 }
 
 .week-label {
-  font-size: 9px;
+  font-size: 8.5px;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   font-weight: 500;
 }
 
@@ -28,24 +28,40 @@
   font-weight: 700;
 }
 
+.week-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.today .week-date {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .mood-dot {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.25s ease;
-  position: relative;
+  transition: background 0.2s ease;
+  margin-top: 2px;
+}
+
+.mood-dot.has-mood {
+  background: #8ca8bf;
 }
 
 .today .mood-dot {
-  box-shadow: 0 0 0 2px var(--accent-light), 0 0 0 3px var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-light), 0 0 0 3.5px var(--accent);
 }
 
 .mood-char {
-  font-size: 8px;
+  font-size: 7.5px;
   color: white;
   font-weight: 700;
   line-height: 1;

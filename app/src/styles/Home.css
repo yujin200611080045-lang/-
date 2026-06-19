@@ -12,7 +12,7 @@
 /* ── Header ── */
 .home-header {
   flex-shrink: 0;
-  padding: 10px 16px 4px;
+  padding: 8px 16px 4px;
 }
 
 .cats-row {
@@ -21,19 +21,28 @@
   justify-content: space-between;
 }
 
-.cat-slot {
-  width: 46px;
-  height: 46px;
+.cat-img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.cat-placeholder {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  border: 1.5px dashed var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.cat-img {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  image-rendering: pixelated;
+  font-size: 16px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-family: 'Georgia', serif;
+  font-style: italic;
 }
 
 .header-center {
@@ -42,21 +51,22 @@
 }
 
 .day-count {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.5px;
   font-family: 'Georgia', serif;
+  letter-spacing: 0.5px;
 }
 
 .since-date {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 1px;
   font-style: italic;
+  font-family: 'Georgia', serif;
 }
 
-/* ── Body (Diary + Memo side-by-side) ── */
+/* ── Body: diary + memo, equal width ── */
 .home-body {
   flex: 1;
   display: flex;
