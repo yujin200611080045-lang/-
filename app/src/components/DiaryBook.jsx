@@ -15,10 +15,7 @@ export default function DiaryBook() {
     const next = index + dir
     if (next < 0 || next >= DUMMY.length) return
     setFlipping(dir > 0 ? 'down' : 'up')
-    setTimeout(() => {
-      setIndex(next)
-      setFlipping(null)
-    }, 400)
+    setTimeout(() => { setIndex(next); setFlipping(null) }, 400)
   }
 
   const entry = DUMMY[index]
@@ -27,25 +24,37 @@ export default function DiaryBook() {
     <div className="diary-wrap">
       <div className="diary-label">交换日记</div>
       <button className="flip-btn" onClick={() => flip(-1)} disabled={index === 0}>▲</button>
+
       <div className="diary-scene">
         <div className="book-stack-2" />
         <div className="book-stack-1" />
-        <div className={`diary-book${flipping ? ' flip-' + flipping : ''}`}>
-          <div className="diary-spine" />
-          <div className="diary-content">
-            <div className="diary-page">
+
+        <div className={`diary-book${flipping ? ' flipping' : ''}`}>
+
+          {/* 上半页：掘起倾斜 */}
+          <div className="page-upper">
+            <div className="page-upper-inner">
               <span className="page-who">Cendres</span>
               <p className="page-text">{entry.her}</p>
             </div>
-            <div className="diary-divider" />
-            <div className="diary-page">
-              <span className="page-who">Certitude</span>
-              <p className="page-text">{entry.mine}</p>
-            </div>
+            <div className="page-upper-shadow" />
           </div>
-          <div className="diary-date">{entry.date}</div>
+
+          {/* 书脊折痕 */}
+          <div className="book-hinge">
+            <div className="hinge-line" />
+          </div>
+
+          {/* 下半页：平摔 */}
+          <div className="page-lower">
+            <span className="page-who">Certitude</span>
+            <p className="page-text">{entry.mine}</p>
+            <span className="diary-date">{entry.date}</span>
+          </div>
+
         </div>
       </div>
+
       <button className="flip-btn" onClick={() => flip(1)} disabled={index === DUMMY.length - 1}>▼</button>
     </div>
   )
