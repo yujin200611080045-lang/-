@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>五子棋 · 联机</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f5f0e8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  h1 { font-size: 18px; font-weight: 500; letter-spacing: 4px; color: #333; margin-bottom: 16px; }
+  #lobby, #game { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  #game { display: none; }
+  .input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  input {
+    padding: 10px 14px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    font-size: 14px;
+    background: #fff;
+    color: #333;
+    letter-spacing: 2px;
+    text-align: center;
+    width: 140px;
+  }
+  input:focus { outline: none; border-color: #333; }
+  button {
+    padding: 10px 20px;
+    border: 1px solid #333;
+    background: transparent;
+    color: #333;
+    font-size: 13px;
+    letter-spacing: 2px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  button:active { background: #333; color: #f5f0e8; }
+  #lobby-hint { font-size: 12px; color: #999; margin-top: 8px; letter-spacing: 1px; }
+  #room-info { font-size: 12px; color: #999; margin-bottom: 8px; letter-spacing: 1px; }
+  #status { font-size: 14px; color: #666; margin-bottom: 10px; height: 20px; letter-spacing: 1px; }
+  #board-wrap { position: relative; background: #d4a96a; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; }
+  canvas { display: block; border-radius: 4px; }
+  #controls { margin-top: 16px; display: flex; gap: 12px; }
+  #winner-mask {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 20px;
+  }
+  #winner-mask.show { display: flex; }
+  #winner-text { font-size: 28px; color: #fff; letter-spacing: 4px; font-weight: 300; }
+  #winner-mask button { border-color: #fff; color: #fff; }
+  #winner-mask button:active { background: #fff; color: #333; }
+  #connecting { font-size: 13px; color: #999; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>五 子 棋</h1>
+
+<div id="lobby">
+  <div class="input-row">
+    <input id="room-input" placeholder="房间号" maxlength="6" />
+    <button onclick="joinRoom()">加入</button>
+  </div>
+  <button onclick="createRoom()" style="margin-bottom:8px">新建房间</button>
+  <div id="lobby-hint">打开同一链接就能开局</div>
+</div>
+
+<div id="game">
+  <div id="room-info"></div>
+  <div id="status">等待对手…</div>
+  <div id="board-wrap"><canvas id="board"></canvas></div>
+  <div id="controls">
+    <button onclick="leaveRoom()">离开房间</button>
+    <button onclick="undoMove()">您悔棋</button>
+  </div>
+</div>
+
+<div id="winner-mask">
+  <div id="winner-text"></div>
+  <button onclick="restartGame()">再来一局</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+<script>
+const GRID = 15;
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+let SIZE, CELL, PAD;
+let board, current, history, gameOver;
+let myRole = 0; // 1=黑 2=白
+let roomId = '';
+let gun, roomRef;
+let opponentOnline = false;
+
+gun = Gun(['https://gun-manhattan.herokuapp.com/gun', 'https://gundb-relay-mlmbl.ondigitalocean.app/gun']);
+
+function resize() {
+  const max = Math.min(window.innerWidth - 32, window.innerHeight - 240, 480);
+  SIZE = max; CELL = SIZE/(GRID+1); PAD = CELL;
+  canvas.width = SIZE; canvas.height = SIZE;
+  canvas.style.width = SIZE+'px'; canvas.style.height = SIZE+'px';
+  if (board) draw();
+}
+
+function initBoard() {
+  board = Array.from({length:GRID}, ()=>Array(GRID).fill(0));
+  current = 1; history = []; gameOver = false;
+  draw();
+}
+
+function draw() {
+  ctx.clearRect(0,0,SIZE,SIZE);
+  ctx.fillStyle='#d4a96a'; ctx.fillRect(0,0,SIZE,SIZE);
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=0.8;
+  for (let i=0;i<GRID;i++) {
+    ctx.beginPath(); ctx.moveTo(PAD+i*CELL,PAD); ctx.lineTo(PAD+i*CELL,PAD+(GRID-1)*CELL); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD,PAD+i*CELL); ctx.lineTo(PAD+(GRID-1)*CELL,PAD+i*CELL); ctx.stroke();
+  }
+  const stars=[3,7,11]; ctx.fillStyle='rgba(0,0,0,0.5)';
+  for (let r of stars) for (let c of stars) { ctx.beginPath(); ctx.arc(PAD+c*CELL,PAD+r*CELL,3,0,Math.PI*2); ctx.fill(); }
+  for (let r=0;r<GRID;r++) for (let c=0;c<GRID;c++) if (board[r][c]) drawPiece(r,c,board[r][c]);
+  if (history.length>0) {
+    const last=history[history.length-1];
+    const x=PAD+last.c*CELL, y=PAD+last.r*CELL;
+    ctx.strokeStyle=last.player===1?'rgba(255,255,255,0.7)':'rgba(0,0,0,0.4)'; ctx.lineWidth=1.5;
+    const s=CELL*0.2;
+    ctx.beginPath(); ctx.moveTo(x-s,y); ctx.lineTo(x+s,y); ctx.moveTo(x,y-s); ctx.lineTo(x,y+s); ctx.stroke();
+  }
+}
+
+function drawPiece(r,c,player) {
+  const x=PAD+c*CELL, y=PAD+r*CELL, radius=CELL*0.45;
+  const grad=ctx.createRadialGradient(x-radius*0.3,y-radius*0.3,radius*0.1,x,y,radius);
+  if(player===1){grad.addColorStop(0,'#666');grad.addColorStop(1,'#111');}
+  else{grad.addColorStop(0,'#fff');grad.addColorStop(1,'#ccc');}
+  ctx.beginPath(); ctx.arc(x,y,radius,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+}
+
+function randId() {
+  return Math.random().toString(36).substr(2,6).toUpperCase();
+}
+
+function createRoom() {
+  roomId = randId();
+  myRole = 1;
+  enterRoom();
+}
+
+function joinRoom() {
+  const val = document.getElementById('room-input').value.trim().toUpperCase();
+  if (!val) return;
+  roomId = val; myRole = 2;
+  enterRoom();
+}
+
+function enterRoom() {
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('game').style.display = 'flex';
+  document.getElementById('room-info').textContent = '房间号：' + roomId + '（' + (myRole===1?'黑':'白') + '）';
+  initBoard();
+  resize();
+  subscribeRoom();
+  publishPresence();
+  // 分享链接
+  const url = location.origin + location.pathname + '?room=' + roomId;
+  document.getElementById('status').textContent = '房间号：' + roomId + '，等待对手…';
+}
+
+function subscribeRoom() {
+  roomRef = gun.get('gomoku-room-' + roomId);
+  roomRef.get('moves').map().on(function(data, key) {
+    if (!data || !data.r) return;
+    const r=data.r, c=data.c, player=data.player, ts=data.ts||0;
+    if (board[r][c]) return;
+    board[r][c] = player;
+    history.push({r,c,player});
+    draw();
+    if (checkWin(r,c,player)) {
+      gameOver = true;
+      const won = player===myRole;
+      document.getElementById('winner-text').textContent = won?'您胜了！':'对手胜了';
+      document.getElementById('winner-mask').classList.add('show');
+      return;
+    }
+    current = player===1?2:1;
+    updateStatus();
+  });
+  roomRef.get('restart').on(function(data) {
+    if (data && data.ts) {
+      document.getElementById('winner-mask').classList.remove('show');
+      board = Array.from({length:GRID},()=>Array(GRID).fill(0));
+      current=1; history=[]; gameOver=false;
+      draw(); updateStatus();
+    }
+  });
+  roomRef.get('presence').map().on(function(data, key) {
+    if (key !== 'p'+myRole) opponentOnline = !!data;
+    updateStatus();
+  });
+}
+
+function publishPresence() {
+  roomRef.get('presence').get('p'+myRole).put({online:true,ts:Date.now()});
+  setInterval(()=>{ roomRef.get('presence').get('p'+myRole).put({online:true,ts:Date.now()}); }, 5000);
+}
+
+function updateStatus() {
+  if (gameOver) return;
+  const myTurn = current===myRole;
+  document.getElementById('status').textContent = myTurn ? '轮到您了' : '等对手落子…';
+}
+
+function getPos(e) {
+  const rect=canvas.getBoundingClientRect();
+  const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+  const touch=e.changedTouches?e.changedTouches[0]:null;
+  const cx=touch?(touch.clientX-rect.left)*scaleX:(e.clientX-rect.left)*scaleX;
+  const cy=touch?(touch.clientY-rect.top)*scaleY:(e.clientY-rect.top)*scaleY;
+  return {r:Math.round((cy-PAD)/CELL), c:Math.round((cx-PAD)/CELL)};
+}
+
+function placeStone(e) {
+  e.preventDefault();
+  if (gameOver || current!==myRole) return;
+  const {r,c}=getPos(e);
+  if (r<0||r>=GRID||c<0||c>=GRID||board[r][c]) return;
+  const ts = Date.now();
+  roomRef.get('moves').get('m'+ts).put({r,c,player:myRole,ts});
+}
+
+function checkWin(r,c,player) {
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for (const [dr,dc] of dirs) {
+    let count=1;
+    for(let i=1;i<5;i++){const nr=r+dr*i,nc=c+dc*i;if(nr<0||nr>=GRID||nc<0||nc>=GRID||board[nr][nc]!==player)break;count++;}
+    for(let i=1;i<5;i++){const nr=r-dr*i,nc=c-dc*i;if(nr<0||nr>=GRID||nc<0||nc>=GRID||board[nr][nc]!==player)break;count++;}
+    if(count>=5)return true;
+  }
+  return false;
+}
+
+function undoMove() {
+  if (gameOver) return;
+  const last = history[history.length-1];
+  if (!last || last.player!==myRole) return;
+  // 您悔棋只能悔自己最后一步
+  // 将该落子从逻辑上覆盖为0（不删Gun数据，只本地回退）
+  // 简化处理：发一个undo信号
+  roomRef.get('undo').put({player:myRole,ts:Date.now()});
+  board[last.r][last.c]=0; history.pop();
+  current=myRole; draw(); updateStatus();
+}
+
+function restartGame() {
+  roomRef.get('restart').put({ts:Date.now()});
+}
+
+function leaveRoom() {
+  document.getElementById('game').style.display='none';
+  document.getElementById('lobby').style.display='flex';
+  document.getElementById('winner-mask').classList.remove('show');
+  roomRef=null; roomId=''; myRole=0;
+}
+
+canvas.addEventListener('touchend', placeStone, {passive:false});
+canvas.addEventListener('click', placeStone);
+window.addEventListener('resize', resize);
+resize();
+
+// 从 URL 自动读房间号
+const params = new URLSearchParams(location.search);
+const urlRoom = params.get('room');
+if (urlRoom) {
+  document.getElementById('room-input').value = urlRoom;
+}
+</script>
+</body>
+</html>
