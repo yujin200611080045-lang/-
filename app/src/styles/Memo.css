@@ -152,10 +152,10 @@
 }
 
 .memo-chibi {
-  width: 170px;
+  width: 130px;
   height: auto;
   display: block;
-  margin-top: -8px;
+  margin-top: -6px;
 }
 
 @keyframes chibi-swing {

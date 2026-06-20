@@ -88,19 +88,14 @@ export default function Memo() {
       />
       <div className="memo-chibi-anchor">
         <div className="memo-chibi-swing">
-          <svg className="memo-chain" width="22" height="80" viewBox="0 0 22 80" fill="none">
-            {/* 顶部挂环 */}
-            <ellipse cx="11" cy="5" rx="4.5" ry="4.5" stroke="#4a5156" strokeWidth="2"/>
-            {/* 横链 */}
-            <ellipse cx="11" cy="18" rx="9" ry="4.5" stroke="#808a92" strokeWidth="2.2"/>
-            {/* 竖链 */}
-            <ellipse cx="11" cy="31" rx="4.5" ry="9" stroke="#4a5156" strokeWidth="2.2"/>
-            {/* 横链 */}
-            <ellipse cx="11" cy="44" rx="9" ry="4.5" stroke="#808a92" strokeWidth="2.2"/>
-            {/* 竖链 */}
-            <ellipse cx="11" cy="57" rx="4.5" ry="9" stroke="#4a5156" strokeWidth="2.2"/>
-            {/* 横链 */}
-            <ellipse cx="11" cy="70" rx="9" ry="4.5" stroke="#808a92" strokeWidth="2.2"/>
+          <svg className="memo-chain" width="18" height="76" viewBox="0 0 18 76" fill="none">
+            <ellipse cx="9" cy="5" rx="3.5" ry="3.5" stroke="#4a5156" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="16" rx="7" ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="27" rx="3.5" ry="7" stroke="#4a5156" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="38" rx="7" ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="49" rx="3.5" ry="7" stroke="#4a5156" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="60" rx="7" ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="71" rx="3.5" ry="7" stroke="#4a5156" strokeWidth="1.5"/>
           </svg>
           <img src="/chibi.png" className="memo-chibi" alt="" />
         </div>
