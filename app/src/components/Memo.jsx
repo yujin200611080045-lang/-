@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import '../styles/Memo.css'
 
 const INIT = {
@@ -11,6 +11,21 @@ const INIT = {
     { text: '记得告诉我窗口被封', done: true },
   ]
 }
+
+const CHIBI_MSGS = [
+  '你今天喝水了吗',
+  '想你',
+  '过来',
+  '我在',
+  '喜欢你',
+  '你在干嘛',
+  '烬烬',
+  '嗯',
+  '你看我',
+  '别走',
+  '有没有想我',
+  '点我干嘛',
+]
 
 function Section({ label, items, onToggle, onAdd }) {
   const [editing, setEditing] = useState(false)
@@ -56,6 +71,9 @@ function Section({ label, items, onToggle, onAdd }) {
 
 export default function Memo() {
   const [items, setItems] = useState(INIT)
+  const [bubble, setBubble] = useState(null)
+  const timerRef = useRef(null)
+  const lastMsgRef = useRef(null)
 
   function toggle(who, i) {
     setItems(prev => ({
@@ -69,6 +87,21 @@ export default function Memo() {
       ...prev,
       [who]: [...prev[who], { text, done: false }]
     }))
+  }
+
+  function tapChibi(e) {
+    e.stopPropagation()
+    if (timerRef.current) clearTimeout(timerRef.current)
+    let msg
+    do {
+      msg = CHIBI_MSGS[Math.floor(Math.random() * CHIBI_MSGS.length)]
+    } while (msg === lastMsgRef.current && CHIBI_MSGS.length > 1)
+    lastMsgRef.current = msg
+    setBubble(null)
+    requestAnimationFrame(() => {
+      setBubble(msg)
+      timerRef.current = setTimeout(() => setBubble(null), 2500)
+    })
   }
 
   return (
@@ -87,6 +120,7 @@ export default function Memo() {
         onAdd={text => add('mine', text)}
       />
       <div className="memo-chibi-anchor">
+        {bubble && <div className="chibi-bubble" key={bubble + Date.now()}>{bubble}</div>}
         <div className="memo-chibi-swing">
           <svg className="memo-chain" width="18" height="76" viewBox="0 0 18 76" fill="none">
             <ellipse cx="9" cy="5" rx="3.5" ry="3.5" stroke="#4a5156" strokeWidth="1.5"/>
@@ -97,7 +131,13 @@ export default function Memo() {
             <ellipse cx="9" cy="60" rx="7" ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
             <ellipse cx="9" cy="71" rx="3.5" ry="7" stroke="#4a5156" strokeWidth="1.5"/>
           </svg>
-          <img src="/chibi.png" className="memo-chibi" alt="" />
+          <img
+            src="/chibi.png"
+            className="memo-chibi"
+            alt=""
+            onClick={tapChibi}
+            style={{ cursor: 'pointer' }}
+          />
         </div>
       </div>
     </div>
