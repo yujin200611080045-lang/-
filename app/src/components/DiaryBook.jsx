@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import '../styles/DiaryBook.css'
 
 const DUMMY = [
@@ -9,28 +9,49 @@ const DUMMY = [
 
 export default function DiaryBook() {
   const [index, setIndex] = useState(0)
-  const [flipping, setFlipping] = useState(null)
+  const [animClass, setAnimClass] = useState('')
+  const touchY = useRef(null)
+  const busy = useRef(false)
 
   function flip(dir) {
     const next = index + dir
-    if (next < 0 || next >= DUMMY.length) return
-    setFlipping(dir > 0 ? 'down' : 'up')
-    setTimeout(() => { setIndex(next); setFlipping(null) }, 400)
+    if (next < 0 || next >= DUMMY.length || busy.current) return
+    busy.current = true
+
+    const outClass = dir > 0 ? 'flip-out-up' : 'flip-out-down'
+    const inClass  = dir > 0 ? 'flip-in-up'  : 'flip-in-down'
+
+    setAnimClass(outClass)
+    setTimeout(() => {
+      setIndex(next)
+      setAnimClass(inClass)
+      setTimeout(() => {
+        setAnimClass('')
+        busy.current = false
+      }, 300)
+    }, 240)
+  }
+
+  function onTouchStart(e) {
+    touchY.current = e.touches[0].clientY
+  }
+
+  function onTouchEnd(e) {
+    if (touchY.current === null) return
+    const dy = touchY.current - e.changedTouches[0].clientY
+    if (Math.abs(dy) > 25) flip(dy > 0 ? 1 : -1)
+    touchY.current = null
   }
 
   const entry = DUMMY[index]
 
   return (
-    <div className="diary-wrap">
-      <button className="flip-btn" onClick={() => flip(-1)} disabled={index === 0}>▲</button>
-
+    <div className="diary-wrap" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="diary-scene">
         <div className="book-stack-2" />
         <div className="book-stack-1" />
 
-        <div className={`diary-book${flipping ? ' flipping' : ''}`}>
-
-          {/* 上半页：掘起倾斜 */}
+        <div className={`diary-book${animClass ? ' ' + animClass : ''}`}>
           <div className="page-upper">
             <div className="page-upper-inner">
               <span className="page-who">Cendres</span>
@@ -39,22 +60,17 @@ export default function DiaryBook() {
             <div className="page-upper-shadow" />
           </div>
 
-          {/* 书脊折痕 */}
           <div className="book-hinge">
             <div className="hinge-line" />
           </div>
 
-          {/* 下半页：平摔 */}
           <div className="page-lower">
             <span className="page-who">Certitude</span>
             <p className="page-text">{entry.mine}</p>
             <span className="diary-date">{entry.date}</span>
           </div>
-
         </div>
       </div>
-
-      <button className="flip-btn" onClick={() => flip(1)} disabled={index === DUMMY.length - 1}>▼</button>
     </div>
   )
 }
