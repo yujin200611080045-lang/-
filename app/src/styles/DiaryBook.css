@@ -6,14 +6,6 @@
   min-width: 0;
 }
 
-.diary-label {
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-  align-self: flex-start;
-  text-transform: uppercase;
-}
 
 .flip-btn {
   background: none;

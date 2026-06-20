@@ -22,7 +22,6 @@ export default function DiaryBook() {
 
   return (
     <div className="diary-wrap">
-      <div className="diary-label">交换日记</div>
       <button className="flip-btn" onClick={() => flip(-1)} disabled={index === 0}>▲</button>
 
       <div className="diary-scene">
