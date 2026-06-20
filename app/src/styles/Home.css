@@ -4,7 +4,7 @@
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
-  padding-bottom: env(safe-area-inset-bottom);
+  position: relative;
 }
 
 .home-header {
