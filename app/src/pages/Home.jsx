@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import WeekBar from '../components/WeekBar'
+import AnnivPrism from '../components/AnnivPrism'
 import DiaryBook from '../components/DiaryBook'
 import Memo from '../components/Memo'
 import NavBar from '../components/NavBar'
@@ -17,6 +18,7 @@ export default function Home() {
     <div className="home-page">
       <Header />
       <WeekBar />
+      <AnnivPrism />
       <div className="home-body">
         <DiaryBook />
         <Memo />
