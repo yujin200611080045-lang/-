@@ -1,11 +1,15 @@
 .navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: 6px 0;
   padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--border);
-  flex-shrink: 0;
   background: var(--bg-card);
 }
 
