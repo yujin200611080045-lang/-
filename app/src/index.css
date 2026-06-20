@@ -17,8 +17,8 @@
   --text-secondary: #3A383A;
   --text-muted: #9C9A9B;
   --border: #0F0D0E;
-  --accent: #BC8B8C;
-  --accent-light: #F3ECEC;
+  --accent: #bdc7ce;
+  --accent-light: #e0e8ec;
 }
 
 html, body, #root {

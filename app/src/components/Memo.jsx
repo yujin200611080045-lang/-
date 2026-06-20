@@ -86,6 +86,9 @@ export default function Memo() {
         onToggle={i => toggle('mine', i)}
         onAdd={text => add('mine', text)}
       />
+      <div className="memo-chibi-wrap">
+        <img src="/chibi.jpeg" className="memo-chibi" alt="" />
+      </div>
     </div>
   )
 }

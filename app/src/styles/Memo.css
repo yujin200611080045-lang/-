@@ -5,11 +5,12 @@
   height: 200px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--bg-card);
   padding: 10px 10px 8px;
+  position: relative;
 }
 
 .memo-section {
@@ -18,6 +19,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  clip-path: inset(0);
 }
 
 .memo-section-header {
@@ -109,4 +111,28 @@
   background: var(--border);
   margin: 6px 0;
   flex-shrink: 0;
+}
+
+.memo-chibi-wrap {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58px;
+  transform-origin: top center;
+  animation: chibi-swing 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.memo-chibi {
+  width: 58px;
+  height: auto;
+  display: block;
+  mix-blend-mode: multiply;
+}
+
+@keyframes chibi-swing {
+  0%   { transform: translateX(-50%) rotate(-9deg); }
+  50%  { transform: translateX(-50%) rotate(9deg);  }
+  100% { transform: translateX(-50%) rotate(-9deg); }
 }
