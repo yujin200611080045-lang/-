@@ -107,9 +107,9 @@
 
 .peeking-cat {
   position: fixed;
-  bottom: 10px;
-  left: 12px;
-  width: 240px;
+  bottom: 12px;
+  left: 4px;
+  width: 150px;
   pointer-events: none;
   z-index: 2;
 }
