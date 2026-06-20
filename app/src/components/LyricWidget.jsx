@@ -7,10 +7,12 @@ const BOOKS = [
   '冰与火之歌',
   '素食者',
   '洛丽塔',
+  '庆祝无意义',
+  '蛋壳头骨',
 ]
 
 const TOKENS = [
-  ...Array.from('我们该是上天命定的爱人，').map(c => ({ c, t: 'main' })),
+  ...Array.from('我们该是上天命定的爱人').map(c => ({ c, t: 'main' })),
   { c: '\n', t: 'br' },
   ...Array.from('用来诠释爱的').map(c => ({ c, t: 'main' })),
   ...Array.from('唯一解').map(c => ({ c, t: 'hi' })),

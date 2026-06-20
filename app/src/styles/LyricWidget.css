@@ -25,13 +25,13 @@
 .lw-text {
   margin: 0;
   line-height: 2.2;
-  font-size: 13.5px;
-  text-indent: 2em;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .lw-main {
   font-family: 'Ma Shan Zheng', cursive;
-  font-size: 13.5px;
+  font-size: 12px;
   color: #4a5156;
 }
 
@@ -85,11 +85,13 @@
   border-top: 1px solid var(--border);
   padding: 16px 24px 48px;
   max-height: 65vh;
-  overflow-y: auto;
+  overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   box-sizing: border-box;
   cursor: default;
-  animation: lw-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  animation: lw-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 @keyframes lw-slide-up {
