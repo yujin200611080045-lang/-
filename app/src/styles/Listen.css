@@ -77,6 +77,38 @@
   letter-spacing: 1px;
 }
 
+.listen-title-music {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 26px;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.listen-cancel {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--accent);
+  padding: 6px 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.header-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.header-search-input::placeholder {
+  color: var(--text-muted);
+}
+
 .queue-btn { margin-left: 8px; }
 
 /* ── sheet ── */
@@ -487,4 +519,11 @@
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 24px;
+}
+
+/* ── search results in main body ── */
+.listen-search-results {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }

@@ -246,25 +246,39 @@ export default function Listen() {
   return (
     <div className="listen-page">
       <div className="listen-header">
-        <button className="listen-back" onClick={() => navigate('/')}>‹</button>
-        <div className="listen-header-avatars">
-          <div className="avatar-slot hers" />
-          <span className="listen-title">一起听</span>
-          <div className="avatar-slot mine" />
-        </div>
-        <div className="listen-header-actions">
-          <button className="icon-btn" onClick={() => setSheet(s => s === 'search' ? null : 'search')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
-            </svg>
-          </button>
-          <button className="icon-btn" onClick={() => setSheet(s => s === 'playlists' ? null : 'playlists')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/>
-              <line x1="3" y1="18" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
+        {sheet === 'search' ? (
+          <>
+            <button className="listen-cancel" onClick={() => { setSheet(null); setSearchQuery(''); setSearchResults([]) }}>取消</button>
+            <input
+              className="header-search-input"
+              placeholder="搜索歌曲"
+              value={searchQuery}
+              onChange={e => handleSearch(e.target.value)}
+              autoFocus
+            />
+            {searchQuery && (
+              <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]) }}>×</button>
+            )}
+          </>
+        ) : (
+          <>
+            <button className="listen-back" onClick={() => navigate('/')}>‹</button>
+            <span className="listen-title-music">music</span>
+            <div className="listen-header-actions">
+              <button className="icon-btn" onClick={() => setSheet('search')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+                </svg>
+              </button>
+              <button className="icon-btn" onClick={() => setSheet(s => s === 'playlists' ? null : 'playlists')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/>
+                  <line x1="3" y1="18" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {phase === 'no-api' && (
@@ -353,56 +367,42 @@ export default function Listen() {
             </button>
           </div>
 
-          <div className="listen-lyrics" ref={lyricBoxRef}>
-            {lyrics.length > 0
-              ? lyrics.map((l, i) => (
-                  <p key={i} className={`lyric-line${i === curLyric ? ' active' : ''}`}>{l.text}</p>
-                ))
-              : <p className="lyric-empty">暂无歌词</p>
-            }
-          </div>
+          {sheet === 'search' ? (
+            <div className="listen-search-results">
+              {searching && <p className="sheet-hint">搜索中…</p>}
+              {!searching && !searchQuery && (
+                <p className="sheet-hint">输入歌曲名称搜索</p>
+              )}
+              {!searching && searchQuery && searchResults.length === 0 && (
+                <p className="sheet-hint">没有找到</p>
+              )}
+              {searchResults.map(song => (
+                <div key={song.id} className="sheet-item" onClick={() => playSearchResult(song)}>
+                  <div className="sheet-item-name">{song.name}</div>
+                  <div className="sheet-item-sub">{song.artists?.map(a => a.name).join(' / ')}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="listen-lyrics" ref={lyricBoxRef}>
+              {lyrics.length > 0
+                ? lyrics.map((l, i) => (
+                    <p key={i} className={`lyric-line${i === curLyric ? ' active' : ''}`}>{l.text}</p>
+                  ))
+                : <p className="lyric-empty">暂无歌词</p>
+              }
+            </div>
+          )}
         </div>
       )}
 
       <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} onEnded={() => skipTo(1)} />
 
       {/* ── 底部抽屉 ── */}
-      {sheet && (
+      {sheet && sheet !== 'search' && (
         <div className="sheet-overlay" onClick={() => setSheet(null)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-handle" />
-
-            {sheet === 'search' && (
-              <>
-                <div className="sheet-search-bar">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="search-icon-sm">
-                    <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
-                  </svg>
-                  <input
-                    className="sheet-search-input"
-                    placeholder="搜索歌曲"
-                    value={searchQuery}
-                    onChange={e => handleSearch(e.target.value)}
-                    autoFocus
-                  />
-                  {searchQuery && (
-                    <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]) }}>×</button>
-                  )}
-                </div>
-                <div className="sheet-list">
-                  {searching && <p className="sheet-hint">搜索中…</p>}
-                  {!searching && searchResults.length === 0 && searchQuery && (
-                    <p className="sheet-hint">没有找到</p>
-                  )}
-                  {searchResults.map(song => (
-                    <div key={song.id} className="sheet-item" onClick={() => playSearchResult(song)}>
-                      <div className="sheet-item-name">{song.name}</div>
-                      <div className="sheet-item-sub">{song.artists?.map(a => a.name).join(' / ')}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
 
             {sheet === 'playlists' && (
               <>
