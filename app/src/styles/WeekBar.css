@@ -1,7 +1,7 @@
 .week-bar {
   display: flex;
   justify-content: space-around;
-  padding: 10px 12px 12px;
+  padding: 7px 12px 9px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;

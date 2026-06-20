@@ -34,6 +34,7 @@
   width: 100%;
   position: relative;
   min-height: 0;
+  max-height: 200px;
   perspective: 600px;
   perspective-origin: 50% 100%;
 }
