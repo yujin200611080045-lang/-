@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import '../styles/Listen.css'
 
-const API = import.meta.env.VITE_NC_API || ''
+const API = import.meta.env.VITE_NC_API || 'https://neteasecloudmusicapi-zm28.onrender.com'
 
 function getCookie() { return localStorage.getItem('nc_cookie') || '' }
 function saveCookie(c) { localStorage.setItem('nc_cookie', c) }
