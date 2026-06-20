@@ -104,3 +104,13 @@
 .home-lower-right {
   flex: 1;
 }
+
+.peeking-cat {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 360px;
+  pointer-events: none;
+  z-index: 2;
+}

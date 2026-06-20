@@ -29,6 +29,7 @@ export default function Home() {
         <LyricWidget />
         <div className="home-lower-right" />
       </div>
+      <img src="/peeking-cat.png" className="peeking-cat" alt="" />
       <NavBar active="home" />
     </div>
   )
