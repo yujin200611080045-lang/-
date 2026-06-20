@@ -4,6 +4,7 @@
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
+  padding-top: env(safe-area-inset-top);
 }
 
 .home-header {
@@ -77,7 +78,7 @@
   display: flex;
   gap: 10px;
   padding: 10px 12px;
-  height: 42vh;
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
