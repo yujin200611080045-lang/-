@@ -1,0 +1,100 @@
+.music-wrap {
+  flex: 1;
+  min-width: 0;
+  height: 200px;
+  position: relative;
+  overflow: visible;
+}
+
+.music-card {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  /* 不规则圆角 */
+  border-radius: 22px 6px 20px 10px / 8px 24px 6px 18px;
+  transform: rotate(-2.5deg);
+  transform-origin: center center;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  box-shadow: 2px 3px 0 var(--border);
+}
+
+.music-note {
+  font-size: 15px;
+  color: var(--accent);
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.music-lyric {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 11.5px;
+  color: var(--text-primary);
+  line-height: 2;
+  letter-spacing: 0.4px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.music-from {
+  font-size: 8.5px;
+  letter-spacing: 2.5px;
+  color: var(--text-muted);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* 挂点 */
+.music-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1.5px solid #4a5156;
+  z-index: 2;
+}
+
+/* 小人 */
+.chibi-anchor {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chibi-swing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: top center;
+  animation: chibi-swing 3s ease-in-out infinite;
+}
+
+.chibi-img {
+  width: 130px;
+  height: auto;
+  display: block;
+  margin-top: -6px;
+}
+
+@keyframes chibi-swing {
+  0%   { transform: rotate(-11deg); }
+  50%  { transform: rotate(11deg);  }
+  100% { transform: rotate(-11deg); }
+}
