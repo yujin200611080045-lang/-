@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import NavBar from '../components/NavBar'
 import '../styles/Listen.css'
 
 const API = import.meta.env.VITE_NC_API || 'https://neteasecloudmusicapi-zm28.onrender.com'
@@ -292,7 +291,6 @@ export default function Listen() {
         onTimeUpdate={handleTimeUpdate}
         onEnded={() => skipTo(1)}
       />
-      <NavBar />
     </div>
   )
 }
