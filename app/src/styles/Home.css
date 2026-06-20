@@ -87,4 +87,6 @@
   min-height: 0;
   overflow: hidden;
   align-items: flex-start;
+  position: relative;
+  z-index: 1;
 }
