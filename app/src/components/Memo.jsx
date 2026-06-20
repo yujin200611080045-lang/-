@@ -72,6 +72,7 @@ function Section({ label, items, onToggle, onAdd }) {
 export default function Memo() {
   const [items, setItems] = useState(INIT)
   const [bubble, setBubble] = useState(null)
+  const [bubbleKey, setBubbleKey] = useState(0)
   const timerRef = useRef(null)
   const lastMsgRef = useRef(null)
 
@@ -97,11 +98,9 @@ export default function Memo() {
       msg = CHIBI_MSGS[Math.floor(Math.random() * CHIBI_MSGS.length)]
     } while (msg === lastMsgRef.current && CHIBI_MSGS.length > 1)
     lastMsgRef.current = msg
-    setBubble(null)
-    requestAnimationFrame(() => {
-      setBubble(msg)
-      timerRef.current = setTimeout(() => setBubble(null), 2500)
-    })
+    setBubble(msg)
+    setBubbleKey(k => k + 1)
+    timerRef.current = setTimeout(() => setBubble(null), 2500)
   }
 
   return (
@@ -119,17 +118,25 @@ export default function Memo() {
         onToggle={i => toggle('mine', i)}
         onAdd={text => add('mine', text)}
       />
+
+      {/* bubble is relative to memo-wrap for precise positioning */}
+      {bubble && (
+        <div className="chibi-bubble" key={bubbleKey}>{bubble}</div>
+      )}
+
       <div className="memo-chibi-anchor">
-        {bubble && <div className="chibi-bubble" key={bubble + Date.now()}>{bubble}</div>}
         <div className="memo-chibi-swing">
-          <svg className="memo-chain" width="18" height="76" viewBox="0 0 18 76" fill="none">
-            <ellipse cx="9" cy="5" rx="3.5" ry="3.5" stroke="#4a5156" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="16" rx="7" ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="27" rx="3.5" ry="7" stroke="#4a5156" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="38" rx="7" ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="49" rx="3.5" ry="7" stroke="#4a5156" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="60" rx="7" ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="71" rx="3.5" ry="7" stroke="#4a5156" strokeWidth="1.5"/>
+          {/* chain extended to 100px so connection lands on back/shoulder */}
+          <svg className="memo-chain" width="18" height="100" viewBox="0 0 18 100" fill="none">
+            <ellipse cx="9" cy="5"  rx="3.5" ry="3.5" stroke="#4a5156" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="16" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="27" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="38" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="49" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="60" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="71" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="82" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+            <ellipse cx="9" cy="93" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
           </svg>
           <img
             src="/chibi.png"
