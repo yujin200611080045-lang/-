@@ -30,8 +30,8 @@
   font-size: 12px;
 }
 
-.lw-line1 { padding-left: 1.5em; }
-.lw-line2 { padding-left: 0.8em; }
+.lw-line1 { padding-left: 2em; }
+.lw-line2 { padding-left: 0.8em; margin-top: 6px; }
 
 .lw-main {
   font-family: 'Ma Shan Zheng', cursive;
