@@ -30,12 +30,12 @@ function getUpcoming() {
 }
 
 const FACE_PALETTES = [
-  { bg: '#233D45', fg: '#A8B4C1' }, // Cinder + Blue Dolphin
-  { bg: '#A8B4C1', fg: '#233D45' }, // Blue Dolphin + Cinder
-  { bg: '#465056', fg: '#A8B4C1' }, // Chimney + Blue Dolphin
-  { bg: '#808E86', fg: '#000000' }, // Sea Lion + Black Metal
-  { bg: '#000000', fg: '#A8B4C1' }, // Black Metal + Blue Dolphin
-  { bg: '#465056', fg: '#808E86' }, // Chimney + Sea Lion
+  { bg: '#24292e', fg: '#bdc7ce' }, // Cinder + Blue Dolphin
+  { bg: '#bdc7ce', fg: '#24292e' }, // Blue Dolphin + Cinder
+  { bg: '#4a5156', fg: '#bdc7ce' }, // Chimney + Blue Dolphin
+  { bg: '#808a92', fg: '#000000' }, // Sea Lion + Black Metal
+  { bg: '#000000', fg: '#bdc7ce' }, // Black Metal + Blue Dolphin
+  { bg: '#4a5156', fg: '#808a92' }, // Chimney + Sea Lion
 ]
 
 export default function AnnivPrism() {
