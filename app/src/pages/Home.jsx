@@ -2,6 +2,7 @@ import { useState } from 'react'
 import WeekBar from '../components/WeekBar'
 import AnnivPrism from '../components/AnnivPrism'
 import DiaryBook from '../components/DiaryBook'
+import Memo from '../components/Memo'
 import MusicCard from '../components/MusicCard'
 import NavBar from '../components/NavBar'
 import '../styles/Home.css'
@@ -21,7 +22,11 @@ export default function Home() {
       <AnnivPrism />
       <div className="home-body">
         <DiaryBook />
+        <Memo />
+      </div>
+      <div className="home-lower">
         <MusicCard />
+        <div className="home-lower-right" />
       </div>
       <NavBar active="home" />
     </div>
