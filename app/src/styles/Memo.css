@@ -129,10 +129,9 @@
 }
 
 .memo-chibi {
-  width: 110px;
+  width: 160px;
   height: auto;
   display: block;
-  mix-blend-mode: darken;
 }
 
 @keyframes chibi-swing {

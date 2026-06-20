@@ -88,7 +88,7 @@ export default function Memo() {
       />
       <div className="memo-chibi-anchor">
         <div className="memo-chibi-swing">
-          <img src="/chibi.jpeg" className="memo-chibi" alt="" />
+          <img src="/chibi.png" className="memo-chibi" alt="" />
         </div>
       </div>
     </div>
