@@ -29,7 +29,16 @@ function getUpcoming() {
   return list.slice(0, FACES)
 }
 
-export default function AnnivPrism() {
+const FACE_PALETTES = [
+  { bg: '#233D45', fg: '#A8B4C1' }, // Cinder + Blue Dolphin
+  { bg: '#A8B4C1', fg: '#233D45' }, // Blue Dolphin + Cinder
+  { bg: '#465056', fg: '#A8B4C1' }, // Chimney + Blue Dolphin
+  { bg: '#808E86', fg: '#000000' }, // Sea Lion + Black Metal
+  { bg: '#000000', fg: '#A8B4C1' }, // Black Metal + Blue Dolphin
+  { bg: '#465056', fg: '#808E86' }, // Chimney + Sea Lion
+]
+
+
   const events = getUpcoming()
   const [idx, setIdx] = useState(0)
   const touchStartY = useRef(null)
@@ -67,11 +76,17 @@ export default function AnnivPrism() {
           className="prism"
           style={{ transform: `rotateX(${-idx * ANGLE}deg)` }}
         >
-          {events.map((ev, i) => (
+          {events.map((ev, i) => {
+            const pal = FACE_PALETTES[i % FACE_PALETTES.length]
+            return (
             <div
               key={i}
               className={`prism-face${i === idx ? ' current' : ''}`}
-              style={{ transform: `rotateX(${i * ANGLE}deg) translateZ(${R}px)` }}
+              style={{
+                transform: `rotateX(${i * ANGLE}deg) translateZ(${R}px)`,
+                background: pal.bg,
+                '--face-fg': pal.fg,
+              }}
             >
               <div className="face-left">
                 <span className="face-label">{ev.label}</span>
@@ -82,7 +97,8 @@ export default function AnnivPrism() {
                 {ev.days > 0 && <span className="face-unit">days</span>}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
       <div className="prism-dots">

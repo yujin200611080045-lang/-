@@ -31,14 +31,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: 1px solid #000000;
   border-radius: 6px;
   backface-visibility: hidden;
-}
-
-.prism-face.current {
-  border-color: var(--accent);
 }
 
 .face-left {
@@ -49,15 +44,16 @@
 
 .face-label {
   font-size: 14px;
-  color: var(--text-primary);
+  color: var(--face-fg);
   letter-spacing: 0.5px;
 }
 
 .face-sub {
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--face-fg);
   letter-spacing: 1.5px;
   text-transform: uppercase;
+  opacity: 0.7;
 }
 
 .face-right {
@@ -67,18 +63,21 @@
 }
 
 .face-days {
-  font-size: 32px;
-  font-weight: 200;
-  letter-spacing: -1px;
-  color: var(--text-primary);
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 34px;
+  font-weight: bold;
+  font-style: italic;
+  letter-spacing: -2px;
+  color: var(--face-fg);
   line-height: 1;
 }
 
 .face-unit {
   font-size: 9px;
   letter-spacing: 3px;
-  color: var(--text-muted);
+  color: var(--face-fg);
   text-transform: uppercase;
+  opacity: 0.7;
 }
 
 .prism-dots {
