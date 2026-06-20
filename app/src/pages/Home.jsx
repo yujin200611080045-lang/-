@@ -4,6 +4,7 @@ import AnnivPrism from '../components/AnnivPrism'
 import DiaryBook from '../components/DiaryBook'
 import Memo from '../components/Memo'
 import MusicCard from '../components/MusicCard'
+import LyricWidget from '../components/LyricWidget'
 import NavBar from '../components/NavBar'
 import '../styles/Home.css'
 
@@ -25,7 +26,7 @@ export default function Home() {
         <Memo />
       </div>
       <div className="home-lower">
-        <MusicCard />
+        <LyricWidget />
         <div className="home-lower-right" />
       </div>
       <NavBar active="home" />
