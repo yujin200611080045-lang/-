@@ -38,7 +38,7 @@ const FACE_PALETTES = [
   { bg: '#465056', fg: '#808E86' }, // Chimney + Sea Lion
 ]
 
-
+export default function AnnivPrism() {
   const events = getUpcoming()
   const [idx, setIdx] = useState(0)
   const touchStartY = useRef(null)
