@@ -98,6 +98,37 @@
   text-decoration: underline;
 }
 
+.qr-loading-box {
+  width: 180px;
+  height: 180px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--accent-light);
+}
+
+.qr-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin-qr 0.8s linear infinite;
+}
+
+@keyframes spin-qr {
+  to { transform: rotate(360deg); }
+}
+
+.qr-loading-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .qr-hint {
   font-size: 14px;
   color: var(--text-secondary);

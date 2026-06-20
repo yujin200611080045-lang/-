@@ -40,6 +40,7 @@ export default function Listen() {
   const [playlist, setPlaylist] = useState([])
   const [playIdx, setPlayIdx] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [qrLoading, setQrLoading] = useState(false)
 
   const audioRef = useRef(null)
   const lyricBoxRef = useRef(null)
@@ -67,6 +68,8 @@ export default function Listen() {
   async function startQr() {
     setPhase('qr')
     setQrExpired(false)
+    setQrImg('')
+    setQrLoading(true)
     try {
       const { data: { unikey } } = await req('/login/qr/key')
       qrKeyRef.current = unikey
@@ -76,6 +79,8 @@ export default function Listen() {
       pollRef.current = setInterval(() => pollQr(unikey), 2000)
     } catch (e) {
       console.error('QR init failed', e)
+    } finally {
+      setQrLoading(false)
     }
   }
 
@@ -204,8 +209,18 @@ export default function Listen() {
               <span>二维码过期了</span>
               <span className="qr-refresh">点击刷新</span>
             </div>
+          ) : qrLoading ? (
+            <div className="qr-loading-box">
+              <div className="qr-spinner" />
+              <span className="qr-loading-hint">连接中…</span>
+            </div>
+          ) : qrImg ? (
+            <img src={qrImg} className="qr-img" alt="扫码登录" />
           ) : (
-            qrImg && <img src={qrImg} className="qr-img" alt="扫码登录" />
+            <div className="qr-expired" onClick={startQr}>
+              <span>加载失败</span>
+              <span className="qr-refresh">点击重试</span>
+            </div>
           )}
           <p className="qr-hint">扫码登录网易云</p>
           <p className="qr-sub">登录后就能一起听了</p>
