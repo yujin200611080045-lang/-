@@ -45,6 +45,8 @@ export default function Listen() {
   const [uid, setUid] = useState(null)
   const [allPlaylists, setAllPlaylists] = useState([])
 
+  const [recommendations, setRecommendations] = useState([])
+
   // sheet: null | 'playlists' | 'queue' | 'search'
   const [sheet, setSheet] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -115,6 +117,7 @@ export default function Listen() {
 
   async function loadFavorites(uid) {
     setLoading(true)
+    loadRecommendations()
     try {
       const { playlist: lists } = await req('/user/playlist', { uid })
       if (!lists?.length) return
@@ -122,13 +125,22 @@ export default function Listen() {
       const { songs } = await req('/playlist/track/all', { id: lists[0].id, limit: 200 })
       if (songs?.length) {
         setPlaylist(songs)
-        await loadTrack(songs[0], 0)
+        await loadTrack(songs[0], 0, false)
       }
     } catch (e) {
       console.error(e)
     } finally {
       setLoading(false)
     }
+  }
+
+  async function loadRecommendations() {
+    try {
+      const res = await req('/recommend/songs')
+      if (res.code === 200 && res.data?.dailySongs?.length) {
+        setRecommendations(res.data.dailySongs.slice(0, 20))
+      }
+    } catch (e) {}
   }
 
   async function switchPlaylist(pl) {
@@ -147,7 +159,7 @@ export default function Listen() {
     }
   }
 
-  async function loadTrack(song, idx) {
+  async function loadTrack(song, idx, autoPlay = true) {
     setPlayIdx(idx)
     setLyrics([])
     setCurLyric(0)
@@ -166,12 +178,20 @@ export default function Listen() {
       const url = urlRes.data?.[0]?.url
       if (url && audioRef.current) {
         audioRef.current.src = url
-        audioRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
+        if (autoPlay) {
+          audioRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
+        }
       }
       setLyrics(parseLrc(lrcRes.lrc?.lyric || ''))
     } catch (e) {
       console.error(e)
     }
+  }
+
+  function playReco(song) {
+    const idx = recommendations.findIndex(s => s.id === song.id)
+    setPlaylist(recommendations)
+    loadTrack(song, idx)
   }
 
   function handleTimeUpdate() {
@@ -310,6 +330,26 @@ export default function Listen() {
           )}
           <p className="qr-hint">扫码登录网易云</p>
           <p className="qr-sub">登录后就能一起听了</p>
+        </div>
+      )}
+
+      {phase === 'playing' && recommendations.length > 0 && (
+        <div className="reco-section">
+          <p className="reco-label">猜你喜欢</p>
+          <div className="reco-carousel">
+            {recommendations.map(song => (
+              <div key={song.id} className="reco-card" onClick={() => playReco(song)}>
+                {song.al?.picUrl
+                  ? <img src={`${song.al.picUrl}?param=200y200`} className="reco-card-img" alt="" />
+                  : <div className="reco-card-img-placeholder" />
+                }
+                <div className="reco-card-info">
+                  <div className="reco-card-name">{song.name}</div>
+                  <div className="reco-card-artist">{song.ar?.map(a => a.name).join(' / ')}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -527,3 +527,80 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* ── recommendation carousel ── */
+.reco-section {
+  flex-shrink: 0;
+  padding: 12px 0 4px;
+}
+
+.reco-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  padding: 0 20px 8px;
+}
+
+.reco-carousel {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 20px 12px;
+  scrollbar-width: none;
+}
+
+.reco-carousel::-webkit-scrollbar { display: none; }
+
+.reco-card {
+  scroll-snap-align: center;
+  flex-shrink: 0;
+  width: 108px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.reco-card:active { transform: scale(0.95); }
+
+.reco-card-img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.reco-card-img-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--accent-light);
+}
+
+.reco-card-info {
+  padding: 7px 9px 9px;
+}
+
+.reco-card-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reco-card-artist {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
