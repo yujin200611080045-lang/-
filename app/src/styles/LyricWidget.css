@@ -25,6 +25,8 @@
 .lw-text {
   margin: 0;
   line-height: 2.2;
+  font-size: 13.5px;
+  text-indent: 2em;
 }
 
 .lw-main {
@@ -76,9 +78,11 @@
   padding: 16px 24px calc(env(safe-area-inset-bottom, 0px) + 28px);
   animation: lw-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
   max-height: 72vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   cursor: default;
+  box-sizing: border-box;
 }
 
 @keyframes lw-slide-up {
@@ -124,6 +128,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   flex: 1;
+  min-height: 0;
 }
 
 .lw-book {
