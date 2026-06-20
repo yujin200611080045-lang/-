@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../styles/Listen.css'
 
@@ -28,9 +28,11 @@ function parseLrc(str) {
 
 export default function Listen() {
   const navigate = useNavigate()
-  const [phase, setPhase] = useState('init') // init | qr | playing
+  const [phase, setPhase] = useState('init')
   const [qrImg, setQrImg] = useState('')
   const [qrExpired, setQrExpired] = useState(false)
+  const [qrLoading, setQrLoading] = useState(false)
+
   const [track, setTrack] = useState(null)
   const [lyrics, setLyrics] = useState([])
   const [curLyric, setCurLyric] = useState(0)
@@ -39,18 +41,27 @@ export default function Listen() {
   const [playlist, setPlaylist] = useState([])
   const [playIdx, setPlayIdx] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [qrLoading, setQrLoading] = useState(false)
+
+  const [uid, setUid] = useState(null)
+  const [allPlaylists, setAllPlaylists] = useState([])
+
+  // sheet: null | 'playlists' | 'queue' | 'search'
+  const [sheet, setSheet] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searching, setSearching] = useState(false)
 
   const audioRef = useRef(null)
   const lyricBoxRef = useRef(null)
   const pollRef = useRef(null)
-  const qrKeyRef = useRef('')
+  const searchTimer = useRef(null)
 
   useEffect(() => {
     if (!API) { setPhase('no-api'); return }
     if (getCookie()) {
       req('/user/account').then(res => {
         if (res.code === 200) {
+          setUid(res.account.id)
           setPhase('playing')
           loadFavorites(res.account.id)
         } else {
@@ -61,7 +72,10 @@ export default function Listen() {
     } else {
       startQr()
     }
-    return () => clearInterval(pollRef.current)
+    return () => {
+      clearInterval(pollRef.current)
+      clearTimeout(searchTimer.current)
+    }
   }, [])
 
   async function startQr() {
@@ -71,13 +85,12 @@ export default function Listen() {
     setQrLoading(true)
     try {
       const { data: { unikey } } = await req('/login/qr/key')
-      qrKeyRef.current = unikey
       const { data: { qrimg } } = await req('/login/qr/create', { key: unikey, qrimg: 1 })
       setQrImg(qrimg)
       clearInterval(pollRef.current)
       pollRef.current = setInterval(() => pollQr(unikey), 2000)
     } catch (e) {
-      console.error('QR init failed', e)
+      console.error(e)
     } finally {
       setQrLoading(false)
     }
@@ -90,6 +103,7 @@ export default function Listen() {
         clearInterval(pollRef.current)
         saveCookie(res.cookie)
         const { account } = await req('/user/account')
+        setUid(account.id)
         setPhase('playing')
         loadFavorites(account.id)
       } else if (res.code === 800) {
@@ -104,8 +118,24 @@ export default function Listen() {
     try {
       const { playlist: lists } = await req('/user/playlist', { uid })
       if (!lists?.length) return
-      const favId = lists[0].id
-      const { songs } = await req('/playlist/track/all', { id: favId, limit: 100 })
+      setAllPlaylists(lists)
+      const { songs } = await req('/playlist/track/all', { id: lists[0].id, limit: 200 })
+      if (songs?.length) {
+        setPlaylist(songs)
+        await loadTrack(songs[0], 0)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function switchPlaylist(pl) {
+    setSheet(null)
+    setLoading(true)
+    try {
+      const { songs } = await req('/playlist/track/all', { id: pl.id, limit: 200 })
       if (songs?.length) {
         setPlaylist(songs)
         await loadTrack(songs[0], 0)
@@ -128,7 +158,6 @@ export default function Listen() {
       artist: song.ar?.map(a => a.name).join(' / ') || '',
       albumArt: song.al?.picUrl || '',
     })
-
     try {
       const [urlRes, lrcRes] = await Promise.all([
         req('/song/url', { id: song.id }),
@@ -139,8 +168,7 @@ export default function Listen() {
         audioRef.current.src = url
         audioRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
       }
-      const lrcStr = lrcRes.lrc?.lyric || ''
-      setLyrics(parseLrc(lrcStr))
+      setLyrics(parseLrc(lrcRes.lrc?.lyric || ''))
     } catch (e) {
       console.error(e)
     }
@@ -149,12 +177,10 @@ export default function Listen() {
   function handleTimeUpdate() {
     const a = audioRef.current
     if (!a || !a.duration) return
-    const t = a.currentTime
-    setProgress(t / a.duration)
-
+    setProgress(a.currentTime / a.duration)
     let idx = 0
     for (let i = 0; i < lyrics.length; i++) {
-      if (lyrics[i].time <= t) idx = i
+      if (lyrics[i].time <= a.currentTime) idx = i
       else break
     }
     setCurLyric(idx)
@@ -186,12 +212,59 @@ export default function Listen() {
     a.currentTime = ((e.clientX - rect.left) / rect.width) * a.duration
   }
 
+  function handleSearch(q) {
+    setSearchQuery(q)
+    clearTimeout(searchTimer.current)
+    if (!q.trim()) { setSearchResults([]); return }
+    setSearching(true)
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await req('/search', { keywords: q, type: 1, limit: 30 })
+        setSearchResults(res.result?.songs || [])
+      } catch (e) {
+        setSearchResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 500)
+  }
+
+  async function playSearchResult(song) {
+    const fullSong = {
+      id: song.id,
+      name: song.name,
+      ar: song.artists,
+      al: song.album,
+    }
+    setSheet(null)
+    setSearchQuery('')
+    setSearchResults([])
+    setPlaylist([fullSong])
+    await loadTrack(fullSong, 0)
+  }
+
   return (
     <div className="listen-page">
       <div className="listen-header">
         <button className="listen-back" onClick={() => navigate('/')}>‹</button>
-        <span className="listen-title">一起听</span>
-        <div className="listen-header-gap" />
+        <div className="listen-header-avatars">
+          <div className="avatar-slot hers" />
+          <span className="listen-title">一起听</span>
+          <div className="avatar-slot mine" />
+        </div>
+        <div className="listen-header-actions">
+          <button className="icon-btn" onClick={() => setSheet(s => s === 'search' ? null : 'search')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+            </svg>
+          </button>
+          <button className="icon-btn" onClick={() => setSheet(s => s === 'playlists' ? null : 'playlists')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/>
+              <line x1="3" y1="18" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       {phase === 'no-api' && (
@@ -271,14 +344,19 @@ export default function Listen() {
                 <path d="M5 5l10 7-10 7V5z"/><line x1="19" y1="5" x2="19" y2="19"/>
               </svg>
             </button>
+            <button className="ctrl-btn queue-btn" onClick={() => setSheet(s => s === 'queue' ? null : 'queue')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="15" y2="18"/>
+                <circle cx="19" cy="18" r="3"/>
+              </svg>
+            </button>
           </div>
 
           <div className="listen-lyrics" ref={lyricBoxRef}>
             {lyrics.length > 0
               ? lyrics.map((l, i) => (
-                  <p key={i} className={`lyric-line${i === curLyric ? ' active' : ''}`}>
-                    {l.text}
-                  </p>
+                  <p key={i} className={`lyric-line${i === curLyric ? ' active' : ''}`}>{l.text}</p>
                 ))
               : <p className="lyric-empty">暂无歌词</p>
             }
@@ -286,11 +364,80 @@ export default function Listen() {
         </div>
       )}
 
-      <audio
-        ref={audioRef}
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={() => skipTo(1)}
-      />
+      <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} onEnded={() => skipTo(1)} />
+
+      {/* ── 底部抽屉 ── */}
+      {sheet && (
+        <div className="sheet-overlay" onClick={() => setSheet(null)}>
+          <div className="sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+
+            {sheet === 'search' && (
+              <>
+                <div className="sheet-search-bar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="search-icon-sm">
+                    <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+                  </svg>
+                  <input
+                    className="sheet-search-input"
+                    placeholder="搜索歌曲"
+                    value={searchQuery}
+                    onChange={e => handleSearch(e.target.value)}
+                    autoFocus
+                  />
+                  {searchQuery && (
+                    <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]) }}>×</button>
+                  )}
+                </div>
+                <div className="sheet-list">
+                  {searching && <p className="sheet-hint">搜索中…</p>}
+                  {!searching && searchResults.length === 0 && searchQuery && (
+                    <p className="sheet-hint">没有找到</p>
+                  )}
+                  {searchResults.map(song => (
+                    <div key={song.id} className="sheet-item" onClick={() => playSearchResult(song)}>
+                      <div className="sheet-item-name">{song.name}</div>
+                      <div className="sheet-item-sub">{song.artists?.map(a => a.name).join(' / ')}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {sheet === 'playlists' && (
+              <>
+                <p className="sheet-title">我的歌单</p>
+                <div className="sheet-list">
+                  {allPlaylists.map(pl => (
+                    <div key={pl.id} className="sheet-item" onClick={() => switchPlaylist(pl)}>
+                      <div className="sheet-item-name">{pl.name}</div>
+                      <div className="sheet-item-sub">{pl.trackCount} 首</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {sheet === 'queue' && (
+              <>
+                <p className="sheet-title">播放列表</p>
+                <div className="sheet-list">
+                  {playlist.map((song, i) => (
+                    <div
+                      key={song.id}
+                      className={`sheet-item${i === playIdx ? ' playing' : ''}`}
+                      onClick={() => { loadTrack(song, i); setSheet(null) }}
+                    >
+                      <div className="sheet-item-name">{song.name}</div>
+                      <div className="sheet-item-sub">{song.ar?.map(a => a.name).join(' / ')}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
