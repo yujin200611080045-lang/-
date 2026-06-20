@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WeekBar from '../components/WeekBar'
+import AnnivPrism from '../components/AnnivPrism'
 import DiaryBook from '../components/DiaryBook'
 import Memo from '../components/Memo'
+import MusicCard from '../components/MusicCard'
+import LyricWidget from '../components/LyricWidget'
 import NavBar from '../components/NavBar'
 import '../styles/Home.css'
 
@@ -14,31 +17,29 @@ function daysSince() {
 }
 
 export default function Home() {
+  const navigate = useNavigate()
   return (
     <div className="home-page">
       <Header />
       <WeekBar />
+      <AnnivPrism />
       <div className="home-body">
         <DiaryBook />
         <Memo />
       </div>
-      <ListenGap />
-      <NavBar active="home" />
-    </div>
-  )
-}
-
-function ListenGap() {
-  const navigate = useNavigate()
-  return (
-    <div className="home-gap" onClick={() => navigate('/listen')}>
-      <svg className="heartbeat-svg" viewBox="0 0 200 48" fill="none" preserveAspectRatio="none">
-        <polyline
-          points="0,24 30,24 42,8 50,38 58,14 66,32 74,24 200,24"
-          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+      <div className="home-lower">
+        <LyricWidget />
+        <div className="home-lower-right" />
+      </div>
+      <div className="home-gap">
+        <img
+          src="/heartbeat.jpg"
+          className="listen-entry"
+          alt=""
+          onClick={() => navigate('/listen')}
         />
-      </svg>
-      <span className="gap-label">一起听</span>
+      </div>
+      <NavBar active="home" />
     </div>
   )
 }

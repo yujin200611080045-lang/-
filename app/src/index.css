@@ -11,18 +11,18 @@
   --safe-left: env(safe-area-inset-left);
   --safe-right: env(safe-area-inset-right);
 
-  --bg: #f7f8fa;
-  --bg-card: #ffffff;
-  --text-primary: #0d0f12;
-  --text-secondary: #4a5260;
-  --text-muted: #9aa0ad;
-  --border: #e4e7ec;
-  --accent: #7b8fa6;
-  --accent-light: #edf0f4;
+  --bg: #F8F8F8;
+  --bg-card: #FFFFFF;
+  --text-primary: #0F0D0E;
+  --text-secondary: #3A383A;
+  --text-muted: #9C9A9B;
+  --border: #0F0D0E;
+  --accent: #bdc7ce;
+  --accent-light: #e0e8ec;
 }
 
 html, body, #root {
-  height: 100%;
+  height: 100dvh;
   width: 100%;
   overflow: hidden;
 }
