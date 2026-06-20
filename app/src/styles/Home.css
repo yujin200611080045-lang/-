@@ -105,11 +105,20 @@
   flex: 1;
 }
 
-.peeking-cat {
-  position: fixed;
-  bottom: 12px;
-  left: 4px;
-  width: 150px;
+.music-headphones {
+  position: absolute;
+  bottom: 52px;
+  left: 16px;
+  width: 110px;
+  opacity: 0.82;
   pointer-events: none;
-  z-index: 2;
+  animation: music-bob 1.8s ease-in-out infinite;
+}
+
+@keyframes music-bob {
+  0%   { transform: translateY(0)    rotate(0deg);  }
+  25%  { transform: translateY(-5px) rotate(-1deg); }
+  50%  { transform: translateY(-9px) rotate(0deg);  }
+  75%  { transform: translateY(-5px) rotate(1deg);  }
+  100% { transform: translateY(0)    rotate(0deg);  }
 }
