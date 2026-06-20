@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import WeekBar from '../components/WeekBar'
 import DiaryBook from '../components/DiaryBook'
 import Memo from '../components/Memo'
@@ -21,7 +22,23 @@ export default function Home() {
         <DiaryBook />
         <Memo />
       </div>
+      <ListenGap />
       <NavBar active="home" />
+    </div>
+  )
+}
+
+function ListenGap() {
+  const navigate = useNavigate()
+  return (
+    <div className="home-gap" onClick={() => navigate('/listen')}>
+      <svg className="heartbeat-svg" viewBox="0 0 200 48" fill="none" preserveAspectRatio="none">
+        <polyline
+          points="0,24 30,24 42,8 50,38 58,14 66,32 74,24 200,24"
+          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+        />
+      </svg>
+      <span className="gap-label">一起听</span>
     </div>
   )
 }

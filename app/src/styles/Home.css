@@ -81,3 +81,32 @@
   flex-shrink: 0;
   overflow: hidden;
 }
+
+.home-gap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.home-gap:active { opacity: 1; }
+
+.heartbeat-svg {
+  width: 120px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.gap-label {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
