@@ -29,14 +29,15 @@ export default function Home() {
       </div>
       <div className="home-lower">
         <LyricWidget />
-        <div className="home-lower-right">
-          <img
-            src="/listen-cats.jpg"
-            className="listen-cats"
-            alt=""
-            onClick={() => navigate('/listen')}
-          />
-        </div>
+        <div className="home-lower-right" />
+      </div>
+      <div className="home-gap">
+        <img
+          src="/listen-cats.jpg"
+          className="listen-cats"
+          alt=""
+          onClick={() => navigate('/listen')}
+        />
       </div>
       <NavBar active="home" />
     </div>
