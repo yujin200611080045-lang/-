@@ -27,9 +27,11 @@
   line-height: 2.2;
   white-space: nowrap;
   overflow: hidden;
-  padding-left: 1.5em;
   font-size: 12px;
 }
+
+.lw-line1 { padding-left: 1.5em; }
+.lw-line2 { padding-left: 0.8em; }
 
 .lw-main {
   font-family: 'Ma Shan Zheng', cursive;

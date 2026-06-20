@@ -11,13 +11,12 @@ const BOOKS = [
   '蛋壳头骨',
 ]
 
-const TOKENS = [
-  ...Array.from('我们该是上天命定的爱人').map(c => ({ c, t: 'main' })),
-  { c: '\n', t: 'br' },
+const LINE1 = Array.from('我们该是上天命定的爱人').map(c => ({ c, t: 'main' }))
+const LINE2 = [
   ...Array.from('用来诠释爱的').map(c => ({ c, t: 'main' })),
   ...Array.from('唯一解').map(c => ({ c, t: 'hi' })),
 ]
-const TOTAL = TOKENS.length
+const TOTAL = LINE1.length + LINE2.length
 
 export default function LyricWidget() {
   const [count, setCount] = useState(0)
@@ -37,12 +36,17 @@ export default function LyricWidget() {
         onClick={() => done && setPanel(true)}
       >
         <span className="lw-flourish">for you, always —</span>
-        <p className="lw-text">
-          {TOKENS.slice(0, count).map((tok, i) => {
-            if (tok.t === 'br') return <br key={i} />
-            return <span key={i} className={`lw-${tok.t}`}>{tok.c}</span>
-          })}
-          {!done && <span className="lw-cursor" />}
+        <p className="lw-text lw-line1">
+          {LINE1.slice(0, count).map((tok, i) => (
+            <span key={i} className={`lw-${tok.t}`}>{tok.c}</span>
+          ))}
+          {!done && count <= LINE1.length && <span className="lw-cursor" />}
+        </p>
+        <p className="lw-text lw-line2">
+          {LINE2.slice(0, Math.max(0, count - LINE1.length)).map((tok, i) => (
+            <span key={i} className={`lw-${tok.t}`}>{tok.c}</span>
+          ))}
+          {!done && count > LINE1.length && <span className="lw-cursor" />}
         </p>
       </div>
 
