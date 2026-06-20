@@ -113,26 +113,30 @@
   flex-shrink: 0;
 }
 
-.memo-chibi-wrap {
+/* anchor: centers at the bottom edge of the memo card */
+.memo-chibi-anchor {
   position: absolute;
-  bottom: -6px;
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  width: 58px;
-  transform-origin: top center;
-  animation: chibi-swing 2.8s ease-in-out infinite;
   pointer-events: none;
 }
 
+/* swing: rotates from top-center (the rod) */
+.memo-chibi-swing {
+  transform-origin: top center;
+  animation: chibi-swing 2.8s ease-in-out infinite;
+}
+
 .memo-chibi {
-  width: 58px;
+  width: 110px;
   height: auto;
   display: block;
-  mix-blend-mode: multiply;
+  mix-blend-mode: darken;
 }
 
 @keyframes chibi-swing {
-  0%   { transform: translateX(-50%) rotate(-9deg); }
-  50%  { transform: translateX(-50%) rotate(9deg);  }
-  100% { transform: translateX(-50%) rotate(-9deg); }
+  0%   { transform: rotate(-10deg); }
+  50%  { transform: rotate(10deg);  }
+  100% { transform: rotate(-10deg); }
 }
