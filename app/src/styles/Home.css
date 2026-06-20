@@ -113,17 +113,11 @@
   padding: 0 0 52px 20px;
 }
 
-.listen-cats {
-  width: 90px;
+.listen-entry {
+  width: 160px;
   cursor: pointer;
   mix-blend-mode: multiply;
-  animation: music-bob 2s ease-in-out infinite;
+  transition: opacity 0.15s;
 }
 
-@keyframes music-bob {
-  0%   { transform: translateY(0)    rotate(0deg);  }
-  25%  { transform: translateY(-5px) rotate(-1deg); }
-  50%  { transform: translateY(-8px) rotate(0deg);  }
-  75%  { transform: translateY(-5px) rotate(1deg);  }
-  100% { transform: translateY(0)    rotate(0deg);  }
-}
+.listen-entry:active { opacity: 0.6; }
