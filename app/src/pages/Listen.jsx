@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../styles/Listen.css'
 
@@ -43,11 +43,13 @@ export default function Listen() {
   const [loading, setLoading] = useState(false)
 
   const [uid, setUid] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
   const [allPlaylists, setAllPlaylists] = useState([])
-
   const [recommendations, setRecommendations] = useState([])
 
-  // sheet: null | 'playlists' | 'queue' | 'search'
+  // 'player' | 'me'
+  const [listenTab, setListenTab] = useState('player')
+
   const [sheet, setSheet] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -64,6 +66,7 @@ export default function Listen() {
       req('/user/account').then(res => {
         if (res.code === 200) {
           setUid(res.account.id)
+          setUserProfile({ avatarUrl: res.profile?.avatarUrl, nickname: res.profile?.nickname })
           setPhase('playing')
           loadFavorites(res.account.id)
         } else {
@@ -104,10 +107,11 @@ export default function Listen() {
       if (res.code === 803) {
         clearInterval(pollRef.current)
         saveCookie(res.cookie)
-        const { account } = await req('/user/account')
-        setUid(account.id)
+        const acRes = await req('/user/account')
+        setUid(acRes.account.id)
+        setUserProfile({ avatarUrl: acRes.profile?.avatarUrl, nickname: acRes.profile?.nickname })
         setPhase('playing')
-        loadFavorites(account.id)
+        loadFavorites(acRes.account.id)
       } else if (res.code === 800) {
         clearInterval(pollRef.current)
         setQrExpired(true)
@@ -145,6 +149,7 @@ export default function Listen() {
 
   async function switchPlaylist(pl) {
     setSheet(null)
+    setListenTab('player')
     setLoading(true)
     try {
       const { songs } = await req('/playlist/track/all', { id: pl.id, limit: 200 })
@@ -192,6 +197,7 @@ export default function Listen() {
     const idx = recommendations.findIndex(s => s.id === song.id)
     setPlaylist(recommendations)
     loadTrack(song, idx)
+    setListenTab('player')
   }
 
   function handleTimeUpdate() {
@@ -250,21 +256,19 @@ export default function Listen() {
   }
 
   async function playSearchResult(song) {
-    const fullSong = {
-      id: song.id,
-      name: song.name,
-      ar: song.artists,
-      al: song.album,
-    }
+    const fullSong = { id: song.id, name: song.name, ar: song.artists, al: song.album }
     setSheet(null)
     setSearchQuery('')
     setSearchResults([])
     setPlaylist([fullSong])
+    setListenTab('player')
     await loadTrack(fullSong, 0)
   }
 
   return (
     <div className="listen-page">
+
+      {/* ── header ── */}
       <div className="listen-header">
         {sheet === 'search' ? (
           <>
@@ -282,7 +286,7 @@ export default function Listen() {
           </>
         ) : (
           <>
-            <button className="listen-back" onClick={() => navigate('/')}>‹</button>
+            <div className="listen-header-spacer" />
             <span className="listen-title-music">music</span>
             <div className="listen-header-actions">
               <button className="icon-btn" onClick={() => setSheet('search')}>
@@ -290,10 +294,11 @@ export default function Listen() {
                   <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
                 </svg>
               </button>
-              <button className="icon-btn" onClick={() => setSheet(s => s === 'playlists' ? null : 'playlists')}>
+              <button className="icon-btn" onClick={() => setSheet(s => s === 'queue' ? null : 'queue')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/>
-                  <line x1="3" y1="18" x2="18" y2="18"/>
+                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+                  <line x1="3" y1="18" x2="15" y2="18"/>
+                  <circle cx="19" cy="18" r="3"/>
                 </svg>
               </button>
             </div>
@@ -301,6 +306,7 @@ export default function Listen() {
         )}
       </div>
 
+      {/* ── no-api ── */}
       {phase === 'no-api' && (
         <div className="listen-empty">
           <p className="empty-hint">还没配置 API</p>
@@ -308,6 +314,7 @@ export default function Listen() {
         </div>
       )}
 
+      {/* ── qr ── */}
       {phase === 'qr' && (
         <div className="listen-qr">
           {qrExpired ? (
@@ -333,19 +340,29 @@ export default function Listen() {
         </div>
       )}
 
-      {phase === 'playing' && recommendations.length > 0 && (
-        <div className="reco-section">
-          <p className="reco-label">猜你喜欢</p>
-          <div className="reco-carousel">
-            {recommendations.map(song => (
-              <div key={song.id} className="reco-card" onClick={() => playReco(song)}>
-                {song.al?.picUrl
-                  ? <img src={`${song.al.picUrl}?param=200y200`} className="reco-card-img" alt="" />
-                  : <div className="reco-card-img-placeholder" />
-                }
-                <div className="reco-card-info">
-                  <div className="reco-card-name">{song.name}</div>
-                  <div className="reco-card-artist">{song.ar?.map(a => a.name).join(' / ')}</div>
+      {/* ── me view ── */}
+      {phase === 'playing' && listenTab === 'me' && (
+        <div className="listen-me-view">
+          <div className="me-profile">
+            {userProfile?.avatarUrl
+              ? <img src={userProfile.avatarUrl} className="me-avatar" alt="" />
+              : <div className="me-avatar-placeholder" />
+            }
+            <div className="me-nickname">{userProfile?.nickname || ''}</div>
+          </div>
+          <div className="me-section-label">我的歌单</div>
+          <div className="me-playlists">
+            {allPlaylists.map(pl => (
+              <div key={pl.id} className="me-playlist-item" onClick={() => switchPlaylist(pl)}>
+                <img
+                  src={`${pl.coverImgUrl}?param=100y100`}
+                  className="me-playlist-cover"
+                  alt=""
+                  onError={e => { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.removeAttribute('src') }}
+                />
+                <div className="me-playlist-info">
+                  <div className="me-playlist-name">{pl.name}</div>
+                  <div className="me-playlist-count">{pl.trackCount} 首</div>
                 </div>
               </div>
             ))}
@@ -353,130 +370,170 @@ export default function Listen() {
         </div>
       )}
 
-      {phase === 'playing' && (
-        <div className="listen-body">
-          <div className="listen-cover-wrap">
-            <div className={`listen-cover${playing ? ' spinning' : ''}`}>
-              {track?.albumArt
-                ? <img src={track.albumArt} alt="" />
-                : <div className="cover-placeholder" />
-              }
-            </div>
-          </div>
-
-          <div className="listen-info">
-            {loading
-              ? <div className="listen-loading">加载中…</div>
-              : <>
-                  <div className="listen-name">{track?.name || '—'}</div>
-                  <div className="listen-artist">{track?.artist || ''}</div>
-                </>
+      {/* ── mini player (me view, when track loaded) ── */}
+      {phase === 'playing' && listenTab === 'me' && track && (
+        <div className="listen-mini-player" onClick={() => setListenTab('player')}>
+          <div className={`mini-cover${playing ? ' spinning' : ''}`}>
+            {track.albumArt
+              ? <img src={`${track.albumArt}?param=80y80`} alt="" />
+              : <div className="mini-cover-placeholder" />
             }
           </div>
-
-          <div className="listen-progress-wrap" onClick={seek}>
-            <div className="listen-progress-bar">
-              <div className="listen-progress-fill" style={{ width: `${progress * 100}%` }} />
-              <div className="listen-progress-dot" style={{ left: `${progress * 100}%` }} />
-            </div>
+          <div className="mini-info">
+            <div className="mini-name">{track.name}</div>
+            <div className="mini-artist">{track.artist}</div>
           </div>
+          <button className="mini-ctrl-btn" onClick={e => { e.stopPropagation(); togglePlay() }}>
+            {playing
+              ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            }
+          </button>
+          <button className="mini-ctrl-btn" onClick={e => { e.stopPropagation(); skipTo(1) }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M5 5l10 7-10 7V5z"/><line x1="19" y1="5" x2="19" y2="19"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
-          <div className="listen-controls">
-            <button className="ctrl-btn" onClick={() => skipTo(-1)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M19 5L9 12l10 7V5z"/><line x1="5" y1="5" x2="5" y2="19"/>
-              </svg>
-            </button>
-            <button className="ctrl-btn play-btn" onClick={togglePlay}>
-              {playing
-                ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-              }
-            </button>
-            <button className="ctrl-btn" onClick={() => skipTo(1)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M5 5l10 7-10 7V5z"/><line x1="19" y1="5" x2="19" y2="19"/>
-              </svg>
-            </button>
-            <button className="ctrl-btn queue-btn" onClick={() => setSheet(s => s === 'queue' ? null : 'queue')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="15" y2="18"/>
-                <circle cx="19" cy="18" r="3"/>
-              </svg>
-            </button>
-          </div>
-
-          {sheet === 'search' ? (
-            <div className="listen-search-results">
-              {searching && <p className="sheet-hint">搜索中…</p>}
-              {!searching && !searchQuery && (
-                <p className="sheet-hint">输入歌曲名称搜索</p>
-              )}
-              {!searching && searchQuery && searchResults.length === 0 && (
-                <p className="sheet-hint">没有找到</p>
-              )}
-              {searchResults.map(song => (
-                <div key={song.id} className="sheet-item" onClick={() => playSearchResult(song)}>
-                  <div className="sheet-item-name">{song.name}</div>
-                  <div className="sheet-item-sub">{song.artists?.map(a => a.name).join(' / ')}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="listen-lyrics" ref={lyricBoxRef}>
-              {lyrics.length > 0
-                ? lyrics.map((l, i) => (
-                    <p key={i} className={`lyric-line${i === curLyric ? ' active' : ''}`}>{l.text}</p>
-                  ))
-                : <p className="lyric-empty">暂无歌词</p>
-              }
+      {/* ── player view ── */}
+      {phase === 'playing' && listenTab === 'player' && (
+        <>
+          {recommendations.length > 0 && (
+            <div className="reco-section">
+              <p className="reco-label">猜你喜欢</p>
+              <div className="reco-carousel">
+                {recommendations.map(song => (
+                  <div key={song.id} className="reco-card" onClick={() => playReco(song)}>
+                    {song.al?.picUrl
+                      ? <img src={`${song.al.picUrl}?param=200y200`} className="reco-card-img" alt="" />
+                      : <div className="reco-card-img-placeholder" />
+                    }
+                    <div className="reco-card-info">
+                      <div className="reco-card-name">{song.name}</div>
+                      <div className="reco-card-artist">{song.ar?.map(a => a.name).join(' / ')}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
+
+          <div className="listen-body">
+            <div className="listen-cover-wrap">
+              <div className={`listen-cover${playing ? ' spinning' : ''}`}>
+                {track?.albumArt
+                  ? <img src={track.albumArt} alt="" />
+                  : <div className="cover-placeholder" />
+                }
+              </div>
+            </div>
+
+            <div className="listen-info">
+              {loading
+                ? <div className="listen-loading">加载中…</div>
+                : <>
+                    <div className="listen-name">{track?.name || '—'}</div>
+                    <div className="listen-artist">{track?.artist || ''}</div>
+                  </>
+              }
+            </div>
+
+            <div className="listen-progress-wrap" onClick={seek}>
+              <div className="listen-progress-bar">
+                <div className="listen-progress-fill" style={{ width: `${progress * 100}%` }} />
+                <div className="listen-progress-dot" style={{ left: `${progress * 100}%` }} />
+              </div>
+            </div>
+
+            <div className="listen-controls">
+              <button className="ctrl-btn" onClick={() => skipTo(-1)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M19 5L9 12l10 7V5z"/><line x1="5" y1="5" x2="5" y2="19"/>
+                </svg>
+              </button>
+              <button className="ctrl-btn play-btn" onClick={togglePlay}>
+                {playing
+                  ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                  : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                }
+              </button>
+              <button className="ctrl-btn" onClick={() => skipTo(1)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M5 5l10 7-10 7V5z"/><line x1="19" y1="5" x2="19" y2="19"/>
+                </svg>
+              </button>
+            </div>
+
+            {sheet === 'search' ? (
+              <div className="listen-search-results">
+                {searching && <p className="sheet-hint">搜索中…</p>}
+                {!searching && !searchQuery && <p className="sheet-hint">输入歌曲名称搜索</p>}
+                {!searching && searchQuery && searchResults.length === 0 && <p className="sheet-hint">没有找到</p>}
+                {searchResults.map(song => (
+                  <div key={song.id} className="sheet-item" onClick={() => playSearchResult(song)}>
+                    <div className="sheet-item-name">{song.name}</div>
+                    <div className="sheet-item-sub">{song.artists?.map(a => a.name).join(' / ')}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="listen-lyrics" ref={lyricBoxRef}>
+                {lyrics.length > 0
+                  ? lyrics.map((l, i) => (
+                      <p key={i} className={`lyric-line${i === curLyric ? ' active' : ''}`}>{l.text}</p>
+                    ))
+                  : <p className="lyric-empty">暂无歌词</p>
+                }
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} onEnded={() => skipTo(1)} />
 
-      {/* ── 底部抽屉 ── */}
+      {/* ── bottom sheet (queue only) ── */}
       {sheet && sheet !== 'search' && (
         <div className="sheet-overlay" onClick={() => setSheet(null)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-handle" />
-
-            {sheet === 'playlists' && (
-              <>
-                <p className="sheet-title">我的歌单</p>
-                <div className="sheet-list">
-                  {allPlaylists.map(pl => (
-                    <div key={pl.id} className="sheet-item" onClick={() => switchPlaylist(pl)}>
-                      <div className="sheet-item-name">{pl.name}</div>
-                      <div className="sheet-item-sub">{pl.trackCount} 首</div>
-                    </div>
-                  ))}
+            <p className="sheet-title">播放列表</p>
+            <div className="sheet-list">
+              {playlist.map((song, i) => (
+                <div
+                  key={song.id}
+                  className={`sheet-item${i === playIdx ? ' playing' : ''}`}
+                  onClick={() => { loadTrack(song, i); setSheet(null) }}
+                >
+                  <div className="sheet-item-name">{song.name}</div>
+                  <div className="sheet-item-sub">{song.ar?.map(a => a.name).join(' / ')}</div>
                 </div>
-              </>
-            )}
-
-            {sheet === 'queue' && (
-              <>
-                <p className="sheet-title">播放列表</p>
-                <div className="sheet-list">
-                  {playlist.map((song, i) => (
-                    <div
-                      key={song.id}
-                      className={`sheet-item${i === playIdx ? ' playing' : ''}`}
-                      onClick={() => { loadTrack(song, i); setSheet(null) }}
-                    >
-                      <div className="sheet-item-name">{song.name}</div>
-                      <div className="sheet-item-sub">{song.ar?.map(a => a.name).join(' / ')}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+              ))}
+            </div>
           </div>
         </div>
+      )}
+
+      {/* ── bottom nav ── */}
+      {phase === 'playing' && (
+        <nav className="listen-nav">
+          <button className="listen-nav-item" onClick={() => navigate('/')}>
+            <span className="listen-nav-word">home</span>
+          </button>
+          <button className="listen-nav-item listen-nav-heart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+          <button
+            className={`listen-nav-item${listenTab === 'me' ? ' active' : ''}`}
+            onClick={() => setListenTab(t => t === 'me' ? 'player' : 'me')}
+          >
+            <span className="listen-nav-word">listen</span>
+          </button>
+        </nav>
       )}
     </div>
   )
