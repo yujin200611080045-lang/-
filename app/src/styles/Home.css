@@ -89,4 +89,5 @@
   position: relative;
   z-index: 2;
   background: var(--bg);
+  margin-top: 30px;
 }
