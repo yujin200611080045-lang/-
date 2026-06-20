@@ -47,6 +47,7 @@ export default function LyricWidget() {
       {panel && (
         <div className="lw-overlay" onClick={() => setPanel(false)}>
           <div className="lw-panel" onClick={e => e.stopPropagation()}>
+            <div className="lw-handle" onClick={() => setPanel(false)} />
             <div className="lw-panel-head">
               <span className="lw-panel-title">我们读过的</span>
               <span className="lw-panel-sub">books we've shared</span>
