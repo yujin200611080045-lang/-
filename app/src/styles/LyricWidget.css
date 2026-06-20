@@ -27,7 +27,7 @@
   line-height: 2.2;
   white-space: nowrap;
   overflow: hidden;
-  text-indent: 2em;
+  padding-left: 4em;
   font-size: 12px;
 }
 
