@@ -3,6 +3,7 @@
   cursor: grab;
   user-select: none;
   flex-shrink: 0;
+  clip-path: inset(0);
 }
 
 .prism-wrap:active {
