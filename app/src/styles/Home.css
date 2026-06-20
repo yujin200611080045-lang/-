@@ -4,7 +4,6 @@
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
-  padding-bottom: 46px;
 }
 
 .home-header {
