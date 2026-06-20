@@ -2,9 +2,9 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 10px 8px;
+  padding: 6px 8px;
   flex-shrink: 0;
-  margin: 0 16px calc(14px + var(--safe-bottom));
+  margin: 0 16px calc(6px + var(--safe-bottom));
   background: var(--bg-card);
   border-radius: 20px;
   box-shadow: 0 2px 16px rgba(15, 13, 14, 0.08), 0 1px 4px rgba(15, 13, 14, 0.05);

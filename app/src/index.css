@@ -11,12 +11,12 @@
   --safe-left: env(safe-area-inset-left);
   --safe-right: env(safe-area-inset-right);
 
-  --bg: #EAEAEA;
-  --bg-card: #F6F5F5;
+  --bg: #F8F8F8;
+  --bg-card: #FFFFFF;
   --text-primary: #0F0D0E;
   --text-secondary: #3A383A;
   --text-muted: #9C9A9B;
-  --border: #D1D1D1;
+  --border: #0F0D0E;
   --accent: #BC8B8C;
   --accent-light: #F3ECEC;
 }
