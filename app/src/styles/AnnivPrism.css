@@ -1,5 +1,6 @@
 .prism-wrap {
   padding: 16px 16px 16px;
+  margin-top: 12px;
   cursor: grab;
   user-select: none;
   flex-shrink: 0;
