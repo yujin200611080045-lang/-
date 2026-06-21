@@ -56,6 +56,7 @@ export default function DiaryBook() {
     <>
       <div className="diary-wrap" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div className="diary-scene">
+          <div className="book-stack-3" />
           <div className="book-stack-2" />
           <div className="book-stack-1" />
 

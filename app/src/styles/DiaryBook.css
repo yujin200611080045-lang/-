@@ -19,23 +19,29 @@
   perspective-origin: 50% 50%;
 }
 
-/* 叠层书页 */
+/* 叠层书页 — 仅向右偏移，从正面可见 */
 .book-stack-1,
-.book-stack-2 {
+.book-stack-2,
+.book-stack-3 {
   position: absolute;
   inset: 0;
-  border-radius: 2px 4px 4px 2px;
-  border: 1px solid var(--border);
+  border-radius: 6px 10px 10px 6px;
+  border: 1px solid rgba(0,0,0,0.07);
 }
 .book-stack-1 {
-  transform: translate(3px, 3px);
-  background: #e4e7eb;
+  transform: translateX(7px);
+  background: #dde1e7;
   z-index: 0;
 }
 .book-stack-2 {
-  transform: translate(6px, 6px);
-  background: #d8dce2;
+  transform: translateX(14px);
+  background: #d0d5dd;
   z-index: -1;
+}
+.book-stack-3 {
+  transform: translateX(21px);
+  background: #c3c9d3;
+  z-index: -2;
 }
 
 .diary-book {
@@ -46,9 +52,9 @@
   flex-direction: column;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 2px 4px 4px 2px;
+  border-radius: 6px 10px 10px 6px;
   overflow: hidden;
-  box-shadow: 0 6px 20px rgba(80,100,130,0.13);
+  box-shadow: 2px 4px 18px rgba(80,100,130,0.16);
   transform-origin: center center;
 }
 
@@ -74,14 +80,11 @@
   to   { transform: rotateX(0deg);   opacity: 1; }
 }
 
-/* 上半页：掘起倾斜状态 */
+/* 上半页：直挺 */
 .page-upper {
   flex: 1;
   position: relative;
-  transform-origin: bottom center;
-  transform: perspective(280px) rotateX(-32deg);
-  background: #f2f4f7;
-  border-bottom: none;
+  background: #f4f6f9;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -89,13 +92,10 @@
 
 .page-upper-inner {
   flex: 1;
-  padding: 10px 10px 6px 14px;
+  padding: 10px 10px 8px 14px;
   display: flex;
   flex-direction: column;
   gap: 5px;
-  /* 文字随页倒置补偿 */
-  transform: perspective(280px) rotateX(10deg);
-  transform-origin: top center;
 }
 
 .page-upper-shadow {
@@ -103,33 +103,23 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 20px;
-  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.06));
+  height: 24px;
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.07));
   pointer-events: none;
 }
 
-/* 书脊折痕 */
+/* 中间阴影分割线 */
 .book-hinge {
-  height: 10px;
+  height: 3px;
   background: linear-gradient(to bottom,
-    #c8cdd6 0%,
-    #e4e7ec 30%,
-    #eef0f4 50%,
-    #e4e7ec 70%,
-    #c8cdd6 100%
+    rgba(0,0,0,0.08) 0%,
+    rgba(0,0,0,0.03) 60%,
+    transparent 100%
   );
   flex-shrink: 0;
-  position: relative;
-  display: flex;
-  align-items: center;
 }
 
-.hinge-line {
-  position: absolute;
-  left: 8px; right: 8px;
-  height: 1px;
-  background: rgba(0,0,0,0.08);
-}
+.hinge-line { display: none; }
 
 /* 下半页：平摔 */
 .page-lower {

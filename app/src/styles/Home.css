@@ -109,15 +109,16 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  align-items: center;
-  padding: 0 0 52px 16px;
+  align-items: flex-end;
+  padding: 0 0 52px 8px;
 }
 
 .listen-entry {
-  width: 190px;
+  width: 110px;
   cursor: pointer;
   mix-blend-mode: multiply;
   transition: opacity 0.15s;
+  display: block;
 }
 
 .listen-entry:active { opacity: 0.6; }

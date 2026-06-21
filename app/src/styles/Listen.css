@@ -4,6 +4,7 @@
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
+  position: relative;
 }
 
 .listen-header {
@@ -230,6 +231,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding-bottom: 60px;
 }
 
 /* ── no-api / qr states ── */
@@ -598,17 +600,19 @@
 
 /* ── bottom nav ── */
 .listen-nav {
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  margin: 6px 16px;
-  margin-bottom: calc(6px + env(safe-area-inset-bottom));
   padding: 6px 8px;
   background: var(--bg-card);
   border-radius: 22px;
   box-shadow: 0 2px 16px rgba(15, 13, 14, 0.08), 0 1px 4px rgba(15, 13, 14, 0.05);
   border: 1px solid var(--border);
-  flex-shrink: 0;
+  z-index: 3;
 }
 
 .listen-nav-item {
@@ -647,6 +651,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: 60px;
 }
 
 .me-profile {
