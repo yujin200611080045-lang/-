@@ -8,7 +8,7 @@
   cursor: grab;
   user-select: none;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .diary-scene {
@@ -83,7 +83,7 @@
   to   { transform: rotateX(0deg);   opacity: 1; }
 }
 
-/* 上半页：向观者倾斜（顶端朝前），形成120°开本上半 */
+/* 上半页：向观者倾斜，底部加内阴影强化折角 */
 .page-upper {
   flex: 1;
   position: relative;
@@ -93,6 +93,7 @@
   flex-direction: column;
   transform-origin: bottom center;
   transform: perspective(360px) rotateX(-28deg);
+  box-shadow: inset 0 -10px 18px rgba(0,0,0,0.07);
 }
 
 .page-upper-inner {
@@ -105,17 +106,19 @@
 
 .page-upper-shadow { display: none; }
 
-/* 书脊：1px 分割线 */
+/* 书脊：加厚分割线，上下各有散射阴影 */
 .book-hinge {
-  height: 1px;
-  background: rgba(0,0,0,0.15);
+  height: 2px;
+  background: linear-gradient(to right, rgba(0,0,0,0.25), rgba(0,0,0,0.12), rgba(0,0,0,0.25));
   flex-shrink: 0;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  box-shadow:
+    0 -4px 10px rgba(0,0,0,0.08),
+    0  4px 10px rgba(0,0,0,0.08);
 }
 
 .hinge-line { display: none; }
 
-/* 下半页：向观者倾斜（底端朝前），形成120°开本下半 */
+/* 下半页：向观者倾斜，顶部加内阴影强化折角 */
 .page-lower {
   flex: 1;
   padding: 6px 10px 8px 14px;
@@ -126,6 +129,7 @@
   overflow: hidden;
   transform-origin: top center;
   transform: perspective(360px) rotateX(28deg);
+  box-shadow: inset 0 10px 18px rgba(0,0,0,0.06);
 }
 
 .page-who {
