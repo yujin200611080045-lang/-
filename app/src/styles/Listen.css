@@ -530,34 +530,31 @@
   padding: 0 20px 8px;
 }
 
-.reco-carousel {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  padding: 0 20px 12px;
-  scrollbar-width: none;
+.reco-stage {
+  position: relative;
+  height: 182px;
+  perspective: 680px;
+  margin: 0 0 8px;
+  flex-shrink: 0;
 }
-
-.reco-carousel::-webkit-scrollbar { display: none; }
 
 .reco-card {
-  scroll-snap-align: center;
-  flex-shrink: 0;
-  width: 108px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.52);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.07);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 126px;
+  transform-origin: center center;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 10px 30px rgba(0, 0, 0, 0.13);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.15s;
 }
-
-.reco-card:active { transform: scale(0.95); }
 
 .reco-card-img {
   width: 100%;

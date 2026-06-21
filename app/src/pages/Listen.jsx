@@ -46,6 +46,7 @@ export default function Listen() {
   const [userProfile, setUserProfile] = useState(null)
   const [allPlaylists, setAllPlaylists] = useState([])
   const [recommendations, setRecommendations] = useState([])
+  const [recoIdx, setRecoIdx] = useState(0)
 
   // 'player' | 'me'
   const [listenTab, setListenTab] = useState('player')
@@ -59,6 +60,7 @@ export default function Listen() {
   const lyricBoxRef = useRef(null)
   const pollRef = useRef(null)
   const searchTimer = useRef(null)
+  const recoTouchX = useRef(null)
 
   useEffect(() => {
     if (!API) { setPhase('no-api'); return }
@@ -403,19 +405,45 @@ export default function Listen() {
           {recommendations.length > 0 && (
             <div className="reco-section">
               <p className="reco-label">猜你喜欢</p>
-              <div className="reco-carousel">
-                {recommendations.map(song => (
-                  <div key={song.id} className="reco-card" onClick={() => playReco(song)}>
-                    {song.al?.picUrl
-                      ? <img src={`${song.al.picUrl}?param=200y200`} className="reco-card-img" alt="" />
-                      : <div className="reco-card-img-placeholder" />
-                    }
-                    <div className="reco-card-info">
-                      <div className="reco-card-name">{song.name}</div>
-                      <div className="reco-card-artist">{song.ar?.map(a => a.name).join(' / ')}</div>
+              <div
+                className="reco-stage"
+                onTouchStart={e => { recoTouchX.current = e.touches[0].clientX }}
+                onTouchEnd={e => {
+                  if (recoTouchX.current === null) return
+                  const dx = recoTouchX.current - e.changedTouches[0].clientX
+                  if (Math.abs(dx) > 36) {
+                    if (dx > 0) setRecoIdx(i => Math.min(i + 1, recommendations.length - 1))
+                    else setRecoIdx(i => Math.max(i - 1, 0))
+                  }
+                  recoTouchX.current = null
+                }}
+              >
+                {recommendations.map((song, i) => {
+                  const off = i - recoIdx
+                  if (Math.abs(off) > 2) return null
+                  const abs = Math.abs(off)
+                  return (
+                    <div
+                      key={song.id}
+                      className="reco-card"
+                      style={{
+                        transform: `translateX(calc(-50% + ${off * 76}px)) translateY(-50%) scale(${1 - abs * 0.12}) rotateY(${-off * 13}deg)`,
+                        zIndex: 10 - abs * 3,
+                        transition: 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                      }}
+                      onClick={() => off === 0 ? playReco(song) : setRecoIdx(i)}
+                    >
+                      {song.al?.picUrl
+                        ? <img src={`${song.al.picUrl}?param=300y300`} className="reco-card-img" alt="" />
+                        : <div className="reco-card-img-placeholder" />
+                      }
+                      <div className="reco-card-info">
+                        <div className="reco-card-name">{song.name}</div>
+                        <div className="reco-card-artist">{song.ar?.map(a => a.name).join(' / ')}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -519,19 +547,19 @@ export default function Listen() {
       {/* ── bottom nav ── */}
       {phase === 'playing' && (
         <nav className="listen-nav">
-          <button className="listen-nav-item" onClick={() => navigate('/')}>
-            <span className="listen-nav-word">home</span>
+          <button
+            className={`listen-nav-item${listenTab === 'me' ? ' active' : ''}`}
+            onClick={() => setListenTab(t => t === 'me' ? 'player' : 'me')}
+          >
+            <span className="listen-nav-word">listen</span>
           </button>
           <button className="listen-nav-item listen-nav-heart">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </button>
-          <button
-            className={`listen-nav-item${listenTab === 'me' ? ' active' : ''}`}
-            onClick={() => setListenTab(t => t === 'me' ? 'player' : 'me')}
-          >
-            <span className="listen-nav-word">listen</span>
+          <button className="listen-nav-item" onClick={() => navigate('/')}>
+            <span className="listen-nav-word">home</span>
           </button>
         </nav>
       )}
