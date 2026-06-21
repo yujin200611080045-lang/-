@@ -5,10 +5,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  cursor: grab;
   user-select: none;
   position: relative;
   overflow: visible;
+  cursor: default;
 }
 
 .diary-scene {
@@ -18,149 +18,164 @@
   min-height: 0;
 }
 
-/* 叠层书页 — 从上下两端露出，越往后越深 */
+/* ── Back stack cards — same base color, progressively less opaque = darker over bg ── */
 .book-stack-3 {
   position: absolute;
   top: 2px; bottom: 2px; left: 0; right: 0;
-  border-radius: 6px;
-  background: #bdc4cf;
-  border: 1px solid rgba(0,0,0,0.09);
+  border-radius: 12px;
+  background: #D8D8D8;
+  opacity: 0.48;
   z-index: 1;
 }
 .book-stack-2 {
   position: absolute;
   top: 6px; bottom: 6px; left: 0; right: 0;
-  border-radius: 6px;
-  background: #ccd1da;
-  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  background: #D8D8D8;
+  opacity: 0.72;
   z-index: 2;
 }
 .book-stack-1 {
   position: absolute;
   top: 10px; bottom: 10px; left: 0; right: 0;
-  border-radius: 6px;
-  background: #dce0e8;
-  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 12px;
+  background: #D8D8D8;
+  opacity: 0.88;
   z-index: 3;
 }
 
-/* 首面：压缩上下各16px，为叠层留出可见空间 */
+/* ── Main card — Soft Neumorphism ── */
 .diary-book {
   position: absolute;
   top: 16px; bottom: 16px; left: 0; right: 0;
   z-index: 4;
   display: flex;
   flex-direction: column;
-  background: var(--bg-card);
-  border: 1.5px solid rgba(0,0,0,0.18);
-  border-radius: 5px;
+  background: #D8D8D8;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow:
-    3px 8px 24px rgba(60,80,110,0.20),
-    inset 0 1px 0 rgba(255,255,255,0.9);
-  transform-origin: center center;
+    6px 8px 20px rgba(0, 0, 0, 0.22),
+    -4px -5px 14px rgba(255, 255, 255, 0.65);
 }
 
-.diary-book.flip-out-up   { animation: flipOutUp   0.24s ease-in  forwards; }
-.diary-book.flip-out-down { animation: flipOutDown 0.24s ease-in  forwards; }
-.diary-book.flip-in-up    { animation: flipInUp    0.30s ease-out forwards; }
-.diary-book.flip-in-down  { animation: flipInDown  0.30s ease-out forwards; }
-
-@keyframes flipOutUp {
-  from { transform: rotateX(0deg);   opacity: 1; }
-  to   { transform: rotateX(-80deg); opacity: 0; }
-}
-@keyframes flipOutDown {
-  from { transform: rotateX(0deg);  opacity: 1; }
-  to   { transform: rotateX(80deg); opacity: 0; }
-}
-@keyframes flipInUp {
-  from { transform: rotateX(80deg); opacity: 0; }
-  to   { transform: rotateX(0deg);  opacity: 1; }
-}
-@keyframes flipInDown {
-  from { transform: rotateX(-80deg); opacity: 0; }
-  to   { transform: rotateX(0deg);   opacity: 1; }
-}
-
-/* 上半页：向观者倾斜，底部加内阴影强化折角 */
+/* ── Upper half — FLAT at rest ── */
 .page-upper {
   flex: 1;
   position: relative;
-  background: #f6f8fb;
-  overflow: hidden;
+  background: #DCDCDC;
   display: flex;
   flex-direction: column;
   transform-origin: bottom center;
-  transform: perspective(360px) rotateX(-28deg);
-  box-shadow: inset 0 -10px 18px rgba(0,0,0,0.07);
+  box-shadow: inset 0 -8px 18px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .page-upper-inner {
   flex: 1;
-  padding: 10px 10px 6px 14px;
+  padding: 12px 14px 6px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .page-upper-shadow { display: none; }
 
-/* 书脊：加厚分割线，上下各有散射阴影 */
+/* ── Individual half-page flip animations ── */
+.page-upper.flip-upper-out { animation: flipUpperOut 0.26s ease-in  forwards; }
+.page-upper.flip-upper-in  { animation: flipUpperIn  0.30s ease-out forwards; }
+.page-lower.flip-lower-out { animation: flipLowerOut 0.26s ease-in  forwards; }
+.page-lower.flip-lower-in  { animation: flipLowerIn  0.30s ease-out forwards; }
+
+@keyframes flipUpperOut {
+  0%   { transform: perspective(520px) rotateX(0deg);    opacity: 1; }
+  55%  { opacity: 0.15; }
+  100% { transform: perspective(520px) rotateX(-130deg); opacity: 0; }
+}
+@keyframes flipUpperIn {
+  0%   { transform: perspective(520px) rotateX(-130deg); opacity: 0; }
+  45%  { opacity: 0.15; }
+  100% { transform: perspective(520px) rotateX(0deg);    opacity: 1; }
+}
+@keyframes flipLowerOut {
+  0%   { transform: perspective(520px) rotateX(0deg);   opacity: 1; }
+  55%  { opacity: 0.15; }
+  100% { transform: perspective(520px) rotateX(130deg); opacity: 0; }
+}
+@keyframes flipLowerIn {
+  0%   { transform: perspective(520px) rotateX(130deg); opacity: 0; }
+  45%  { opacity: 0.15; }
+  100% { transform: perspective(520px) rotateX(0deg);   opacity: 1; }
+}
+
+/* ── Book spine / fold crease ── */
 .book-hinge {
-  height: 2px;
-  background: linear-gradient(to right, rgba(0,0,0,0.25), rgba(0,0,0,0.12), rgba(0,0,0,0.25));
+  height: 1.5px;
+  background: linear-gradient(to right,
+    rgba(0, 0, 0, 0.20),
+    rgba(0, 0, 0, 0.07),
+    rgba(0, 0, 0, 0.20)
+  );
   flex-shrink: 0;
   box-shadow:
-    0 -4px 10px rgba(0,0,0,0.08),
-    0  4px 10px rgba(0,0,0,0.08);
+    0 -5px 14px rgba(0, 0, 0, 0.07),
+    0  5px 14px rgba(0, 0, 0, 0.07);
 }
 
 .hinge-line { display: none; }
 
-/* 下半页：向观者倾斜，顶部加内阴影强化折角 */
+/* ── Lower half — FLAT at rest ── */
 .page-lower {
   flex: 1;
-  padding: 6px 10px 8px 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: var(--bg-card);
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px 12px;
+  gap: 6px;
+  background: #D8D8D8;
   overflow: hidden;
   transform-origin: top center;
-  transform: perspective(360px) rotateX(28deg);
-  box-shadow: inset 0 10px 18px rgba(0,0,0,0.06);
+  box-shadow: inset 0 8px 18px rgba(0, 0, 0, 0.05);
 }
 
+/* ── Typography — centered thin serif ── */
 .page-who {
+  font-family: 'Georgia', serif;
   font-size: 8px;
-  letter-spacing: 2px;
-  color: var(--accent);
+  letter-spacing: 2.5px;
+  color: #9A9A9A;
   font-style: italic;
   flex-shrink: 0;
+  text-align: center;
 }
 
 .page-text {
+  font-family: 'Georgia', serif;
   font-size: 11px;
-  color: var(--text-secondary);
+  color: #5A5A5A;
   font-weight: 300;
-  line-height: 1.65;
+  line-height: 1.7;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   flex: 1;
+  text-align: center;
 }
 
 .diary-date {
+  font-family: 'Georgia', serif;
   font-size: 8px;
-  color: var(--border);
-  text-align: right;
+  color: #ABABAB;
+  text-align: center;
   letter-spacing: 1px;
   flex-shrink: 0;
 }
 
-/* ── add button ── */
+/* ── Add button — Neumorphism circle ── */
 .diary-add-btn {
   position: absolute;
   top: -6px;
@@ -168,10 +183,10 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: #D8D8D8;
+  border: none;
   font-size: 12px;
-  color: var(--text-muted);
+  color: #888;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -179,12 +194,18 @@
   z-index: 10;
   line-height: 1;
   padding: 0;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  box-shadow:
+    3px 3px 7px rgba(0, 0, 0, 0.18),
+    -2px -2px 5px rgba(255, 255, 255, 0.7);
 }
 
-.diary-add-btn:active { background: var(--accent-light); }
+.diary-add-btn:active {
+  box-shadow:
+    1px 1px 3px rgba(0, 0, 0, 0.18),
+    -1px -1px 2px rgba(255, 255, 255, 0.6);
+}
 
-/* ── modal ── */
+/* ── Modal ── */
 .diary-modal-overlay {
   position: fixed;
   inset: 0;
@@ -241,6 +262,7 @@
   outline: none;
   resize: none;
   line-height: 1.6;
+  box-sizing: border-box;
 }
 
 .diary-modal-input::placeholder { color: var(--text-muted); }

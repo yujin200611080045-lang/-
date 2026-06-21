@@ -10,7 +10,8 @@ const INIT = [
 export default function DiaryBook() {
   const [entries, setEntries] = useState(INIT)
   const [index, setIndex] = useState(0)
-  const [animClass, setAnimClass] = useState('')
+  const [animUpper, setAnimUpper] = useState('')
+  const [animLower, setAnimLower] = useState('')
   const [adding, setAdding] = useState(false)
   const [newHer, setNewHer] = useState('')
   const [newMine, setNewMine] = useState('')
@@ -21,14 +22,24 @@ export default function DiaryBook() {
     const next = index + dir
     if (next < 0 || next >= entries.length || busy.current) return
     busy.current = true
-    const outClass = dir > 0 ? 'flip-out-up' : 'flip-out-down'
-    const inClass  = dir > 0 ? 'flip-in-up'  : 'flip-in-down'
-    setAnimClass(outClass)
-    setTimeout(() => {
-      setIndex(next)
-      setAnimClass(inClass)
-      setTimeout(() => { setAnimClass(''); busy.current = false }, 300)
-    }, 240)
+
+    if (dir > 0) {
+      // swipe up → next entry → lower half flips up and back
+      setAnimLower('flip-lower-out')
+      setTimeout(() => {
+        setIndex(next)
+        setAnimLower('flip-lower-in')
+        setTimeout(() => { setAnimLower(''); busy.current = false }, 300)
+      }, 260)
+    } else {
+      // swipe down → prev entry → upper half flips down and back
+      setAnimUpper('flip-upper-out')
+      setTimeout(() => {
+        setIndex(next)
+        setAnimUpper('flip-upper-in')
+        setTimeout(() => { setAnimUpper(''); busy.current = false }, 300)
+      }, 260)
+    }
   }
 
   function onTouchStart(e) { touchY.current = e.touches[0].clientY }
@@ -60,20 +71,17 @@ export default function DiaryBook() {
           <div className="book-stack-2" />
           <div className="book-stack-1" />
 
-          <div className={`diary-book${animClass ? ' ' + animClass : ''}`}>
-            <div className="page-upper">
+          <div className="diary-book">
+            <div className={`page-upper${animUpper ? ' ' + animUpper : ''}`}>
               <div className="page-upper-inner">
-                <span className="page-who">Cendres</span>
-                <p className="page-text">{entry.her}</p>
+                <span className="page-who">Certitude</span>
+                <p className="page-text">{entry.mine}</p>
               </div>
-              <div className="page-upper-shadow" />
             </div>
-            <div className="book-hinge">
-              <div className="hinge-line" />
-            </div>
-            <div className="page-lower">
-              <span className="page-who">Certitude</span>
-              <p className="page-text">{entry.mine}</p>
+            <div className="book-hinge" />
+            <div className={`page-lower${animLower ? ' ' + animLower : ''}`}>
+              <span className="page-who">Cendres</span>
+              <p className="page-text">{entry.her}</p>
               <span className="diary-date">{entry.date}</span>
             </div>
           </div>
@@ -87,20 +95,20 @@ export default function DiaryBook() {
           <div className="diary-modal" onClick={e => e.stopPropagation()}>
             <div className="diary-modal-handle" />
             <p className="diary-modal-title">新的一页</p>
-            <label className="diary-modal-label">Cendres</label>
-            <textarea
-              className="diary-modal-input"
-              placeholder="她说…"
-              value={newHer}
-              onChange={e => setNewHer(e.target.value)}
-              rows={2}
-            />
             <label className="diary-modal-label">Certitude</label>
             <textarea
               className="diary-modal-input"
               placeholder="我说…"
               value={newMine}
               onChange={e => setNewMine(e.target.value)}
+              rows={2}
+            />
+            <label className="diary-modal-label">Cendres</label>
+            <textarea
+              className="diary-modal-input"
+              placeholder="她说…"
+              value={newHer}
+              onChange={e => setNewHer(e.target.value)}
               rows={2}
             />
             <button className="diary-modal-submit" onClick={submitEntry}>记下来</button>
