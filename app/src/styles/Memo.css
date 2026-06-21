@@ -50,6 +50,7 @@
     rgba(100, 130, 180, 0.18) 20px,
     rgba(100, 130, 180, 0.18) 21px
   );
+  background-attachment: local;
 }
 
 .memo-center-line {
@@ -71,6 +72,7 @@
     rgba(100, 130, 180, 0.18) 20px,
     rgba(100, 130, 180, 0.18) 21px
   );
+  background-attachment: local;
 }
 
 /* ── Name labels in Pinyon Script ── */

@@ -84,12 +84,15 @@
   position: relative;
   z-index: 1;
   width: 100%;
+  max-height: 82vh;
   background: var(--bg-card);
   border-radius: 20px 20px 0 0;
   border-top: 1px solid var(--border);
   padding: 16px 24px calc(28px + env(safe-area-inset-bottom));
   box-sizing: border-box;
   cursor: default;
+  display: flex;
+  flex-direction: column;
   animation: lw-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
@@ -107,6 +110,7 @@
   margin: 0 auto 16px;
   cursor: pointer;
   flex-shrink: 0;
+  min-height: 4px;
 }
 
 .lw-panel-head {
@@ -116,6 +120,7 @@
   margin-bottom: 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .lw-panel-title {
@@ -133,7 +138,8 @@
 .lw-books {
   display: flex;
   flex-direction: column;
-  max-height: 248px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   touch-action: pan-y;
   overscroll-behavior: contain;
