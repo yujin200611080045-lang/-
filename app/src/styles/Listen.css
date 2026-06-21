@@ -14,6 +14,7 @@
   flex-shrink: 0;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
+  position: relative;
 }
 
 .listen-header-spacer {
@@ -71,6 +72,10 @@
   font-size: 26px;
   color: var(--text-secondary);
   line-height: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .listen-cancel {

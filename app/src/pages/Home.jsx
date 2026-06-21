@@ -38,6 +38,9 @@ export default function Home() {
           alt=""
           onClick={() => navigate('/listen')}
         />
+        <div className="books-entry" onClick={() => navigate('/books')}>
+          <span className="books-entry-word">唯一解</span>
+        </div>
       </div>
       <NavBar active="home" />
     </div>

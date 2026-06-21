@@ -144,7 +144,9 @@ export default function Listen() {
     try {
       const res = await req('/recommend/songs')
       if (res.code === 200 && res.data?.dailySongs?.length) {
-        setRecommendations(res.data.dailySongs.slice(0, 20))
+        const songs = res.data.dailySongs.slice(0, 20)
+        setRecommendations(songs)
+        setRecoIdx(Math.min(2, songs.length - 1))
       }
     } catch (e) {}
   }
@@ -548,8 +550,8 @@ export default function Listen() {
       {phase === 'playing' && (
         <nav className="listen-nav">
           <button
-            className={`listen-nav-item${listenTab === 'me' ? ' active' : ''}`}
-            onClick={() => setListenTab(t => t === 'me' ? 'player' : 'me')}
+            className={`listen-nav-item${listenTab === 'player' ? ' active' : ''}`}
+            onClick={() => setListenTab('player')}
           >
             <span className="listen-nav-word">listen</span>
           </button>
@@ -558,7 +560,10 @@ export default function Listen() {
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </button>
-          <button className="listen-nav-item" onClick={() => navigate('/')}>
+          <button
+            className={`listen-nav-item${listenTab === 'me' ? ' active' : ''}`}
+            onClick={() => setListenTab('me')}
+          >
             <span className="listen-nav-word">home</span>
           </button>
         </nav>
