@@ -18,7 +18,7 @@
   border-radius: 50%;
   background: var(--bg-card);
   border: 1.5px solid #4a5156;
-  z-index: 2;
+  z-index: 4;
 }
 
 /* ── Main index card ── */
