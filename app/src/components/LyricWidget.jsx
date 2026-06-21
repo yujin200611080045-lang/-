@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../styles/LyricWidget.css'
 
-const BOOKS = [
+export const SHARED_BOOKS = [
   '不能承受的生命之轻',
   '苦论',
   '冰与火之歌',
@@ -20,7 +21,7 @@ const TOTAL = LINE1.length + LINE2.length
 
 export default function LyricWidget() {
   const [count, setCount] = useState(0)
-  const [panel, setPanel] = useState(false)
+  const navigate = useNavigate()
   const done = count >= TOTAL
 
   useEffect(() => {
@@ -30,46 +31,23 @@ export default function LyricWidget() {
   }, [count, done])
 
   return (
-    <>
-      <div
-        className={`lw-wrap${done ? ' lw-done' : ''}`}
-        onClick={() => done && setPanel(true)}
-      >
-        <span className="lw-flourish">for you, always —</span>
-        <p className="lw-text lw-line1">
-          {LINE1.slice(0, count).map((tok, i) => (
-            <span key={i} className={`lw-${tok.t}`}>{tok.c}</span>
-          ))}
-          {!done && count <= LINE1.length && <span className="lw-cursor" />}
-        </p>
-        <p className="lw-text lw-line2">
-          {LINE2.slice(0, Math.max(0, count - LINE1.length)).map((tok, i) => (
-            <span key={i} className={`lw-${tok.t}`}>{tok.c}</span>
-          ))}
-          {!done && count > LINE1.length && <span className="lw-cursor" />}
-        </p>
-      </div>
-
-      {panel && (
-        <div className="lw-overlay">
-          <div className="lw-backdrop" onClick={() => setPanel(false)} />
-          <div className="lw-panel">
-            <div className="lw-handle" onClick={() => setPanel(false)} />
-            <div className="lw-panel-head">
-              <span className="lw-panel-title">我们读过的</span>
-              <span className="lw-panel-sub">books we've shared</span>
-            </div>
-            <div className="lw-books">
-              {BOOKS.map((b, i) => (
-                <div key={i} className="lw-book">
-                  <span className="lw-book-mark">·</span>
-                  <span className="lw-book-name">《{b}》</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    <div
+      className={`lw-wrap${done ? ' lw-done' : ''}`}
+      onClick={() => done && navigate('/books')}
+    >
+      <span className="lw-flourish">for you, always —</span>
+      <p className="lw-text lw-line1">
+        {LINE1.slice(0, count).map((tok, i) => (
+          <span key={i} className={`lw-${tok.t}`}>{tok.c}</span>
+        ))}
+        {!done && count <= LINE1.length && <span className="lw-cursor" />}
+      </p>
+      <p className="lw-text lw-line2">
+        {LINE2.slice(0, Math.max(0, count - LINE1.length)).map((tok, i) => (
+          <span key={i} className={`lw-${tok.t}`}>{tok.c}</span>
+        ))}
+        {!done && count > LINE1.length && <span className="lw-cursor" />}
+      </p>
+    </div>
   )
 }
