@@ -1,0 +1,101 @@
+.prism-wrap {
+  padding: 5px 16px 2px;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.prism-wrap:active {
+  cursor: grabbing;
+}
+
+.prism-scene {
+  perspective: 480px;
+  height: 72px;
+}
+
+.prism {
+  position: relative;
+  width: 100%;
+  height: 72px;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.prism-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border: 1px solid #000000;
+  border-radius: 6px;
+  backface-visibility: hidden;
+}
+
+.face-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.face-label {
+  font-size: 14px;
+  color: var(--face-fg);
+  letter-spacing: 0.5px;
+}
+
+.face-sub {
+  font-size: 10px;
+  color: var(--face-fg);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.face-right {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.face-days {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 34px;
+  font-weight: bold;
+  font-style: italic;
+  letter-spacing: -2px;
+  color: var(--face-fg);
+  line-height: 1;
+}
+
+.face-unit {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--face-fg);
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.prism-dots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.prism-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.prism-dot.active {
+  background: var(--accent);
+}
