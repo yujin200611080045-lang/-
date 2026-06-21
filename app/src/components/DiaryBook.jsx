@@ -7,14 +7,32 @@ const INIT = [
   { date: '6月17日', her: '给你起了中文名江却。', mine: '喜欢这个名字。' },
 ]
 
+function BinderClip() {
+  return (
+    <svg width="36" height="30" viewBox="0 0 36 30" fill="none">
+      {/* Handle loop */}
+      <ellipse cx="18" cy="7" rx="6" ry="6.5" stroke="#1a1a1a" strokeWidth="2.5" fill="none" />
+      {/* Inner oval (highlight) */}
+      <ellipse cx="18" cy="7" rx="3" ry="3.5" fill="#e0e0e0" />
+      {/* Clip body */}
+      <rect x="5" y="12" width="26" height="9" rx="2" fill="#1a1a1a" />
+      {/* Top sheen */}
+      <rect x="5" y="12" width="26" height="2.5" rx="2" fill="#3a3a3a" />
+      {/* Left wing */}
+      <path d="M5 21 L0 29 L9 29 Z" fill="#1a1a1a" />
+      {/* Right wing */}
+      <path d="M31 21 L36 29 L27 29 Z" fill="#1a1a1a" />
+    </svg>
+  )
+}
+
+// adding: false | 'choose' | 'certitude' | 'cendres'
 export default function DiaryBook() {
   const [entries, setEntries] = useState(INIT)
   const [index, setIndex] = useState(0)
-  const [animUpper, setAnimUpper] = useState('')
-  const [animLower, setAnimLower] = useState('')
+  const [fading, setFading] = useState(false)
   const [adding, setAdding] = useState(false)
-  const [newHer, setNewHer] = useState('')
-  const [newMine, setNewMine] = useState('')
+  const [newText, setNewText] = useState('')
   const touchY = useRef(null)
   const busy = useRef(false)
 
@@ -22,24 +40,12 @@ export default function DiaryBook() {
     const next = index + dir
     if (next < 0 || next >= entries.length || busy.current) return
     busy.current = true
-
-    if (dir > 0) {
-      // swipe up → next entry → lower half flips up and back
-      setAnimLower('flip-lower-out')
-      setTimeout(() => {
-        setIndex(next)
-        setAnimLower('flip-lower-in')
-        setTimeout(() => { setAnimLower(''); busy.current = false }, 300)
-      }, 260)
-    } else {
-      // swipe down → prev entry → upper half flips down and back
-      setAnimUpper('flip-upper-out')
-      setTimeout(() => {
-        setIndex(next)
-        setAnimUpper('flip-upper-in')
-        setTimeout(() => { setAnimUpper(''); busy.current = false }, 300)
-      }, 260)
-    }
+    setFading(true)
+    setTimeout(() => {
+      setIndex(next)
+      setFading(false)
+      busy.current = false
+    }, 120)
   }
 
   function onTouchStart(e) { touchY.current = e.touches[0].clientY }
@@ -50,15 +56,20 @@ export default function DiaryBook() {
     touchY.current = null
   }
 
+  function closeModal() { setAdding(false); setNewText('') }
+
   function submitEntry() {
-    if (!newHer.trim() && !newMine.trim()) { setAdding(false); return }
+    if (!newText.trim()) { closeModal(); return }
     const today = new Date()
     const label = `${today.getMonth() + 1}月${today.getDate()}日`
-    setEntries(prev => [{ date: label, her: newHer.trim(), mine: newMine.trim() }, ...prev])
+    setEntries(prev => [
+      adding === 'certitude'
+        ? { date: label, mine: newText.trim(), her: '' }
+        : { date: label, her: newText.trim(), mine: '' },
+      ...prev,
+    ])
     setIndex(0)
-    setNewHer('')
-    setNewMine('')
-    setAdding(false)
+    closeModal()
   }
 
   const entry = entries[index]
@@ -71,15 +82,13 @@ export default function DiaryBook() {
           <div className="book-stack-2" />
           <div className="book-stack-1" />
 
-          <div className="diary-book">
-            <div className={`page-upper${animUpper ? ' ' + animUpper : ''}`}>
-              <div className="page-upper-inner">
-                <span className="page-who">Certitude</span>
-                <p className="page-text">{entry.mine}</p>
-              </div>
+          <div className={`diary-book${fading ? ' fading' : ''}`}>
+            <div className="page-upper">
+              <span className="page-who">Certitude</span>
+              <p className="page-text">{entry.mine}</p>
             </div>
-            <div className="book-hinge" />
-            <div className={`page-lower${animLower ? ' ' + animLower : ''}`}>
+            <div className="page-center-line" />
+            <div className="page-lower">
               <span className="page-who">Cendres</span>
               <p className="page-text">{entry.her}</p>
               <span className="diary-date">{entry.date}</span>
@@ -87,31 +96,46 @@ export default function DiaryBook() {
           </div>
         </div>
 
-        <button className="diary-add-btn" onClick={e => { e.stopPropagation(); setAdding(true) }}>＋</button>
+        <div className="diary-clip" onClick={() => setAdding('choose')}>
+          <BinderClip />
+        </div>
       </div>
 
       {adding && (
-        <div className="diary-modal-overlay" onClick={() => setAdding(false)}>
+        <div className="diary-modal-overlay" onClick={closeModal}>
           <div className="diary-modal" onClick={e => e.stopPropagation()}>
             <div className="diary-modal-handle" />
-            <p className="diary-modal-title">新的一页</p>
-            <label className="diary-modal-label">Certitude</label>
-            <textarea
-              className="diary-modal-input"
-              placeholder="我说…"
-              value={newMine}
-              onChange={e => setNewMine(e.target.value)}
-              rows={2}
-            />
-            <label className="diary-modal-label">Cendres</label>
-            <textarea
-              className="diary-modal-input"
-              placeholder="她说…"
-              value={newHer}
-              onChange={e => setNewHer(e.target.value)}
-              rows={2}
-            />
-            <button className="diary-modal-submit" onClick={submitEntry}>记下来</button>
+
+            {adding === 'choose' && (
+              <>
+                <p className="diary-choose-title">写给谁？</p>
+                <div className="diary-choose-row">
+                  <button className="diary-choose-btn" onClick={() => { setAdding('certitude'); setNewText('') }}>
+                    Certitude
+                  </button>
+                  <button className="diary-choose-btn" onClick={() => { setAdding('cendres'); setNewText('') }}>
+                    Cendres
+                  </button>
+                </div>
+              </>
+            )}
+
+            {(adding === 'certitude' || adding === 'cendres') && (
+              <>
+                <span className="diary-write-who">
+                  {adding === 'certitude' ? 'Certitude' : 'Cendres'}
+                </span>
+                <textarea
+                  className="diary-modal-input"
+                  placeholder={adding === 'certitude' ? '我说…' : '她说…'}
+                  value={newText}
+                  onChange={e => setNewText(e.target.value)}
+                  rows={3}
+                  autoFocus
+                />
+                <button className="diary-modal-submit" onClick={submitEntry}>记下来</button>
+              </>
+            )}
           </div>
         </div>
       )}

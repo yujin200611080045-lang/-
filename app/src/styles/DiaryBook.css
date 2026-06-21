@@ -4,7 +4,6 @@
   height: 200px;
   display: flex;
   flex-direction: column;
-  align-items: center;
   user-select: none;
   position: relative;
   overflow: visible;
@@ -18,191 +17,137 @@
   min-height: 0;
 }
 
-/* ── Back stack cards — darker solid colors, furthest back = darkest ── */
+/* ── Back card stack — dark to light front-to-back ── */
 .book-stack-3 {
   position: absolute;
-  top: 2px; bottom: 2px; left: 0; right: 0;
-  border-radius: 12px;
+  top: 2px; bottom: 2px; left: 2px; right: 2px;
+  border-radius: 5px;
   background: #8E8E8E;
   z-index: 1;
 }
 .book-stack-2 {
   position: absolute;
-  top: 6px; bottom: 6px; left: 0; right: 0;
-  border-radius: 12px;
+  top: 5px; bottom: 5px; left: 1px; right: 1px;
+  border-radius: 5px;
   background: #ABABAB;
   z-index: 2;
 }
 .book-stack-1 {
   position: absolute;
-  top: 10px; bottom: 10px; left: 0; right: 0;
-  border-radius: 12px;
-  background: #C2C2C2;
+  top: 8px; bottom: 8px; left: 0; right: 0;
+  border-radius: 5px;
+  background: #C8C8C8;
   z-index: 3;
 }
 
-/* ── Main card — Soft Neumorphism ── */
+/* ── Main index card ── */
 .diary-book {
   position: absolute;
-  top: 16px; bottom: 16px; left: 0; right: 0;
+  top: 14px; bottom: 8px; left: 0; right: 0;
   z-index: 4;
   display: flex;
   flex-direction: column;
-  background: #D8D8D8;
-  border-radius: 12px;
+  background: #F7F6F3;
+  border-radius: 5px;
   overflow: hidden;
   box-shadow:
-    6px 8px 20px rgba(0, 0, 0, 0.22),
-    -4px -5px 14px rgba(255, 255, 255, 0.65);
+    3px 6px 16px rgba(0, 0, 0, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  transition: opacity 0.12s;
 }
 
-/* ── Upper half — FLAT at rest ── */
+.diary-book.fading { opacity: 0; }
+
+/* ── Ruled paper: repeating horizontal lines ── */
 .page-upper {
   flex: 1;
-  position: relative;
-  background: #CECECE;
+  padding: 5px 12px 3px 10px;
   display: flex;
   flex-direction: column;
-  transform-origin: bottom center;
-  box-shadow: inset 0 -8px 18px rgba(0, 0, 0, 0.06);
+  gap: 0;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 20px,
+    rgba(100, 130, 180, 0.18) 20px,
+    rgba(100, 130, 180, 0.18) 21px
+  );
+  background-color: #F7F6F3;
   overflow: hidden;
 }
 
-.page-upper-inner {
-  flex: 1;
-  padding: 12px 14px 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.page-upper-shadow { display: none; }
-
-/* ── Individual half-page flip animations ── */
-.page-upper.flip-upper-out { animation: flipUpperOut 0.26s ease-in  forwards; }
-.page-upper.flip-upper-in  { animation: flipUpperIn  0.30s ease-out forwards; }
-.page-lower.flip-lower-out { animation: flipLowerOut 0.26s ease-in  forwards; }
-.page-lower.flip-lower-in  { animation: flipLowerIn  0.30s ease-out forwards; }
-
-@keyframes flipUpperOut {
-  0%   { transform: perspective(520px) rotateX(0deg);    opacity: 1; }
-  55%  { opacity: 0.15; }
-  100% { transform: perspective(520px) rotateX(-130deg); opacity: 0; }
-}
-@keyframes flipUpperIn {
-  0%   { transform: perspective(520px) rotateX(-130deg); opacity: 0; }
-  45%  { opacity: 0.15; }
-  100% { transform: perspective(520px) rotateX(0deg);    opacity: 1; }
-}
-@keyframes flipLowerOut {
-  0%   { transform: perspective(520px) rotateX(0deg);   opacity: 1; }
-  55%  { opacity: 0.15; }
-  100% { transform: perspective(520px) rotateX(130deg); opacity: 0; }
-}
-@keyframes flipLowerIn {
-  0%   { transform: perspective(520px) rotateX(130deg); opacity: 0; }
-  45%  { opacity: 0.15; }
-  100% { transform: perspective(520px) rotateX(0deg);   opacity: 1; }
-}
-
-/* ── Book spine / fold crease ── */
-.book-hinge {
-  height: 1.5px;
-  background: linear-gradient(to right,
-    rgba(0, 0, 0, 0.20),
-    rgba(0, 0, 0, 0.07),
-    rgba(0, 0, 0, 0.20)
-  );
+.page-center-line {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.18);
   flex-shrink: 0;
-  box-shadow:
-    0 -5px 14px rgba(0, 0, 0, 0.07),
-    0  5px 14px rgba(0, 0, 0, 0.07);
+  margin: 0;
 }
 
-.hinge-line { display: none; }
-
-/* ── Lower half — FLAT at rest ── */
 .page-lower {
   flex: 1;
+  padding: 5px 12px 4px 10px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 14px 12px;
-  gap: 6px;
-  background: #DEDEDE;
+  gap: 0;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 20px,
+    rgba(100, 130, 180, 0.18) 20px,
+    rgba(100, 130, 180, 0.18) 21px
+  );
+  background-color: #F0EFE9;
   overflow: hidden;
-  transform-origin: top center;
-  box-shadow: inset 0 8px 18px rgba(0, 0, 0, 0.05);
 }
 
-/* ── Typography — centered thin serif ── */
+/* ── Name label — Pinyon Script ── */
 .page-who {
-  font-family: 'Georgia', serif;
-  font-size: 8px;
-  letter-spacing: 2.5px;
-  color: #9A9A9A;
-  font-style: italic;
+  font-family: 'Pinyon Script', cursive;
+  font-size: 15px;
+  color: #A89F94;
+  line-height: 21px;
   flex-shrink: 0;
-  text-align: center;
 }
 
+/* ── Entry text — sits on the ruled lines ── */
 .page-text {
   font-family: 'Georgia', serif;
   font-size: 11px;
-  color: #5A5A5A;
+  color: #4a4540;
   font-weight: 300;
-  line-height: 1.7;
+  line-height: 21px;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   flex: 1;
-  text-align: center;
+  margin: 0;
 }
 
 .diary-date {
-  font-family: 'Georgia', serif;
   font-size: 8px;
-  color: #ABABAB;
-  text-align: center;
+  color: #B8B0A8;
+  text-align: right;
   letter-spacing: 1px;
+  font-family: 'Georgia', serif;
+  line-height: 21px;
   flex-shrink: 0;
 }
 
-/* ── Add button — Neumorphism circle ── */
-.diary-add-btn {
+/* ── Binder clip ── */
+.diary-clip {
   position: absolute;
-  top: -6px;
-  right: -2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #D8D8D8;
-  border: none;
-  font-size: 12px;
-  color: #888;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
   cursor: pointer;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  z-index: 10;
-  line-height: 1;
-  padding: 0;
-  box-shadow:
-    3px 3px 7px rgba(0, 0, 0, 0.18),
-    -2px -2px 5px rgba(255, 255, 255, 0.7);
 }
 
-.diary-add-btn:active {
-  box-shadow:
-    1px 1px 3px rgba(0, 0, 0, 0.18),
-    -1px -1px 2px rgba(255, 255, 255, 0.6);
-}
+.diary-clip:active { opacity: 0.65; }
 
-/* ── Modal ── */
+/* ── Modal overlay ── */
 .diary-modal-overlay {
   position: fixed;
   inset: 0;
@@ -219,7 +164,8 @@
   padding: 0 24px calc(24px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  box-sizing: border-box;
 }
 
 .diary-modal-handle {
@@ -227,24 +173,52 @@
   height: 4px;
   border-radius: 2px;
   background: var(--border);
-  margin: 12px auto 10px;
+  margin: 12px auto 6px;
   opacity: 0.4;
 }
 
-.diary-modal-title {
+/* ── Step 1: choose person ── */
+.diary-choose-title {
   font-family: 'Georgia', serif;
   font-style: italic;
-  font-size: 15px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
   color: var(--text-muted);
-  letter-spacing: 1px;
-  margin-bottom: 4px;
+  text-align: center;
+  margin-bottom: -4px;
 }
 
-.diary-modal-label {
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--accent);
-  font-style: italic;
+.diary-choose-row {
+  display: flex;
+  gap: 14px;
+  margin: 4px 0 8px;
+}
+
+.diary-choose-btn {
+  flex: 1;
+  padding: 18px 0;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Pinyon Script', cursive;
+  font-size: 26px;
+  color: var(--text-secondary);
+  transition: border-color 0.15s, color 0.15s;
+  line-height: 1;
+}
+
+.diary-choose-btn:active {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+/* ── Step 2: write ── */
+.diary-write-who {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 24px;
+  color: var(--text-muted);
+  line-height: 1;
 }
 
 .diary-modal-input {
@@ -265,7 +239,6 @@
 .diary-modal-input::placeholder { color: var(--text-muted); }
 
 .diary-modal-submit {
-  margin-top: 6px;
   padding: 12px;
   width: 100%;
   border: none;
