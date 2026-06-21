@@ -16,37 +16,37 @@
   position: relative;
   min-height: 0;
   perspective: 700px;
-  perspective-origin: 30% 50%;
+  perspective-origin: 50% 20%;
 }
 
 .book-tilt {
   position: absolute;
   inset: 0;
-  transform: rotateY(-9deg);
+  transform: rotateX(10deg);
   transform-style: preserve-3d;
 }
 
-/* 叠层书页 — 向右偏移，rotateY后从正面可见 */
+/* 叠层书页 — 向上偏移，rotateX后从书顶正面可见 */
 .book-stack-1,
 .book-stack-2,
 .book-stack-3 {
   position: absolute;
   inset: 0;
-  border-radius: 5px 10px 10px 5px;
+  border-radius: 8px 8px 5px 5px;
   border: 1px solid rgba(0,0,0,0.08);
 }
 .book-stack-1 {
-  transform: translateX(8px);
+  transform: translateY(-8px);
   background: #dce0e8;
   z-index: 0;
 }
 .book-stack-2 {
-  transform: translateX(16px);
+  transform: translateY(-16px);
   background: #ccd1da;
   z-index: -1;
 }
 .book-stack-3 {
-  transform: translateX(24px);
+  transform: translateY(-24px);
   background: #bdc4cf;
   z-index: -2;
 }
@@ -59,7 +59,7 @@
   flex-direction: column;
   background: var(--bg-card);
   border: 1.5px solid rgba(0,0,0,0.18);
-  border-radius: 5px 10px 10px 5px;
+  border-radius: 8px 8px 5px 5px;
   overflow: hidden;
   box-shadow:
     3px 6px 24px rgba(60,80,110,0.18),
