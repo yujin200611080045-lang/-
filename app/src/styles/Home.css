@@ -5,6 +5,7 @@
   background: var(--bg);
   overflow: hidden;
   position: relative;
+  padding-bottom: calc(52px + env(safe-area-inset-bottom));
 }
 
 .home-header {
