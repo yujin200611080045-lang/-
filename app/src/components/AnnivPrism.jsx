@@ -7,8 +7,8 @@ const EVENTS = [
 ]
 
 const FACES = 6
-const FACE_H = 46
-const R = Math.round((FACE_H / 2) / Math.tan(Math.PI / FACES)) // ≈ 40px
+const FACE_H = 38
+const R = Math.round((FACE_H / 2) / Math.tan(Math.PI / FACES)) // ≈ 33px
 const ANGLE = 360 / FACES
 
 function getUpcoming() {

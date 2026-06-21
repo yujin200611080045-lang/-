@@ -1,5 +1,5 @@
 .prism-wrap {
-  padding: 24px 16px 22px;
+  padding: 20px 16px 18px;
   margin-top: 2px;
   cursor: grab;
   user-select: none;
@@ -15,14 +15,14 @@
 
 .prism-scene {
   perspective: 480px;
-  height: 46px;
+  height: 38px;
   background: #24292e;
 }
 
 .prism {
   position: relative;
   width: 100%;
-  height: 46px;
+  height: 38px;
   transform-style: preserve-3d;
   transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   background: #24292e;
