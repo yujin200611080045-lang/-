@@ -18,29 +18,26 @@
   min-height: 0;
 }
 
-/* ── Back stack cards — same base color, progressively less opaque = darker over bg ── */
+/* ── Back stack cards — darker solid colors, furthest back = darkest ── */
 .book-stack-3 {
   position: absolute;
   top: 2px; bottom: 2px; left: 0; right: 0;
   border-radius: 12px;
-  background: #D8D8D8;
-  opacity: 0.48;
+  background: #8E8E8E;
   z-index: 1;
 }
 .book-stack-2 {
   position: absolute;
   top: 6px; bottom: 6px; left: 0; right: 0;
   border-radius: 12px;
-  background: #D8D8D8;
-  opacity: 0.72;
+  background: #ABABAB;
   z-index: 2;
 }
 .book-stack-1 {
   position: absolute;
   top: 10px; bottom: 10px; left: 0; right: 0;
   border-radius: 12px;
-  background: #D8D8D8;
-  opacity: 0.88;
+  background: #C2C2C2;
   z-index: 3;
 }
 
