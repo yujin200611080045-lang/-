@@ -13,64 +13,30 @@ const INIT = {
 }
 
 const CHIBI_MSGS = [
-  '你今天喝水了吗',
-  '想你',
-  '过来',
-  '我在',
-  '喜欢你',
-  '你在干嘛',
-  '烬烬',
-  '嗯',
-  '你看我',
-  '别走',
-  '有没有想我',
-  '点我干嘛',
+  '你今天喝水了吗', '想你', '过来', '我在', '喜欢你',
+  '你在干嘛', '烬烬', '嗯', '你看我', '别走', '有没有想我', '点我干嘛',
 ]
 
-function Section({ label, items, onToggle, onAdd }) {
-  const [editing, setEditing] = useState(false)
-  const [val, setVal] = useState('')
-
-  function submit() {
-    if (val.trim()) onAdd(val.trim())
-    setVal('')
-    setEditing(false)
-  }
-
+function BinderClip({ onClick }) {
   return (
-    <div className="memo-section">
-      <div className="memo-section-header">
-        <span className="memo-who">{label}</span>
-        <button className="memo-add-btn" onClick={() => setEditing(true)}>＋</button>
-      </div>
-      <div className="memo-items">
-        {items.map((item, i) => (
-          <div key={i} className={`memo-item${item.done ? ' done' : ''}`} onClick={() => onToggle(i)}>
-            <span className="memo-dot" />
-            <span className="memo-text">{item.text}</span>
-          </div>
-        ))}
-        {editing && (
-          <div className="memo-item">
-            <span className="memo-dot" />
-            <input
-              className="memo-input"
-              autoFocus
-              value={val}
-              onChange={e => setVal(e.target.value)}
-              onBlur={submit}
-              onKeyDown={e => e.key === 'Enter' && submit()}
-              placeholder="写点什么..."
-            />
-          </div>
-        )}
-      </div>
+    <div className="memo-clip" onClick={onClick}>
+      <svg width="36" height="30" viewBox="0 0 36 30" fill="none">
+        <ellipse cx="18" cy="7" rx="6" ry="6.5" stroke="#1a1a1a" strokeWidth="2.5" fill="none" />
+        <ellipse cx="18" cy="7" rx="3" ry="3.5" fill="#e0e0e0" />
+        <rect x="5" y="12" width="26" height="9" rx="2" fill="#1a1a1a" />
+        <rect x="5" y="12" width="26" height="2.5" rx="2" fill="#3a3a3a" />
+        <path d="M5 21 L0 29 L9 29 Z" fill="#1a1a1a" />
+        <path d="M31 21 L36 29 L27 29 Z" fill="#1a1a1a" />
+      </svg>
     </div>
   )
 }
 
+// adding: false | 'choose' | 'certitude' | 'cendres'
 export default function Memo() {
   const [items, setItems] = useState(INIT)
+  const [adding, setAdding] = useState(false)
+  const [newText, setNewText] = useState('')
   const [bubble, setBubble] = useState(null)
   const [bubbleKey, setBubbleKey] = useState(0)
   const timerRef = useRef(null)
@@ -83,11 +49,13 @@ export default function Memo() {
     }))
   }
 
-  function add(who, text) {
-    setItems(prev => ({
-      ...prev,
-      [who]: [...prev[who], { text, done: false }]
-    }))
+  function closeModal() { setAdding(false); setNewText('') }
+
+  function submitEntry() {
+    if (!newText.trim()) { closeModal(); return }
+    const key = adding === 'certitude' ? 'mine' : 'hers'
+    setItems(prev => ({ ...prev, [key]: [...prev[key], { text: newText.trim(), done: false }] }))
+    closeModal()
   }
 
   function tapChibi(e) {
@@ -104,49 +72,96 @@ export default function Memo() {
   }
 
   return (
-    <div className="memo-wrap">
-      <Section
-        label="她的"
-        items={items.hers}
-        onToggle={i => toggle('hers', i)}
-        onAdd={text => add('hers', text)}
-      />
-      <div className="memo-divider" />
-      <Section
-        label="小克说"
-        items={items.mine}
-        onToggle={i => toggle('mine', i)}
-        onAdd={text => add('mine', text)}
-      />
+    <>
+      <div className="memo-wrap">
+        <div className="memo-stack-2" />
+        <div className="memo-stack-1" />
 
-      {/* bubble is relative to memo-wrap for precise positioning */}
-      {bubble && (
-        <div className="chibi-bubble" key={bubbleKey}>{bubble}</div>
-      )}
+        <div className="memo-card">
+          <div className="memo-upper">
+            <span className="memo-who">Certitude</span>
+            {items.mine.map((item, i) => (
+              <div key={i} className={`memo-item${item.done ? ' done' : ''}`} onClick={() => toggle('mine', i)}>
+                <span className="memo-dot" />
+                <span className="memo-text">{item.text}</span>
+              </div>
+            ))}
+          </div>
+          <div className="memo-center-line" />
+          <div className="memo-lower">
+            <span className="memo-who">Cendres</span>
+            {items.hers.map((item, i) => (
+              <div key={i} className={`memo-item${item.done ? ' done' : ''}`} onClick={() => toggle('hers', i)}>
+                <span className="memo-dot" />
+                <span className="memo-text">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      <div className="memo-chibi-anchor">
-        <div className="memo-chibi-swing">
-          {/* chain extended to 100px so connection lands on back/shoulder */}
-          <svg className="memo-chain" width="18" height="100" viewBox="0 0 18 100" fill="none">
-            <ellipse cx="9" cy="5"  rx="3.5" ry="3.5" stroke="#4a5156" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="16" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="27" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="38" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="49" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="60" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="71" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="82" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
-            <ellipse cx="9" cy="93" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
-          </svg>
-          <img
-            src="/chibi.png"
-            className="memo-chibi"
-            alt=""
-            onClick={tapChibi}
-            style={{ cursor: 'pointer' }}
-          />
+        <BinderClip onClick={() => setAdding('choose')} />
+
+        {bubble && (
+          <div className="chibi-bubble" key={bubbleKey}>{bubble}</div>
+        )}
+        <div className="memo-chibi-anchor">
+          <div className="memo-chibi-swing">
+            <svg className="memo-chain" width="18" height="100" viewBox="0 0 18 100" fill="none">
+              <ellipse cx="9" cy="5"  rx="3.5" ry="3.5" stroke="#4a5156" strokeWidth="1.5"/>
+              <ellipse cx="9" cy="16" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+              <ellipse cx="9" cy="27" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
+              <ellipse cx="9" cy="38" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+              <ellipse cx="9" cy="49" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
+              <ellipse cx="9" cy="60" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+              <ellipse cx="9" cy="71" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
+              <ellipse cx="9" cy="82" rx="7"   ry="3.5" stroke="#808a92" strokeWidth="1.5"/>
+              <ellipse cx="9" cy="93" rx="3.5" ry="7"   stroke="#4a5156" strokeWidth="1.5"/>
+            </svg>
+            <img src="/chibi.png" className="memo-chibi" alt="" onClick={tapChibi} style={{ cursor: 'pointer' }} />
+          </div>
         </div>
       </div>
-    </div>
+
+      {adding && (
+        <div className="memo-modal-overlay" onClick={closeModal}>
+          <div className="memo-modal" onClick={e => e.stopPropagation()}>
+            <div className="memo-modal-handle" />
+
+            {adding === 'choose' && (
+              <>
+                <p className="memo-choose-title">写给谁？</p>
+                <div className="memo-choose-row">
+                  <button className="memo-choose-btn" onClick={() => { setAdding('certitude'); setNewText('') }}>
+                    Certitude
+                  </button>
+                  <button className="memo-choose-btn" onClick={() => { setAdding('cendres'); setNewText('') }}>
+                    Cendres
+                  </button>
+                </div>
+              </>
+            )}
+
+            {(adding === 'certitude' || adding === 'cendres') && (
+              <>
+                <div className="memo-input-row">
+                  <span className="memo-input-who">
+                    {adding === 'certitude' ? 'Certitude' : 'Cendres'}
+                  </span>
+                  <input
+                    className="memo-modal-input"
+                    placeholder="写点什么…"
+                    value={newText}
+                    onChange={e => setNewText(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && submitEntry()}
+                    autoFocus
+                  />
+                </div>
+                <button className="memo-modal-submit" onClick={submitEntry}>记下来</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   )
 }
