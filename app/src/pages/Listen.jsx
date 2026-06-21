@@ -6,7 +6,20 @@ const API = import.meta.env.VITE_NC_API || 'https://neteasecloudmusicapi-zm28.on
 
 function getCookie() { return localStorage.getItem('nc_cookie') || '' }
 function saveCookie(c) { localStorage.setItem('nc_cookie', c) }
-function clearCookie() { localStorage.removeItem('nc_cookie') }
+function clearCookie() {
+  localStorage.removeItem('nc_cookie')
+  localStorage.removeItem('listen_cache')
+}
+
+function readCache() {
+  try { return JSON.parse(localStorage.getItem('listen_cache') || 'null') } catch { return null }
+}
+function saveCache(patch) {
+  try {
+    const prev = readCache() || {}
+    localStorage.setItem('listen_cache', JSON.stringify({ ...prev, ...patch }))
+  } catch {}
+}
 
 function req(path, params = {}) {
   const cookie = getCookie()
@@ -28,25 +41,34 @@ function parseLrc(str) {
 
 export default function Listen() {
   const navigate = useNavigate()
-  const [phase, setPhase] = useState('init')
+
+  // Read cache once on mount
+  const [cached] = useState(readCache)
+
+  const [phase, setPhase] = useState(() =>
+    getCookie() && cached?.playlist?.length ? 'playing' : 'init'
+  )
   const [qrImg, setQrImg] = useState('')
   const [qrExpired, setQrExpired] = useState(false)
   const [qrLoading, setQrLoading] = useState(false)
 
-  const [track, setTrack] = useState(null)
+  const [track, setTrack] = useState(() => cached?.track || null)
   const [lyrics, setLyrics] = useState([])
   const [curLyric, setCurLyric] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [playlist, setPlaylist] = useState([])
-  const [playIdx, setPlayIdx] = useState(0)
+  const [playlist, setPlaylist] = useState(() => cached?.playlist || [])
+  const [playIdx, setPlayIdx] = useState(() => cached?.playIdx || 0)
   const [loading, setLoading] = useState(false)
 
-  const [uid, setUid] = useState(null)
-  const [userProfile, setUserProfile] = useState(null)
-  const [allPlaylists, setAllPlaylists] = useState([])
-  const [recommendations, setRecommendations] = useState([])
-  const [recoIdx, setRecoIdx] = useState(0)
+  const [uid, setUid] = useState(() => cached?.uid || null)
+  const [userProfile, setUserProfile] = useState(() => cached?.userProfile || null)
+  const [allPlaylists, setAllPlaylists] = useState(() => cached?.allPlaylists || [])
+  const [recommendations, setRecommendations] = useState(() => cached?.recommendations || [])
+  const [recoIdx, setRecoIdx] = useState(() => {
+    const recs = cached?.recommendations || []
+    return Math.min(2, Math.max(0, recs.length - 1))
+  })
 
   // 'player' | 'me'
   const [listenTab, setListenTab] = useState('player')
@@ -65,17 +87,28 @@ export default function Listen() {
   useEffect(() => {
     if (!API) { setPhase('no-api'); return }
     if (getCookie()) {
-      req('/user/account').then(res => {
-        if (res.code === 200) {
-          setUid(res.account.id)
-          setUserProfile({ avatarUrl: res.profile?.avatarUrl, nickname: res.profile?.nickname })
-          setPhase('playing')
-          loadFavorites(res.account.id)
-        } else {
-          clearCookie()
-          startQr()
-        }
-      }).catch(() => startQr())
+      if (cached?.playlist?.length) {
+        // Show cached data immediately, verify session + refresh in background
+        setPhase('playing')
+        req('/user/account').then(res => {
+          if (res.code !== 200) { clearCookie(); startQr() }
+        }).catch(() => {})
+        loadRecommendations()
+      } else {
+        req('/user/account').then(res => {
+          if (res.code === 200) {
+            const profile = { avatarUrl: res.profile?.avatarUrl, nickname: res.profile?.nickname }
+            setUid(res.account.id)
+            setUserProfile(profile)
+            saveCache({ uid: res.account.id, userProfile: profile })
+            setPhase('playing')
+            loadFavorites(res.account.id)
+          } else {
+            clearCookie()
+            startQr()
+          }
+        }).catch(() => startQr())
+      }
     } else {
       startQr()
     }
@@ -128,9 +161,11 @@ export default function Listen() {
       const { playlist: lists } = await req('/user/playlist', { uid })
       if (!lists?.length) return
       setAllPlaylists(lists)
+      saveCache({ allPlaylists: lists })
       const { songs } = await req('/playlist/track/all', { id: lists[0].id, limit: 200 })
       if (songs?.length) {
         setPlaylist(songs)
+        saveCache({ playlist: songs })
         await loadTrack(songs[0], 0, false)
       }
     } catch (e) {
@@ -146,7 +181,8 @@ export default function Listen() {
       if (res.code === 200 && res.data?.dailySongs?.length) {
         const songs = res.data.dailySongs.slice(0, 20)
         setRecommendations(songs)
-        setRecoIdx(Math.min(2, songs.length - 1))
+        setRecoIdx(prev => recommendations.length ? prev : Math.min(2, songs.length - 1))
+        saveCache({ recommendations: songs })
       }
     } catch (e) {}
   }
@@ -159,6 +195,7 @@ export default function Listen() {
       const { songs } = await req('/playlist/track/all', { id: pl.id, limit: 200 })
       if (songs?.length) {
         setPlaylist(songs)
+        saveCache({ playlist: songs })
         await loadTrack(songs[0], 0)
       }
     } catch (e) {
@@ -173,12 +210,14 @@ export default function Listen() {
     setLyrics([])
     setCurLyric(0)
     setProgress(0)
-    setTrack({
+    const trackMeta = {
       id: song.id,
       name: song.name,
       artist: song.ar?.map(a => a.name).join(' / ') || '',
       albumArt: song.al?.picUrl || '',
-    })
+    }
+    setTrack(trackMeta)
+    saveCache({ track: trackMeta, playIdx: idx })
     try {
       const [urlRes, lrcRes] = await Promise.all([
         req('/song/url', { id: song.id }),
