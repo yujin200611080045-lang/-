@@ -1,10 +1,10 @@
 .prism-wrap {
-  padding: 5px 16px 2px;
+  padding: 14px 16px 8px;
   cursor: grab;
   user-select: none;
   flex-shrink: 0;
   position: relative;
-  z-index: 1;
+  z-index: 4;
 }
 
 .prism-wrap:active {
