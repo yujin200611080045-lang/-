@@ -16,6 +16,8 @@
 .prism-scene {
   perspective: 480px;
   height: 46px;
+  background: #24292e;
+  overflow: hidden;
 }
 
 .prism {
@@ -34,7 +36,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  border: 1px solid #000000;
+  border: none;
   border-radius: 0;
   backface-visibility: hidden;
 }
