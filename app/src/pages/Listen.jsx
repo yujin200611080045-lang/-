@@ -286,7 +286,7 @@ export default function Listen() {
           </>
         ) : (
           <>
-            <div className="listen-header-spacer" />
+            <button className="listen-back" onClick={() => navigate('/')}>‹</button>
             <span className="listen-title-music">music</span>
             <div className="listen-header-actions">
               <button className="icon-btn" onClick={() => setSheet('search')}>
