@@ -66,7 +66,7 @@
   overflow-x: hidden;
   touch-action: pan-y;
   overscroll-behavior: contain;
-  background-color: #F0EFE9;
+  background-color: #F7F6F3;
   background-image: repeating-linear-gradient(
     transparent, transparent 20px,
     rgba(100, 130, 180, 0.18) 20px,
