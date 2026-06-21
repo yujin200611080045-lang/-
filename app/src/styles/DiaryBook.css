@@ -8,6 +8,7 @@
   cursor: grab;
   user-select: none;
   position: relative;
+  overflow: hidden;
 }
 
 .diary-scene {
@@ -15,54 +16,47 @@
   width: 100%;
   position: relative;
   min-height: 0;
-  perspective: 700px;
-  perspective-origin: 50% 20%;
 }
 
-.book-tilt {
-  position: absolute;
-  inset: 0;
-  transform: rotateX(10deg);
-  transform-style: preserve-3d;
-}
-
-/* 叠层书页 — 向上偏移，rotateX后从书顶正面可见 */
-.book-stack-1,
-.book-stack-2,
+/* 叠层书页 — 从上下两端露出，越往后越深 */
 .book-stack-3 {
   position: absolute;
-  inset: 0;
-  border-radius: 8px 8px 5px 5px;
-  border: 1px solid rgba(0,0,0,0.08);
-}
-.book-stack-1 {
-  transform: translateY(-8px);
-  background: #dce0e8;
-  z-index: 0;
+  top: 2px; bottom: 2px; left: 0; right: 0;
+  border-radius: 6px;
+  background: #bdc4cf;
+  border: 1px solid rgba(0,0,0,0.09);
+  z-index: 1;
 }
 .book-stack-2 {
-  transform: translateY(-16px);
+  position: absolute;
+  top: 6px; bottom: 6px; left: 0; right: 0;
+  border-radius: 6px;
   background: #ccd1da;
-  z-index: -1;
+  border: 1px solid rgba(0,0,0,0.08);
+  z-index: 2;
 }
-.book-stack-3 {
-  transform: translateY(-24px);
-  background: #bdc4cf;
-  z-index: -2;
+.book-stack-1 {
+  position: absolute;
+  top: 10px; bottom: 10px; left: 0; right: 0;
+  border-radius: 6px;
+  background: #dce0e8;
+  border: 1px solid rgba(0,0,0,0.07);
+  z-index: 3;
 }
 
+/* 首面：压缩上下各16px，为叠层留出可见空间 */
 .diary-book {
   position: absolute;
-  inset: 0;
-  z-index: 1;
+  top: 16px; bottom: 16px; left: 0; right: 0;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   background: var(--bg-card);
   border: 1.5px solid rgba(0,0,0,0.18);
-  border-radius: 8px 8px 5px 5px;
+  border-radius: 5px;
   overflow: hidden;
   box-shadow:
-    3px 6px 24px rgba(60,80,110,0.18),
+    3px 8px 24px rgba(60,80,110,0.20),
     inset 0 1px 0 rgba(255,255,255,0.9);
   transform-origin: center center;
 }
@@ -89,7 +83,7 @@
   to   { transform: rotateX(0deg);   opacity: 1; }
 }
 
-/* 上半页：直挺硬朗 */
+/* 上半页：向观者倾斜（顶端朝前），形成120°开本上半 */
 .page-upper {
   flex: 1;
   position: relative;
@@ -97,37 +91,41 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transform-origin: bottom center;
+  transform: perspective(360px) rotateX(-28deg);
 }
 
 .page-upper-inner {
   flex: 1;
-  padding: 10px 10px 8px 14px;
+  padding: 10px 10px 6px 14px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .page-upper-shadow { display: none; }
 
-/* 中间阴影分割线 */
+/* 书脊：1px 分割线 */
 .book-hinge {
   height: 1px;
-  background: rgba(0,0,0,0.12);
+  background: rgba(0,0,0,0.15);
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
 }
 
 .hinge-line { display: none; }
 
-/* 下半页：直挺硬朗 */
+/* 下半页：向观者倾斜（底端朝前），形成120°开本下半 */
 .page-lower {
   flex: 1;
-  padding: 8px 10px 6px 14px;
+  padding: 6px 10px 8px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   background: var(--bg-card);
   overflow: hidden;
+  transform-origin: top center;
+  transform: perspective(360px) rotateX(28deg);
 }
 
 .page-who {
