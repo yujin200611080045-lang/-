@@ -24,7 +24,14 @@ export default function LyricWidget() {
   const [books, setBooks] = useState(INIT_BOOKS)
   const [newBook, setNewBook] = useState('')
   const inputRef = useRef(null)
+  const booksRef = useRef(null)
   const done = count >= TOTAL
+
+  useEffect(() => {
+    if (panel && booksRef.current) {
+      booksRef.current.scrollTop = 0
+    }
+  }, [panel])
 
   useEffect(() => {
     if (done) return
@@ -77,7 +84,7 @@ export default function LyricWidget() {
               <span className="lw-panel-title">我们读过的</span>
               <span className="lw-panel-sub">books we've shared</span>
             </div>
-            <div className="lw-books">
+            <div className="lw-books" ref={booksRef}>
               {books.map((b, i) => (
                 <div key={i} className="lw-book" onClick={() => toggleDone(i)}>
                   <span className="lw-book-mark">·</span>
