@@ -15,32 +15,39 @@
   width: 100%;
   position: relative;
   min-height: 0;
-  perspective: 600px;
-  perspective-origin: 50% 50%;
+  perspective: 700px;
+  perspective-origin: 30% 50%;
 }
 
-/* 叠层书页 — 仅向右偏移，从正面可见 */
+.book-tilt {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(-9deg);
+  transform-style: preserve-3d;
+}
+
+/* 叠层书页 — 向右偏移，rotateY后从正面可见 */
 .book-stack-1,
 .book-stack-2,
 .book-stack-3 {
   position: absolute;
   inset: 0;
-  border-radius: 6px 10px 10px 6px;
-  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 5px 10px 10px 5px;
+  border: 1px solid rgba(0,0,0,0.08);
 }
 .book-stack-1 {
-  transform: translateX(7px);
-  background: #dde1e7;
+  transform: translateX(8px);
+  background: #dce0e8;
   z-index: 0;
 }
 .book-stack-2 {
-  transform: translateX(14px);
-  background: #d0d5dd;
+  transform: translateX(16px);
+  background: #ccd1da;
   z-index: -1;
 }
 .book-stack-3 {
-  transform: translateX(21px);
-  background: #c3c9d3;
+  transform: translateX(24px);
+  background: #bdc4cf;
   z-index: -2;
 }
 
@@ -51,10 +58,12 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 6px 10px 10px 6px;
+  border: 1.5px solid rgba(0,0,0,0.18);
+  border-radius: 5px 10px 10px 5px;
   overflow: hidden;
-  box-shadow: 2px 4px 18px rgba(80,100,130,0.16);
+  box-shadow:
+    3px 6px 24px rgba(60,80,110,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.9);
   transform-origin: center center;
 }
 
@@ -80,11 +89,11 @@
   to   { transform: rotateX(0deg);   opacity: 1; }
 }
 
-/* 上半页：直挺 */
+/* 上半页：直挺硬朗 */
 .page-upper {
   flex: 1;
   position: relative;
-  background: #f4f6f9;
+  background: #f6f8fb;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -98,30 +107,19 @@
   gap: 5px;
 }
 
-.page-upper-shadow {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 24px;
-  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.07));
-  pointer-events: none;
-}
+.page-upper-shadow { display: none; }
 
 /* 中间阴影分割线 */
 .book-hinge {
-  height: 3px;
-  background: linear-gradient(to bottom,
-    rgba(0,0,0,0.08) 0%,
-    rgba(0,0,0,0.03) 60%,
-    transparent 100%
-  );
+  height: 1px;
+  background: rgba(0,0,0,0.12);
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
 
 .hinge-line { display: none; }
 
-/* 下半页：平摔 */
+/* 下半页：直挺硬朗 */
 .page-lower {
   flex: 1;
   padding: 8px 10px 6px 14px;

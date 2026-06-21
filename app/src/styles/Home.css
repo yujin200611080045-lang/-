@@ -110,13 +110,12 @@
   min-height: 0;
   display: flex;
   align-items: flex-end;
-  padding: 0 0 52px 8px;
+  padding: 0 0 38px 4px;
 }
 
 .listen-entry {
-  width: 110px;
+  width: 120px;
   cursor: pointer;
-  mix-blend-mode: multiply;
   transition: opacity 0.15s;
   display: block;
 }

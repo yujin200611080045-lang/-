@@ -33,7 +33,7 @@ export default function Home() {
       </div>
       <div className="home-gap">
         <img
-          src="/black-cat.jpeg"
+          src="/black-cat.png"
           className="listen-entry"
           alt=""
           onClick={() => navigate('/listen')}
