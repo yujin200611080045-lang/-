@@ -21,22 +21,6 @@
   z-index: 2;
 }
 
-/* ── Stack layers — peek from top ── */
-.memo-stack-2 {
-  position: absolute;
-  top: 5px; bottom: 0; left: 2px; right: 2px;
-  border-radius: 5px;
-  background: #ABABAB;
-  z-index: 1;
-}
-.memo-stack-1 {
-  position: absolute;
-  top: 9px; bottom: 0; left: 1px; right: 1px;
-  border-radius: 5px;
-  background: #C8C8C8;
-  z-index: 2;
-}
-
 /* ── Main index card ── */
 .memo-card {
   position: absolute;

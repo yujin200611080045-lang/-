@@ -74,9 +74,6 @@ export default function Memo() {
   return (
     <>
       <div className="memo-wrap">
-        <div className="memo-stack-2" />
-        <div className="memo-stack-1" />
-
         <div className="memo-card">
           <div className="memo-upper">
             <span className="memo-who">Certitude</span>
