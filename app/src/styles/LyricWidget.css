@@ -128,17 +128,6 @@
   font-family: 'Pinyon Script', cursive;
   font-size: 15px;
   color: #808a92;
-  flex: 1;
-}
-
-.lw-add-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
 }
 
 .lw-books {
@@ -174,36 +163,32 @@
   font-family: 'Ma Shan Zheng', cursive;
   font-size: 15px;
   color: var(--text-secondary);
+  transition: opacity 0.2s;
 }
 
-.lw-add-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
+.lw-book-done {
+  text-decoration: line-through;
+  opacity: 0.35;
 }
 
-.lw-add-input {
+.lw-book-add {
+  cursor: text;
+}
+
+.lw-add-inline {
   flex: 1;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 16px;
-  font-family: inherit;
-  color: var(--text-primary);
-  background: var(--bg);
-  outline: none;
-}
-
-.lw-add-input::placeholder { color: var(--text-muted); }
-
-.lw-add-submit {
-  padding: 10px 18px;
   border: none;
-  border-radius: 10px;
-  background: var(--text-primary);
-  color: var(--bg);
-  font-size: 14px;
-  cursor: pointer;
+  outline: none;
+  background: transparent;
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 15px;
+  color: var(--text-secondary);
+  padding: 0;
+  font-size: 16px;
 }
 
-.lw-add-submit:active { opacity: 0.8; }
+.lw-add-inline::placeholder {
+  color: var(--border);
+  font-family: inherit;
+  font-size: 14px;
+}

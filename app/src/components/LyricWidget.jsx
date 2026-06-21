@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import '../styles/LyricWidget.css'
 
 const INIT_BOOKS = [
@@ -9,7 +9,7 @@ const INIT_BOOKS = [
   '洛丽塔',
   '庆祝无意义',
   '蛋壳头骨',
-]
+].map(name => ({ name, done: false }))
 
 const LINE1 = Array.from('我们该是上天命定的爱人').map(c => ({ c, t: 'main' }))
 const LINE2 = [
@@ -22,8 +22,8 @@ export default function LyricWidget() {
   const [count, setCount] = useState(0)
   const [panel, setPanel] = useState(false)
   const [books, setBooks] = useState(INIT_BOOKS)
-  const [adding, setAdding] = useState(false)
   const [newBook, setNewBook] = useState('')
+  const inputRef = useRef(null)
   const done = count >= TOTAL
 
   useEffect(() => {
@@ -32,11 +32,19 @@ export default function LyricWidget() {
     return () => clearTimeout(t)
   }, [count, done])
 
+  function toggleDone(i) {
+    setBooks(prev => prev.map((b, idx) => idx === i ? { ...b, done: !b.done } : b))
+  }
+
   function submitBook() {
-    if (!newBook.trim()) { setAdding(false); return }
-    setBooks(prev => [...prev, newBook.trim()])
+    if (!newBook.trim()) return
+    setBooks(prev => [...prev, { name: newBook.trim(), done: false }])
     setNewBook('')
-    setAdding(false)
+  }
+
+  function closePanel() {
+    setPanel(false)
+    setNewBook('')
   }
 
   return (
@@ -62,35 +70,33 @@ export default function LyricWidget() {
 
       {panel && (
         <div className="lw-overlay">
-          <div className="lw-backdrop" onClick={() => { setPanel(false); setAdding(false); setNewBook('') }} />
+          <div className="lw-backdrop" onClick={closePanel} />
           <div className="lw-panel">
-            <div className="lw-handle" onClick={() => { setPanel(false); setAdding(false); setNewBook('') }} />
+            <div className="lw-handle" onClick={closePanel} />
             <div className="lw-panel-head">
               <span className="lw-panel-title">我们读过的</span>
               <span className="lw-panel-sub">books we've shared</span>
-              <button className="lw-add-btn" onClick={() => setAdding(true)}>＋</button>
             </div>
             <div className="lw-books">
               {books.map((b, i) => (
-                <div key={i} className="lw-book">
+                <div key={i} className="lw-book" onClick={() => toggleDone(i)}>
                   <span className="lw-book-mark">·</span>
-                  <span className="lw-book-name">《{b}》</span>
+                  <span className={`lw-book-name${b.done ? ' lw-book-done' : ''}`}>《{b.name}》</span>
                 </div>
               ))}
-            </div>
-            {adding && (
-              <div className="lw-add-row">
+              <div className="lw-book lw-book-add" onClick={() => inputRef.current?.focus()}>
+                <span className="lw-book-mark">·</span>
                 <input
-                  className="lw-add-input"
-                  placeholder="书名"
+                  ref={inputRef}
+                  className="lw-add-inline"
+                  placeholder="加一本…"
                   value={newBook}
                   onChange={e => setNewBook(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && submitBook()}
-                  autoFocus
+                  onBlur={submitBook}
                 />
-                <button className="lw-add-submit" onClick={submitBook}>加</button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

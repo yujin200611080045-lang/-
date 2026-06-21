@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { SHARED_BOOKS } from '../components/LyricWidget'
 import '../styles/Books.css'
 
 const INIT = [
   { title: '唯一解', author: '', cover: null },
-  ...SHARED_BOOKS.map(title => ({ title, author: '', cover: null })),
 ]
 
 export default function Books() {
