@@ -16,8 +16,8 @@
   right: 10px;
   height: 10px;
   background:
-    linear-gradient(135deg, #F8F8F8 33%, transparent 33%) -7px 0,
-    linear-gradient(225deg, #F8F8F8 33%, transparent 33%) -7px 0;
+    linear-gradient(135deg, #FFFFFF 33%, transparent 33%) -7px 0,
+    linear-gradient(225deg, #FFFFFF 33%, transparent 33%) -7px 0;
   background-size: 14px 10px;
   background-repeat: repeat-x;
   background-color: rgba(255, 255, 255, 0.45);

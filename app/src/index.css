@@ -11,7 +11,7 @@
   --safe-left: env(safe-area-inset-left);
   --safe-right: env(safe-area-inset-right);
 
-  --bg: #F8F8F8;
+  --bg: #FFFFFF;
   --bg-card: #FFFFFF;
   --text-primary: #0F0D0E;
   --text-secondary: #3A383A;
