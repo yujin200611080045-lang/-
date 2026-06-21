@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import '../styles/LyricWidget.css'
 
 const INIT_BOOKS = [
@@ -75,7 +76,7 @@ export default function LyricWidget() {
         </p>
       </div>
 
-      {panel && (
+      {panel && createPortal(
         <div className="lw-overlay">
           <div className="lw-backdrop" onClick={closePanel} />
           <div className="lw-panel">
@@ -105,7 +106,8 @@ export default function LyricWidget() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
