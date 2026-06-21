@@ -11,9 +11,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: env(safe-area-inset-top) 20px 18px;
+  padding: env(safe-area-inset-top) 20px 8px;
   flex-shrink: 0;
-  background: var(--bg-card);
+  background: var(--bg);
 }
 
 .fleur {
@@ -87,7 +87,6 @@
   align-items: flex-start;
   position: relative;
   z-index: 2;
-  background: var(--bg);
   margin-top: 0px;
 }
 
