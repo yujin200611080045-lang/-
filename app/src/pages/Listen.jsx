@@ -353,8 +353,8 @@ export default function Listen() {
   return (
     <div className="listen-page">
 
-      {/* ── header（me tab时隐藏）── */}
-      {listenTab !== 'me' && (
+      {/* ── header（me / together tab时隐藏）── */}
+      {listenTab === 'player' && (
       <div className="listen-header">
         {sheet === 'search' ? (
           <div className="search-bar-box">
@@ -475,6 +475,24 @@ export default function Listen() {
             <span>我的歌单</span>
             <span className="me-section-arrow">›</span>
           </button>
+        </div>
+      )}
+
+      {/* ── together view ── */}
+      {phase === 'playing' && listenTab === 'together' && (
+        <div className="together-view">
+          <div className="together-stage">
+            <div className="together-box" />
+            <div className="together-avatar together-avatar-bl">
+              {userProfile?.avatarUrl
+                ? <img src={userProfile.avatarUrl} className="together-avatar-img" alt="" />
+                : <div className="together-avatar-circle" />
+              }
+            </div>
+            <div className="together-avatar together-avatar-tr">
+              <div className="together-avatar-circle" />
+            </div>
+          </div>
         </div>
       )}
 
@@ -737,7 +755,10 @@ export default function Listen() {
           >
             <span className="listen-nav-word">listen</span>
           </button>
-          <button className="listen-nav-item listen-nav-heart">
+          <button
+            className={`listen-nav-item listen-nav-heart${listenTab === 'together' ? ' active' : ''}`}
+            onClick={() => setListenTab('together')}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>

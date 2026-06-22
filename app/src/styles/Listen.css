@@ -1119,3 +1119,53 @@
 }
 
 .mini-ctrl-btn svg { width: 18px; height: 18px; }
+
+/* ── together view ── */
+.together-view {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 70px;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.together-stage {
+  position: relative;
+  width: 272px;
+  height: 336px;
+}
+
+.together-box {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: transparent;
+}
+
+.together-avatar {
+  position: absolute;
+  z-index: 2;
+}
+
+.together-avatar-bl {
+  bottom: -22px;
+  left: -22px;
+}
+
+.together-avatar-tr {
+  top: -22px;
+  right: -22px;
+}
+
+.together-avatar-img,
+.together-avatar-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--accent-light);
+  display: block;
+}
