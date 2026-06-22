@@ -1159,6 +1159,31 @@
   top: 82px;
 }
 
+.together-crack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.crack-fill {
+  fill: rgba(0, 0, 0, 0.28);
+  stroke: none;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.crack-edge {
+  fill: none;
+  stroke: #1a1a1a;
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .together-avatar-img,
 .together-avatar-circle {
   width: 48px;

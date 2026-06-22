@@ -483,6 +483,24 @@ export default function Listen() {
         <div className="together-view">
           <div className="together-stage">
             <div className="together-box" />
+
+            {/* crack: two jagged edges + dark fill between them */}
+            <svg className="together-crack" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
+              {/* filled shadow between the two edges */}
+              <polygon
+                className="crack-fill"
+                points="0,0 16,28 36,48 56,74 80,88 106,116 132,144 156,170 180,196 206,222 230,250 256,276 280,302 305,324 320,340 314,318 290,296 266,272 240,246 216,220 190,190 164,164 140,140 114,112 88,84 66,70 44,46 24,24"
+              />
+              {/* left edge (below-left) */}
+              <polyline className="crack-edge"
+                points="0,0 16,28 36,48 56,74 80,88 106,116 132,144 156,170 180,196 206,222 230,250 256,276 280,302 305,324 320,340"
+              />
+              {/* right edge (above-right) */}
+              <polyline className="crack-edge"
+                points="0,0 24,24 44,46 66,70 88,84 114,112 140,140 164,164 190,190 216,220 240,246 266,272 290,296 314,318 320,340"
+              />
+            </svg>
+
             <div className="together-avatar together-avatar-bl">
               {userProfile?.avatarUrl
                 ? <img src={userProfile.avatarUrl} className="together-avatar-img" alt="" />
