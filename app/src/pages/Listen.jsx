@@ -83,6 +83,8 @@ export default function Listen() {
   const pollRef = useRef(null)
   const searchTimer = useRef(null)
   const recoTouchX = useRef(null)
+  const togglePlayRef = useRef(null)
+  const skipToRef = useRef(null)
 
   useEffect(() => {
     if (!API) { setPhase('no-api'); return }
@@ -260,6 +262,31 @@ export default function Listen() {
     const el = lyricBoxRef.current.querySelectorAll('.lyric-line')[curLyric]
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [curLyric, lyrics.length])
+
+  // 广播播放状态供悬浮条使用
+  useEffect(() => {
+    window.__musicState = { track, playing, curLyric, lyrics }
+    window.dispatchEvent(new CustomEvent('music:statechange'))
+  }, [track, playing, curLyric, lyrics])
+
+  // 保持最新函数引用，避免 stale closure
+  useEffect(() => { togglePlayRef.current = togglePlay })
+  useEffect(() => { skipToRef.current = skipTo })
+
+  // 监听悬浮条发出的控制事件
+  useEffect(() => {
+    const onToggle = () => togglePlayRef.current?.()
+    const onNext = () => skipToRef.current?.(1)
+    const onPrev = () => skipToRef.current?.(-1)
+    window.addEventListener('music:toggle', onToggle)
+    window.addEventListener('music:next', onNext)
+    window.addEventListener('music:prev', onPrev)
+    return () => {
+      window.removeEventListener('music:toggle', onToggle)
+      window.removeEventListener('music:next', onNext)
+      window.removeEventListener('music:prev', onPrev)
+    }
+  }, [])
 
   function togglePlay() {
     const a = audioRef.current

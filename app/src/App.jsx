@@ -5,6 +5,7 @@ import Diary from './pages/Diary'
 import Calendar from './pages/Calendar'
 import Listen from './pages/Listen'
 import Books from './pages/Books'
+import FloatingBar from './components/FloatingBar'
 
 export default function App() {
   const location = useLocation()
@@ -12,6 +13,8 @@ export default function App() {
 
   return (
     <>
+      <FloatingBar />
+
       {/* Listen stays mounted across navigations — never unmounts */}
       <div style={{
         display: isListen ? 'flex' : 'none',
