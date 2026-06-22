@@ -628,11 +628,10 @@ export default function Listen() {
             {showAiDialog && (
               <div className="ai-dialog-overlay" onClick={() => setShowAiDialog(false)}>
                 <div className="ai-dialog" onClick={e => e.stopPropagation()}>
-                  <p className="ai-dialog-title">允许对方切歌？</p>
-                  <p className="ai-dialog-sub">开启后，AI 可以帮你切换播放曲目</p>
+                  <p className="ai-dialog-title">是否允许祂切换歌曲</p>
                   <div className="ai-dialog-btns">
-                    <button className="ai-dialog-btn" onClick={() => setShowAiDialog(false)}>不了</button>
-                    <button className="ai-dialog-btn primary" onClick={() => setShowAiDialog(false)}>允许</button>
+                    <button className="ai-dialog-btn" onClick={() => setShowAiDialog(false)}>否</button>
+                    <button className="ai-dialog-btn primary" onClick={() => setShowAiDialog(false)}>是</button>
                   </div>
                 </div>
               </div>
