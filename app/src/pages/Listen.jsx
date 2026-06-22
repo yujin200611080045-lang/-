@@ -106,6 +106,8 @@ export default function Listen() {
 
   const [crackK, setCrackK] = useState(1)
   const crackAnimRef = useRef(false)
+  const threadAnimRef = useRef(false)
+  const [threadStep, setThreadStep] = useState(0)
   // together player — independent from main player
   const tgAudioRef = useRef(null)
   const tgPlayIdxRef = useRef(0)
@@ -334,6 +336,21 @@ export default function Listen() {
       tgLoadTrack(playlist[0], 0)
     }
   }, [listenTab])
+
+  // 裂缝打开时逐段穿引红线；关闭复位
+  useEffect(() => {
+    if (crackK >= 3.5 && !threadAnimRef.current) {
+      threadAnimRef.current = true
+      // 步骤: 1=cross0, 2=return0, 3=cross1, 4=return1, 5=cross2, 6=return2, 7=cross3, 8=return3, 9=cross4
+      const delays = [0, 210, 400, 600, 790, 990, 1180, 1380, 1570]
+      const tids = delays.map((d, i) => setTimeout(() => setThreadStep(i + 1), d))
+      return () => tids.forEach(clearTimeout)
+    }
+    if (crackK <= 1.01) {
+      threadAnimRef.current = false
+      setThreadStep(0)
+    }
+  }, [crackK])
 
   function openCrack() {
     if (crackAnimRef.current || crackK > 1) return
@@ -634,46 +651,85 @@ export default function Listen() {
 
             <svg className="together-crack" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <filter id="thread-soft" x="-10%" y="-10%" width="120%" height="120%">
-                  <feGaussianBlur stdDeviation="0.7"/>
+                <filter id="thread-over" x="-40%" y="-40%" width="180%" height="180%">
+                  <feDropShadow dx="0.5" dy="1.1" stdDeviation="0.9" floodColor="#000" floodOpacity="0.5"/>
+                </filter>
+                <filter id="thread-under" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="0.65"/>
                 </filter>
               </defs>
+
               <polygon
                 className="crack-fill"
                 points={crackFillPts(crackK)}
                 style={{ fill: 'transparent', pointerEvents: crackK >= 3.5 ? 'none' : 'all' }}
                 onClick={(e) => { e.stopPropagation(); if (crackK <= 1) openCrack() }}
               />
-              <polyline className="crack-edge" points={crackPolyPts(CRACK_L, crackK)} />
-              <polyline className="crack-edge" points={crackPolyPts(CRACK_R, crackK)} />
-              {(() => {
-                const alpha = 0.15 + Math.min(0.72, ((crackK - 1) / 2.5) * 0.72)
-                const stitches = [
-                  { l: [44,51],   r: [50,43],   bend: -1 },
-                  { l: [86,108],  r: [112,82],  bend:  1 },
-                  { l: [131,201], r: [189,145], bend: -1 },
-                  { l: [184,244], r: [212,216], bend:  1 },
-                  { l: [248,274], r: [263,259], bend: -1 },
+
+              {/* 穿线返回段：在裂缝边线下面渲染，模拟线穿入材质 */}
+              {threadStep > 0 && (() => {
+                const segs = [
+                  { a:[50,43],   via:[74,68],   b:[112,82],  step:2 },
+                  { a:[86,108],  via:[130,158], b:[131,201], step:4 },
+                  { a:[189,145], via:null,      b:[212,216], step:6 },
+                  { a:[184,244], via:[210,264], b:[248,274], step:8 },
                 ]
                 return (
-                  <g filter="url(#thread-soft)">
-                    {stitches.map(({ l, r, bend }, i) => {
-                      const [lx, ly] = scalePt(l[0], l[1], crackK)
-                      const [rx, ry] = scalePt(r[0], r[1], crackK)
-                      const mx = (lx + rx) / 2, my = (ly + ry) / 2
-                      const dx = rx - lx, dy = ry - ly
-                      const len = Math.sqrt(dx*dx + dy*dy) || 1
-                      const b = bend * Math.min(len * 0.16, 16)
-                      const cpx = mx + b * (-dy / len)
-                      const cpy = my + b * (dx / len)
+                  <g filter="url(#thread-under)">
+                    {segs.map(({ a, via, b, step }, i) => {
+                      const [ax, ay] = scalePt(a[0], a[1], crackK)
+                      const [bx, by] = scalePt(b[0], b[1], crackK)
+                      const pathD = via
+                        ? (() => { const [vx,vy] = scalePt(via[0],via[1],crackK); return `M${ax},${ay} Q${vx},${vy} ${bx},${by}` })()
+                        : `M${ax},${ay} L${bx},${by}`
                       return (
-                        <path
-                          key={i}
-                          d={`M${lx},${ly} Q${cpx},${cpy} ${rx},${ry}`}
-                          fill="none"
-                          stroke={`rgba(168,22,22,${alpha})`}
-                          strokeWidth="1"
-                          strokeLinecap="round"
+                        <path key={i} d={pathD} fill="none" strokeLinecap="round"
+                          style={{
+                            stroke: 'rgba(148,18,18,0.48)',
+                            strokeWidth: '0.85',
+                            strokeDasharray: '400 400',
+                            strokeDashoffset: threadStep >= step ? 0 : 400,
+                            transition: 'stroke-dashoffset 0.18s linear',
+                          }}
+                        />
+                      )
+                    })}
+                  </g>
+                )
+              })()}
+
+              <polyline className="crack-edge" points={crackPolyPts(CRACK_L, crackK)} />
+              <polyline className="crack-edge" points={crackPolyPts(CRACK_R, crackK)} />
+
+              {/* 穿线跨越段：在裂缝边线上面渲染，浮于表面，带立体阴影 */}
+              {threadStep > 0 && (() => {
+                const segs = [
+                  { a:[44,51],   b:[50,43],   bend:-1, step:1 },
+                  { a:[112,82],  b:[86,108],  bend: 1, step:3 },
+                  { a:[131,201], b:[189,145], bend:-1, step:5 },
+                  { a:[212,216], b:[184,244], bend: 1, step:7 },
+                  { a:[248,274], b:[263,259], bend:-1, step:9 },
+                ]
+                return (
+                  <g filter="url(#thread-over)">
+                    {segs.map(({ a, b, bend, step }, i) => {
+                      const [ax, ay] = scalePt(a[0], a[1], crackK)
+                      const [bx, by] = scalePt(b[0], b[1], crackK)
+                      const mx = (ax+bx)/2, my = (ay+by)/2
+                      const dx = bx-ax, dy = by-ay
+                      const len = Math.sqrt(dx*dx+dy*dy) || 1
+                      const bAmt = bend * Math.min(len*0.18, 16)
+                      const cpx = mx + bAmt*(-dy/len)
+                      const cpy = my + bAmt*(dx/len)
+                      return (
+                        <path key={i} d={`M${ax},${ay} Q${cpx},${cpy} ${bx},${by}`} fill="none" strokeLinecap="round"
+                          style={{
+                            stroke: 'rgba(178,24,24,0.92)',
+                            strokeWidth: '1.2',
+                            strokeDasharray: '400 400',
+                            strokeDashoffset: threadStep >= step ? 0 : 400,
+                            transition: 'stroke-dashoffset 0.22s linear',
+                          }}
                         />
                       )
                     })}
