@@ -1141,7 +1141,6 @@
 .together-box {
   position: absolute;
   inset: 0;
-  border: 1px solid var(--border);
   border-radius: 3px;
   background: transparent;
 }
@@ -1163,7 +1162,7 @@
 }
 
 .crack-fill {
-  fill: rgba(0, 0, 0, 0.28);
+  fill: transparent;
   stroke: none;
   pointer-events: all;
   cursor: pointer;

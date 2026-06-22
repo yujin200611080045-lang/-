@@ -106,6 +106,14 @@ export default function Listen() {
 
   const [crackK, setCrackK] = useState(1)
   const crackAnimRef = useRef(false)
+  // together player — independent from main player
+  const tgAudioRef = useRef(null)
+  const tgPlayIdxRef = useRef(0)
+  const [tgTrack, setTgTrack] = useState(null)
+  const [tgPlaying, setTgPlaying] = useState(false)
+  const [tgPlayIdx, setTgPlayIdx] = useState(0)
+  const [tgLyrics, setTgLyrics] = useState([])
+  const [tgCurLyric, setTgCurLyric] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
@@ -320,6 +328,13 @@ export default function Listen() {
     }
   }, [])
 
+  // 进入together tab时自动加载第一首
+  useEffect(() => {
+    if (listenTab === 'together' && !tgTrack && playlist.length > 0) {
+      tgLoadTrack(playlist[0], 0)
+    }
+  }, [listenTab])
+
   function openCrack() {
     if (crackAnimRef.current || crackK > 1) return
     crackAnimRef.current = true
@@ -350,6 +365,47 @@ export default function Listen() {
     })
   }
 
+
+  async function tgLoadTrack(song, idx) {
+    const a = tgAudioRef.current
+    if (!a || !song) return
+    tgPlayIdxRef.current = idx
+    setTgPlayIdx(idx)
+    setTgLyrics([])
+    setTgCurLyric(0)
+    const meta = {
+      id: song.id,
+      name: song.name,
+      artist: song.ar?.map(x => x.name).join(' / ') || '',
+      albumArt: song.al?.picUrl || '',
+    }
+    setTgTrack(meta)
+    try {
+      const [urlRes, lrcRes] = await Promise.all([
+        req('/song/url', { id: song.id }),
+        req('/lyric', { id: song.id }),
+      ])
+      const url = urlRes.data?.[0]?.url
+      if (url) {
+        a.src = url
+        a.play().then(() => setTgPlaying(true)).catch(() => setTgPlaying(false))
+      }
+      setTgLyrics(parseLrc(lrcRes.lrc?.lyric || ''))
+    } catch {}
+  }
+
+  function tgTogglePlay() {
+    const a = tgAudioRef.current
+    if (!a) return
+    if (tgPlaying) { a.pause(); setTgPlaying(false) }
+    else { a.play().then(() => setTgPlaying(true)).catch(() => {}) }
+  }
+
+  function tgSkipTo(delta) {
+    if (!playlist.length) return
+    const idx = (tgPlayIdx + delta + playlist.length) % playlist.length
+    tgLoadTrack(playlist[idx], idx)
+  }
 
   function togglePlay() {
     const a = audioRef.current
@@ -544,45 +600,43 @@ export default function Listen() {
             <div className="together-box" />
 
             {/* player revealed through the crack */}
-            {crackK > 1.05 && (
-              <div
-                className="together-player"
-                style={{ clipPath: crackClipPath(crackK) }}
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="tgp-info">
-                  <div className="tgp-title">{track?.name || '—'}</div>
-                  <div className="tgp-artist">{track?.artist}</div>
-                </div>
-                <div className="tgp-ctrls">
-                  <button className="tgp-btn" onClick={e => { e.stopPropagation(); skipTo(-1) }}>
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-                  </button>
-                  <button className="tgp-btn tgp-play" onClick={e => { e.stopPropagation(); togglePlay() }}>
-                    {playing
-                      ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                      : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    }
-                  </button>
-                  <button className="tgp-btn" onClick={e => { e.stopPropagation(); skipTo(1) }}>
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18 14.5 12 6 6v12zM16 6h2v12h-2z"/></svg>
-                  </button>
-                </div>
-                {lyrics.length > 0 && (
-                  <div className="tgp-lyrics">
-                    {lyrics[curLyric - 1] && <div className="tgp-lyric dim">{lyrics[curLyric - 1].text}</div>}
-                    {lyrics[curLyric]    && <div className="tgp-lyric cur">{lyrics[curLyric].text}</div>}
-                    {lyrics[curLyric + 1] && <div className="tgp-lyric dim">{lyrics[curLyric + 1].text}</div>}
-                  </div>
-                )}
+            <div
+              className="together-player"
+              style={{ clipPath: crackClipPath(crackK) }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="tgp-info">
+                <div className="tgp-title">{tgTrack?.name || '—'}</div>
+                <div className="tgp-artist">{tgTrack?.artist}</div>
               </div>
-            )}
+              <div className="tgp-ctrls">
+                <button className="tgp-btn" onClick={e => { e.stopPropagation(); tgSkipTo(-1) }}>
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+                </button>
+                <button className="tgp-btn tgp-play" onClick={e => { e.stopPropagation(); tgTogglePlay() }}>
+                  {tgPlaying
+                    ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  }
+                </button>
+                <button className="tgp-btn" onClick={e => { e.stopPropagation(); tgSkipTo(1) }}>
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18 14.5 12 6 6v12zM16 6h2v12h-2z"/></svg>
+                </button>
+              </div>
+              {tgLyrics.length > 0 && (
+                <div className="tgp-lyrics">
+                  {tgLyrics[tgCurLyric - 1] && <div className="tgp-lyric dim">{tgLyrics[tgCurLyric - 1].text}</div>}
+                  {tgLyrics[tgCurLyric]     && <div className="tgp-lyric cur">{tgLyrics[tgCurLyric].text}</div>}
+                  {tgLyrics[tgCurLyric + 1] && <div className="tgp-lyric dim">{tgLyrics[tgCurLyric + 1].text}</div>}
+                </div>
+              )}
+            </div>
 
             <svg className="together-crack" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
               <polygon
                 className="crack-fill"
                 points={crackFillPts(crackK)}
-                style={{ fill: crackK >= 3.5 ? 'transparent' : undefined, pointerEvents: crackK >= 3.5 ? 'none' : 'all' }}
+                style={{ fill: 'transparent', pointerEvents: crackK >= 3.5 ? 'none' : 'all' }}
                 onClick={(e) => { e.stopPropagation(); if (crackK <= 1) openCrack() }}
               />
               <polyline className="crack-edge" points={crackPolyPts(CRACK_L, crackK)} />
@@ -807,6 +861,19 @@ export default function Listen() {
           if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play().catch(() => {}) }
         } else { skipTo(1) }
       }} />
+      <audio ref={tgAudioRef}
+        onTimeUpdate={() => {
+          const a = tgAudioRef.current
+          if (!a || !a.duration) return
+          let idx = 0
+          for (let i = 0; i < tgLyrics.length; i++) {
+            if (tgLyrics[i].time <= a.currentTime) idx = i
+            else break
+          }
+          setTgCurLyric(idx)
+        }}
+        onEnded={() => tgSkipTo(1)}
+      />
 
       {/* ── bottom sheet (queue only) ── */}
       {sheet && sheet !== 'search' && (
