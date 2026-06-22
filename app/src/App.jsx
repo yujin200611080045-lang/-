@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import Chat from './pages/Chat'
@@ -10,6 +11,10 @@ import FloatingBar from './components/FloatingBar'
 export default function App() {
   const location = useLocation()
   const isListen = location.pathname === '/listen'
+
+  useEffect(() => {
+    document.body.style.background = isListen ? '#d3dee4' : ''
+  }, [isListen])
 
   return (
     <>
