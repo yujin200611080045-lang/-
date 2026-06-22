@@ -315,11 +315,10 @@ export default function Listen() {
   }, [])
 
   function openCrack() {
-    if (crackAnimRef.current || crackK >= 2.5) return
+    if (crackAnimRef.current || crackK > 1) return
     crackAnimRef.current = true
-    // Stop-motion frames: discrete k values at irregular intervals
-    const frames = [1.18, 1.42, 1.7, 2.0, 2.22, 2.4, 2.5]
-    const waits  = [0, 300, 250, 340, 200, 280, 220]
+    const frames = [1.2, 1.5, 1.85, 2.2, 2.55, 2.9, 3.15, 3.35, 3.5]
+    const waits  = [0, 290, 260, 330, 200, 280, 220, 310, 190]
     let total = 0
     frames.forEach((k, i) => {
       total += waits[i]
@@ -329,6 +328,22 @@ export default function Listen() {
       }, total)
     })
   }
+
+  function closeCrack() {
+    if (crackAnimRef.current || crackK < 3.5) return
+    crackAnimRef.current = true
+    const frames = [3.1, 2.65, 2.2, 1.8, 1.45, 1.15, 1.0]
+    const waits  = [0, 250, 270, 200, 290, 210, 260]
+    let total = 0
+    frames.forEach((k, i) => {
+      total += waits[i]
+      setTimeout(() => {
+        setCrackK(k)
+        if (i === frames.length - 1) crackAnimRef.current = false
+      }, total)
+    })
+  }
+
 
   function togglePlay() {
     const a = audioRef.current
@@ -519,27 +534,31 @@ export default function Listen() {
       {/* ── together view ── */}
       {phase === 'playing' && listenTab === 'together' && (
         <div className="together-view">
-          <div className="together-stage">
+          <div className="together-stage" onClick={() => { if (crackK >= 3.5) closeCrack() }}>
             <div className="together-box" />
 
             <svg className="together-crack" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
-              <polygon className="crack-fill" points={crackFillPts(crackK)} onClick={openCrack} />
+              <polygon
+                className="crack-fill"
+                points={crackFillPts(crackK)}
+                onClick={(e) => { e.stopPropagation(); if (crackK <= 1) openCrack() }}
+              />
               <polyline className="crack-edge" points={crackPolyPts(CRACK_L, crackK)} />
               <polyline className="crack-edge" points={crackPolyPts(CRACK_R, crackK)} />
             </svg>
 
             {(() => {
-              const prog = Math.min(1, (crackK - 1) / 1.5)
+              const prog = Math.min(1, (crackK - 1) / 2.5)
               const blStyle = { left: Math.round(81 + prog*(8-81))+'px', top: Math.round(204 + prog*(284-204))+'px', transition: 'left 0.18s ease, top 0.18s ease' }
               const trStyle = { left: Math.round(191 + prog*(264-191))+'px', top: Math.round(88 + prog*(8-88))+'px', transition: 'left 0.18s ease, top 0.18s ease' }
               return (<>
-                <div className="together-avatar" style={blStyle}>
+                <div className="together-avatar" style={blStyle} onClick={e => e.stopPropagation()}>
                   {userProfile?.avatarUrl
                     ? <img src={userProfile.avatarUrl} className="together-avatar-img" alt="" />
                     : <div className="together-avatar-circle" />
                   }
                 </div>
-                <div className="together-avatar" style={trStyle}>
+                <div className="together-avatar" style={trStyle} onClick={e => e.stopPropagation()}>
                   <div className="together-avatar-circle" />
                 </div>
               </>)
