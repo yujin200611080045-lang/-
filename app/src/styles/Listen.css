@@ -1134,6 +1134,8 @@
   position: relative;
   width: 320px;
   height: 340px;
+  overflow: hidden;
+  border-radius: 3px;
 }
 
 .together-box {
