@@ -1,4 +1,5 @@
 .listen-page {
+  flex: 1;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -230,7 +231,7 @@
   flex-direction: column;
   overflow: hidden;
   padding-bottom: 16px;
-  margin: 4px 12px calc(var(--safe-bottom, 0px) + 76px);
+  margin: 4px 12px calc(var(--safe-bottom, 0px) + 44px);
   border-radius: 20px;
   position: relative;
   background: #000000;
@@ -653,8 +654,8 @@
 .listen-nav {
   position: absolute;
   bottom: var(--safe-bottom, 0px);
-  left: 28px;
-  right: 28px;
+  left: 16px;
+  right: 16px;
   display: flex;
   align-items: center;
   justify-content: space-around;
