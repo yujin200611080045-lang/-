@@ -8,20 +8,18 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 5px;
+  padding: 5px;
   z-index: 1000;
   border: 1px solid rgba(128, 138, 146, 0.18);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-  transition: left 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              right 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              width 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              border-radius 0.3s;
+  touch-action: none;
 }
 
-.fb-mini {
-  left: auto;
-  right: 12px;
-  width: 52px;
-  padding: 4px;
+/* snapped 到角落后不再横跨，宽度由 inline style 控制 */
+.fb-snapped {
+  right: auto;
 }
 
 .fb-cover {

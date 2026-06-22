@@ -351,13 +351,13 @@
 .listen-cover-wrap {
   display: flex;
   justify-content: center;
-  padding: 24px 0 16px;
+  padding: 10px 0 8px;
   flex-shrink: 0;
 }
 
 .listen-cover {
-  width: 160px;
-  height: 160px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -389,7 +389,7 @@
 /* ── info ── */
 .listen-info {
   text-align: center;
-  padding: 0 24px 12px;
+  padding: 0 24px 6px;
   flex-shrink: 0;
 }
 
@@ -417,7 +417,7 @@
 
 /* ── progress ── */
 .listen-progress-wrap {
-  padding: 4px 28px 12px;
+  padding: 4px 28px 8px;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -453,7 +453,7 @@
   justify-content: center;
   align-items: center;
   gap: 32px;
-  padding: 0 0 16px;
+  padding: 0 0 8px;
   flex-shrink: 0;
 }
 
