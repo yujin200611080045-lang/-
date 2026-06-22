@@ -77,6 +77,7 @@ export default function Listen() {
   const [playMode, setPlayMode] = useState('sequential')
   const [showModeMenu, setShowModeMenu] = useState(false)
   const [showAiDialog, setShowAiDialog] = useState(false)
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false)
   const [sheet, setSheet] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -471,23 +472,10 @@ export default function Listen() {
             </div>
             <div className="me-nickname">{userProfile?.nickname || ''}</div>
           </div>
-          <div className="me-section-label">我的歌单</div>
-          <div className="me-playlists">
-            {allPlaylists.map(pl => (
-              <div key={pl.id} className="me-playlist-item" onClick={() => switchPlaylist(pl)}>
-                <img
-                  src={`${pl.coverImgUrl}?param=100y100`}
-                  className="me-playlist-cover"
-                  alt=""
-                  onError={e => { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.removeAttribute('src') }}
-                />
-                <div className="me-playlist-info">
-                  <div className="me-playlist-name">{pl.name}</div>
-                  <div className="me-playlist-count">{pl.trackCount} 首</div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <button className="me-section-btn" onClick={() => setShowPlaylistModal(true)}>
+            <span>我的歌单</span>
+            <span className="me-section-arrow">›</span>
+          </button>
         </div>
       )}
 
@@ -742,6 +730,35 @@ export default function Listen() {
                 >
                   <div className="sheet-item-name">{song.name}</div>
                   <div className="sheet-item-sub">{song.ar?.map(a => a.name).join(' / ')}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── playlist modal ── */}
+      {showPlaylistModal && (
+        <div className="playlist-modal-overlay" onClick={() => setShowPlaylistModal(false)}>
+          <div className="playlist-modal" onClick={e => e.stopPropagation()}>
+            <div className="playlist-modal-header">
+              <span className="playlist-modal-title">我的歌单</span>
+              <button className="playlist-modal-close" onClick={() => setShowPlaylistModal(false)}>×</button>
+            </div>
+            <div className="playlist-modal-list">
+              {allPlaylists.map(pl => (
+                <div key={pl.id} className="playlist-modal-item"
+                  onClick={() => { switchPlaylist(pl); setShowPlaylistModal(false) }}>
+                  <img
+                    src={`${pl.coverImgUrl}?param=100y100`}
+                    className="playlist-modal-cover"
+                    alt=""
+                    onError={e => { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.removeAttribute('src') }}
+                  />
+                  <div className="playlist-modal-info">
+                    <div className="playlist-modal-name">{pl.name}</div>
+                    <div className="playlist-modal-count">{pl.trackCount} 首</div>
+                  </div>
                 </div>
               ))}
             </div>
