@@ -21,6 +21,7 @@ export default function App() {
         flexDirection: 'column',
         height: '100dvh',
         width: '100%',
+        background: '#d3dee4',
       }}>
         <Listen />
       </div>
