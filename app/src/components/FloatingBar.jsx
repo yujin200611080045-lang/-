@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import '../styles/FloatingBar.css'
 
-const BAR_W = 224
-const MINI_W = 52
 const SNAP_MARGIN = 12
-const SNAP_BOTTOM = 90
+const BAR_HEIGHT = 54
+const MINI_SIZE = 52
+const DRAG_THRESHOLD = 5
 
 export default function FloatingBar() {
   const location = useLocation()
@@ -13,17 +13,16 @@ export default function FloatingBar() {
 
   const [ms, setMs] = useState(() => window.__musicState || null)
   const [mini, setMini] = useState(false)
-  // corner: null=初始横跨顶部 | { side:'left'|'right', vert:'top'|'bottom' }
-  const [corner, setCorner] = useState(null)
   const [dragPos, setDragPos] = useState(null)
+  const [barY, setBarY] = useState(null)       // null = 顶部默认
+  const [miniPos, setMiniPos] = useState(null)  // null = 右上默认
 
   const wrapRef = useRef(null)
   const dragInfo = useRef(null)
-  const dragPosRef = useRef(null) // 同步 dragPos 给 touchend 读取
+  const dragPosRef = useRef(null)
   const miniRef = useRef(mini)
 
   useEffect(() => { miniRef.current = mini }, [mini])
-  useEffect(() => { dragPosRef.current = dragPos }, [dragPos])
 
   useEffect(() => {
     const handler = () => setMs(window.__musicState ? { ...window.__musicState } : null)
@@ -31,16 +30,23 @@ export default function FloatingBar() {
     return () => window.removeEventListener('music:statechange', handler)
   }, [])
 
-  // non-passive touchmove，允许 preventDefault 阻止页面滚动
+  // non-passive touchmove，区分拖动与点击
   useEffect(() => {
     const wrap = wrapRef.current
     if (!wrap) return
     function handleMove(e) {
       if (!dragInfo.current) return
-      e.preventDefault()
       const touch = e.touches[0]
       const dx = touch.clientX - dragInfo.current.startTouchX
       const dy = touch.clientY - dragInfo.current.startTouchY
+      if (!dragInfo.current.isDrag) {
+        if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+          dragInfo.current.isDrag = true
+        } else {
+          return
+        }
+      }
+      e.preventDefault()
       const pos = {
         x: dragInfo.current.startElemX + dx,
         y: dragInfo.current.startElemY + dy,
@@ -59,7 +65,6 @@ export default function FloatingBar() {
   const lyricText = lyrics[curLyric]?.text || ''
 
   function onTouchStart(e) {
-    if (e.target.closest('.fb-btn') || e.target.closest('.fb-cover')) return
     const touch = e.touches[0]
     const rect = wrapRef.current.getBoundingClientRect()
     dragInfo.current = {
@@ -67,57 +72,91 @@ export default function FloatingBar() {
       startTouchY: touch.clientY,
       startElemX: rect.left,
       startElemY: rect.top,
+      isDrag: false,
+      target: e.target,
     }
   }
 
   function onTouchEnd() {
     if (!dragInfo.current) return
+
+    if (!dragInfo.current.isDrag) {
+      // 点击：cover点击切换mini，mini模式下点任意位置切换
+      if (miniRef.current || dragInfo.current.target.closest('.fb-cover')) {
+        setMini(m => !m)
+      }
+      dragInfo.current = null
+      setDragPos(null)
+      dragPosRef.current = null
+      return
+    }
+
     const pos = dragPosRef.current || {
       x: dragInfo.current.startElemX,
       y: dragInfo.current.startElemY,
     }
     const vw = window.innerWidth
     const vh = window.innerHeight
-    const w = miniRef.current ? MINI_W : BAR_W
-    const centerX = pos.x + w / 2
-    const centerY = pos.y + 27
-    setCorner({
-      side: centerX < vw / 2 ? 'left' : 'right',
-      vert: centerY < vh / 2 ? 'top' : 'bottom',
-    })
+
+    if (miniRef.current) {
+      // mini 圆：左右吸附，Y 自由
+      const side = (pos.x + MINI_SIZE / 2) < vw / 2 ? 'left' : 'right'
+      const y = Math.max(8, Math.min(pos.y, vh - MINI_SIZE - 24))
+      setMiniPos({ side, y })
+    } else {
+      // 全宽条：只改 Y，宽度不变
+      const y = Math.max(8, Math.min(pos.y, vh - BAR_HEIGHT - 24))
+      setBarY(y)
+    }
+
     setDragPos(null)
     dragPosRef.current = null
     dragInfo.current = null
   }
 
-  // 计算 inline style
   function buildStyle() {
-    const w = mini ? MINI_W : BAR_W
-    if (dragPos) {
-      return { left: `${dragPos.x}px`, top: `${dragPos.y}px`, width: `${w}px`, right: 'auto', bottom: 'auto', transition: 'none' }
-    }
-    if (corner) {
-      return {
-        [corner.side === 'left' ? 'left' : 'right']: `${SNAP_MARGIN}px`,
-        [corner.side === 'left' ? 'right' : 'left']: 'auto',
-        [corner.vert === 'top' ? 'top' : 'bottom']: corner.vert === 'top' ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : `${SNAP_BOTTOM}px`,
-        [corner.vert === 'top' ? 'bottom' : 'top']: 'auto',
-        width: `${w}px`,
+    if (mini) {
+      const base = {
+        width: `${MINI_SIZE}px`,
+        height: `${MINI_SIZE}px`,
+        borderRadius: '50%',
+        padding: '4px',
+        bottom: 'auto',
       }
+      if (dragPos) {
+        return { ...base, left: `${dragPos.x}px`, top: `${dragPos.y}px`, right: 'auto', transition: 'none' }
+      }
+      if (miniPos) {
+        return {
+          ...base,
+          [miniPos.side === 'left' ? 'left' : 'right']: `${SNAP_MARGIN}px`,
+          [miniPos.side === 'left' ? 'right' : 'left']: 'auto',
+          top: `${miniPos.y}px`,
+        }
+      }
+      // 默认右上
+      return { ...base, right: `${SNAP_MARGIN}px`, left: 'auto', top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }
     }
-    // 初始横跨
+
+    // 全宽条
+    if (dragPos) {
+      return { left: `${SNAP_MARGIN}px`, right: `${SNAP_MARGIN}px`, top: `${dragPos.y}px`, bottom: 'auto', transition: 'none' }
+    }
+    if (barY !== null) {
+      return { left: `${SNAP_MARGIN}px`, right: `${SNAP_MARGIN}px`, top: `${barY}px`, bottom: 'auto' }
+    }
     return {}
   }
 
   return (
     <div
       ref={wrapRef}
-      className={`fb-wrap${mini ? ' fb-mini' : ''}${corner ? ' fb-snapped' : ''}`}
+      className="fb-wrap"
       style={buildStyle()}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <div className="fb-cover" onClick={() => setMini(m => !m)}>
+      <div className="fb-cover">
         {track.albumArt
           ? <img src={`${track.albumArt}?param=80y80`} alt="" />
           : <div className="fb-cover-placeholder" />
