@@ -2,7 +2,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: #bdc7ce;
   overflow: hidden;
   position: relative;
 }
@@ -13,7 +13,7 @@
   justify-content: space-between;
   padding: env(safe-area-inset-top) 20px 14px;
   flex-shrink: 0;
-  background: var(--bg-card);
+  background: transparent;
   position: relative;
 }
 
@@ -50,13 +50,12 @@
   background: none;
   border: none;
   font-size: 26px;
-  color: var(--accent);
+  color: rgba(45, 58, 66, 0.5);
   cursor: pointer;
   font-weight: 200;
   line-height: 1;
   width: 32px;
   padding: 0;
-  opacity: 0.7;
 }
 
 .listen-title {
@@ -83,7 +82,7 @@
   border: none;
   cursor: pointer;
   font-size: 15px;
-  color: var(--accent);
+  color: rgba(45, 58, 66, 0.6);
   padding: 6px 4px;
   white-space: nowrap;
   flex-shrink: 0;
@@ -571,17 +570,37 @@
   top: 50%;
   width: 126px;
   transform-origin: center center;
-  border-radius: 18px;
-  background: #808a92;
-  border: none;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.32);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.04),
-    0 10px 30px rgba(0, 0, 0, 0.13);
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.04) inset,
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 8px 32px rgba(80, 100, 115, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 0 0 0.5px rgba(255, 255, 255, 0.35);
   overflow: hidden;
   cursor: pointer;
 }
 
-/* 磨砂水波纹肌理 — 灰度噪点叠层，无彩色 */
+.reco-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
+  pointer-events: none;
+  z-index: 6;
+}
+
 .reco-card::after {
   content: '';
   position: absolute;
@@ -589,7 +608,7 @@
   border-radius: inherit;
   background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.68' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>");
   background-size: 180px 180px;
-  opacity: 0.055;
+  opacity: 0.04;
   mix-blend-mode: overlay;
   pointer-events: none;
   z-index: 5;
@@ -615,7 +634,7 @@
 .reco-card-name {
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #1a2830;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -623,7 +642,7 @@
 
 .reco-card-artist {
   font-size: 10px;
-  color: var(--text-muted);
+  color: rgba(26, 40, 48, 0.55);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
