@@ -6,7 +6,7 @@
   flex-shrink: 0;
   position: relative;
   z-index: 4;
-  overflow: hidden;
+  background: #24292e;
 }
 
 .prism-wrap:active {
@@ -17,7 +17,6 @@
   perspective: 480px;
   height: 38px;
   background: #24292e;
-  overflow: hidden;
 }
 
 .prism {
@@ -31,7 +30,7 @@
 
 .prism-face {
   position: absolute;
-  inset: -1px 0;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
