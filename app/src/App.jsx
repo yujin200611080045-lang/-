@@ -13,7 +13,7 @@ export default function App() {
   const isListen = location.pathname === '/listen'
 
   useEffect(() => {
-    document.body.style.background = isListen ? '#d3dee4' : ''
+    document.body.style.background = isListen ? '#ace7f3' : ''
   }, [isListen])
 
   return (
@@ -26,7 +26,7 @@ export default function App() {
         flexDirection: 'column',
         height: '100dvh',
         width: '100%',
-        background: '#d3dee4',
+        background: '#ace7f3',
       }}>
         <Listen />
       </div>
