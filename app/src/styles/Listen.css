@@ -97,6 +97,42 @@
   font-size: 16px;
   color: var(--text-primary);
   min-width: 0;
+  margin-left: 12px;
+}
+
+.search-submit-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  -webkit-tap-highlight-color: transparent;
+  margin-left: 6px;
+}
+
+.search-submit-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.search-submit-btn:active {
+  opacity: 0.7;
+}
+
+.listen-nav-safe-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-bottom, 0px);
+  background: var(--bg);
+  z-index: 2;
 }
 
 .header-search-input::placeholder {
@@ -235,10 +271,12 @@
   border-radius: 20px;
   position: relative;
   background: #000000;
-  border: 5px solid #ace7f3;
+  border: none;
   box-shadow:
-    0 -4px 20px rgba(0, 0, 0, 0.07),
-    0 8px 28px rgba(0, 0, 0, 0.10);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.18),
+    0 16px 40px rgba(0, 0, 0, 0.16),
+    0 32px 64px rgba(0, 0, 0, 0.10);
 }
 
 .listen-body::after {

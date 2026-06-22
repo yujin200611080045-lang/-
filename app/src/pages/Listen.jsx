@@ -313,16 +313,21 @@ export default function Listen() {
     clearTimeout(searchTimer.current)
     if (!q.trim()) { setSearchResults([]); return }
     setSearching(true)
-    searchTimer.current = setTimeout(async () => {
-      try {
-        const res = await req('/search', { keywords: q, type: 1, limit: 30 })
-        setSearchResults(res.result?.songs || [])
-      } catch (e) {
-        setSearchResults([])
-      } finally {
-        setSearching(false)
-      }
-    }, 500)
+    searchTimer.current = setTimeout(() => execSearch(q), 500)
+  }
+
+  async function execSearch(q = searchQuery) {
+    if (!q.trim()) return
+    clearTimeout(searchTimer.current)
+    setSearching(true)
+    try {
+      const res = await req('/search', { keywords: q, type: 1, limit: 30 })
+      setSearchResults(res.result?.songs || [])
+    } catch (e) {
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
   }
 
   async function playSearchResult(song) {
@@ -348,11 +353,18 @@ export default function Listen() {
               placeholder="搜索歌曲"
               value={searchQuery}
               onChange={e => handleSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); execSearch() } }}
               autoFocus
             />
             {searchQuery && (
               <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]) }}>×</button>
             )}
+            <button className="search-submit-btn" onClick={() => execSearch()}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+            </button>
           </>
         ) : (
           <>
@@ -606,6 +618,9 @@ export default function Listen() {
           </div>
         </div>
       )}
+
+      {/* ── safe area fill below nav ── */}
+      <div className="listen-nav-safe-fill" />
 
       {/* ── bottom nav ── */}
       {phase === 'playing' && (
