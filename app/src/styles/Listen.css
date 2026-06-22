@@ -75,7 +75,7 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  pointer-events: none;
+  cursor: pointer;
 }
 
 .listen-cancel {
@@ -634,8 +634,8 @@
 .listen-nav {
   position: absolute;
   bottom: 0;
-  left: 16px;
-  right: 16px;
+  left: 28px;
+  right: 28px;
   display: flex;
   align-items: center;
   justify-content: space-around;
