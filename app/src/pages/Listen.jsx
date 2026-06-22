@@ -343,10 +343,11 @@ export default function Listen() {
   return (
     <div className="listen-page">
 
-      {/* ── header ── */}
+      {/* ── header（me tab时隐藏）── */}
+      {listenTab !== 'me' && (
       <div className="listen-header">
         {sheet === 'search' ? (
-          <>
+          <div className="search-bar-box">
             <button className="listen-cancel" onClick={() => { setSheet(null); setSearchQuery(''); setSearchResults([]) }}>取消</button>
             <input
               className="header-search-input"
@@ -365,7 +366,7 @@ export default function Listen() {
                 <path d="m21 21-4.35-4.35"/>
               </svg>
             </button>
-          </>
+          </div>
         ) : (
           <>
             <button className="listen-back" onClick={() => navigate('/')}>‹</button>
@@ -384,6 +385,7 @@ export default function Listen() {
           </>
         )}
       </div>
+      )}
 
       {/* ── no-api ── */}
       {phase === 'no-api' && (

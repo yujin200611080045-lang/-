@@ -17,6 +17,7 @@
   perspective: 480px;
   height: 38px;
   background: #24292e;
+  overflow: hidden;
 }
 
 .prism {
@@ -30,7 +31,7 @@
 
 .prism-face {
   position: absolute;
-  inset: 0;
+  inset: -1px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
