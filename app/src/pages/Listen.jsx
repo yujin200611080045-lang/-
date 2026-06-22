@@ -633,6 +633,11 @@ export default function Listen() {
             </div>
 
             <svg className="together-crack" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="thread-soft" x="-10%" y="-10%" width="120%" height="120%">
+                  <feGaussianBlur stdDeviation="0.7"/>
+                </filter>
+              </defs>
               <polygon
                 className="crack-fill"
                 points={crackFillPts(crackK)}
@@ -641,6 +646,40 @@ export default function Listen() {
               />
               <polyline className="crack-edge" points={crackPolyPts(CRACK_L, crackK)} />
               <polyline className="crack-edge" points={crackPolyPts(CRACK_R, crackK)} />
+              {(() => {
+                const alpha = 0.15 + Math.min(0.72, ((crackK - 1) / 2.5) * 0.72)
+                const stitches = [
+                  { l: [44,51],   r: [50,43],   bend: -1 },
+                  { l: [86,108],  r: [112,82],  bend:  1 },
+                  { l: [131,201], r: [189,145], bend: -1 },
+                  { l: [184,244], r: [212,216], bend:  1 },
+                  { l: [248,274], r: [263,259], bend: -1 },
+                ]
+                return (
+                  <g filter="url(#thread-soft)">
+                    {stitches.map(({ l, r, bend }, i) => {
+                      const [lx, ly] = scalePt(l[0], l[1], crackK)
+                      const [rx, ry] = scalePt(r[0], r[1], crackK)
+                      const mx = (lx + rx) / 2, my = (ly + ry) / 2
+                      const dx = rx - lx, dy = ry - ly
+                      const len = Math.sqrt(dx*dx + dy*dy) || 1
+                      const b = bend * Math.min(len * 0.16, 16)
+                      const cpx = mx + b * (-dy / len)
+                      const cpy = my + b * (dx / len)
+                      return (
+                        <path
+                          key={i}
+                          d={`M${lx},${ly} Q${cpx},${cpy} ${rx},${ry}`}
+                          fill="none"
+                          stroke={`rgba(168,22,22,${alpha})`}
+                          strokeWidth="1"
+                          strokeLinecap="round"
+                        />
+                      )
+                    })}
+                  </g>
+                )
+              })()}
             </svg>
 
             {(() => {
