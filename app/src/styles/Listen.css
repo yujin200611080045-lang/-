@@ -231,7 +231,7 @@
   flex-direction: column;
   overflow: hidden;
   padding-bottom: 16px;
-  margin: 4px 12px 76px;
+  margin: 4px 12px calc(var(--safe-bottom, 0px) + 76px);
   border-radius: 20px;
   position: relative;
   background: #000000;
@@ -633,7 +633,7 @@
 /* ── bottom nav ── */
 .listen-nav {
   position: absolute;
-  bottom: 0;
+  bottom: var(--safe-bottom, 0px);
   left: 28px;
   right: 28px;
   display: flex;

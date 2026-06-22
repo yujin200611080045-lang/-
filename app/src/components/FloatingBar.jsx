@@ -7,6 +7,10 @@ const BAR_HEIGHT = 54
 const MINI_SIZE = 52
 const DRAG_THRESHOLD = 5
 
+function getSafeAreaBottom() {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 0
+}
+
 export default function FloatingBar() {
   const location = useLocation()
   const isListen = location.pathname === '/listen'
@@ -98,14 +102,15 @@ export default function FloatingBar() {
     const vw = window.innerWidth
     const vh = window.innerHeight
 
+    const sab = getSafeAreaBottom()
     if (miniRef.current) {
       // mini 圆：左右吸附，Y 自由
       const side = (pos.x + MINI_SIZE / 2) < vw / 2 ? 'left' : 'right'
-      const y = Math.max(8, Math.min(pos.y, vh - MINI_SIZE - 24))
+      const y = Math.max(8, Math.min(pos.y, vh - MINI_SIZE - sab - 8))
       setMiniPos({ side, y })
     } else {
       // 全宽条：只改 Y，宽度不变
-      const y = Math.max(8, Math.min(pos.y, vh - BAR_HEIGHT - 24))
+      const y = Math.max(8, Math.min(pos.y, vh - BAR_HEIGHT - sab - 8))
       setBarY(y)
     }
 
@@ -122,6 +127,8 @@ export default function FloatingBar() {
         borderRadius: '50%',
         padding: '4px',
         bottom: 'auto',
+        justifyContent: 'center',
+        boxShadow: '0 0 16px rgba(0, 0, 0, 0.4)',
       }
       if (dragPos) {
         return { ...base, left: `${dragPos.x}px`, top: `${dragPos.y}px`, right: 'auto', transition: 'none' }
