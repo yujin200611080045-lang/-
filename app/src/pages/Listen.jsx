@@ -425,10 +425,30 @@ export default function Listen() {
       {phase === 'playing' && listenTab === 'me' && (
         <div className="listen-me-view">
           <div className="me-profile">
-            {userProfile?.avatarUrl
-              ? <img src={userProfile.avatarUrl} className="me-avatar" alt="" />
-              : <div className="me-avatar-placeholder" />
-            }
+            <div className="me-avatar-wrap">
+              <svg className="me-avatar-thorns" viewBox="-90 -90 180 180" xmlns="http://www.w3.org/2000/svg">
+                {/* 15 irregular spikes radiating from r=36 (avatar edge) */}
+                <polygon points="-3.1,-35.9 0,-72 3.1,-35.9" />
+                <polygon points="14.6,-32.9 25.4,-47.7 19.1,-30.5" />
+                <polygon points="26.8,-24.1 52.0,-40.6 29.8,-20.1" />
+                <polygon points="34.4,-10.5 44.6,-11.1 35.3,-6.9" />
+                <polygon points="35.7,4.4 72.4,15.4 34.4,10.5" />
+                <polygon points="29.8,20.1 44.1,34.5 26.8,24.1" />
+                <polygon points="19.1,30.5 32.9,61.8 14.6,32.9" />
+                <polygon points="3.1,35.9 1.7,50.0 -0.6,36.0" />
+                <polygon points="-9.3,34.8 -26.0,71.4 -15.2,32.6" />
+                <polygon points="-23.6,27.2 -36.8,36.8 -27.2,23.6" />
+                <polygon points="-32.4,15.8 -63.0,25.5 -34.2,11.1" />
+                <polygon points="-35.9,3.1 -48.0,1.7 -36.0,-0.6" />
+                <polygon points="-35.5,-6.2 -69.5,-18.6 -33.8,-12.3" />
+                <polygon points="-29.1,-21.2 -42.1,-35.4 -25.9,-25.0" />
+                <polygon points="-17.5,-31.5 -27.0,-58.0 -12.9,-33.6" />
+              </svg>
+              {userProfile?.avatarUrl
+                ? <img src={userProfile.avatarUrl} className="me-avatar" alt="" />
+                : <div className="me-avatar-placeholder" />
+              }
+            </div>
             <div className="me-nickname">{userProfile?.nickname || ''}</div>
           </div>
           <div className="me-section-label">我的歌单</div>

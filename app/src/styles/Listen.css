@@ -777,7 +777,28 @@
   padding: 28px 0 18px;
 }
 
+.me-avatar-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.me-avatar-thorns {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  fill: #0F0D0E;
+}
+
 .me-avatar {
+  position: relative;
+  z-index: 1;
   width: 72px;
   height: 72px;
   border-radius: 50%;
@@ -786,6 +807,8 @@
 }
 
 .me-avatar-placeholder {
+  position: relative;
+  z-index: 1;
   width: 72px;
   height: 72px;
   border-radius: 50%;
