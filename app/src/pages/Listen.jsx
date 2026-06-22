@@ -58,6 +58,12 @@ function crackFillPts(k) {
   return [...l,...r].map(p => p.join(',')).join(' ')
 }
 
+function crackClipPath(k) {
+  const l = CRACK_L.map(([x,y]) => scalePt(x,y,k))
+  const r = CRACK_R.map(([x,y]) => scalePt(x,y,k)).slice(1,-1).reverse()
+  return 'polygon(' + [...l,...r].map(([x,y]) => `${x}px ${y}px`).join(',') + ')'
+}
+
 export default function Listen() {
   const navigate = useNavigate()
 
@@ -537,10 +543,46 @@ export default function Listen() {
           <div className="together-stage" onClick={() => { if (crackK >= 3.5) closeCrack() }}>
             <div className="together-box" />
 
+            {/* player revealed through the crack */}
+            {crackK > 1.05 && (
+              <div
+                className="together-player"
+                style={{ clipPath: crackClipPath(crackK) }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="tgp-info">
+                  <div className="tgp-title">{track?.name || '—'}</div>
+                  <div className="tgp-artist">{track?.artist}</div>
+                </div>
+                <div className="tgp-ctrls">
+                  <button className="tgp-btn" onClick={e => { e.stopPropagation(); skipTo(-1) }}>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+                  </button>
+                  <button className="tgp-btn tgp-play" onClick={e => { e.stopPropagation(); togglePlay() }}>
+                    {playing
+                      ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                      : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    }
+                  </button>
+                  <button className="tgp-btn" onClick={e => { e.stopPropagation(); skipTo(1) }}>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18 14.5 12 6 6v12zM16 6h2v12h-2z"/></svg>
+                  </button>
+                </div>
+                {lyrics.length > 0 && (
+                  <div className="tgp-lyrics">
+                    {lyrics[curLyric - 1] && <div className="tgp-lyric dim">{lyrics[curLyric - 1].text}</div>}
+                    {lyrics[curLyric]    && <div className="tgp-lyric cur">{lyrics[curLyric].text}</div>}
+                    {lyrics[curLyric + 1] && <div className="tgp-lyric dim">{lyrics[curLyric + 1].text}</div>}
+                  </div>
+                )}
+              </div>
+            )}
+
             <svg className="together-crack" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
               <polygon
                 className="crack-fill"
                 points={crackFillPts(crackK)}
+                style={{ fill: crackK >= 3.5 ? 'transparent' : undefined, pointerEvents: crackK >= 3.5 ? 'none' : 'all' }}
                 onClick={(e) => { e.stopPropagation(); if (crackK <= 1) openCrack() }}
               />
               <polyline className="crack-edge" points={crackPolyPts(CRACK_L, crackK)} />

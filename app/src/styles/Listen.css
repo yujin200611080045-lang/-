@@ -1187,3 +1187,71 @@
   background: var(--accent-light);
   display: block;
 }
+
+/* ── together player (inside crack) ── */
+.together-player {
+  position: absolute;
+  inset: 0;
+  background: #160f11;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  gap: 0;
+}
+.tgp-info { text-align: center; margin-bottom: 14px; }
+.tgp-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d40a04;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 210px;
+  line-height: 1.4;
+}
+.tgp-artist {
+  font-size: 10px;
+  color: #d40a04;
+  opacity: 0.6;
+  margin-top: 3px;
+}
+.tgp-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+.tgp-btn {
+  background: none;
+  border: none;
+  color: #d40a04;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+.tgp-btn svg { width: 22px; height: 22px; }
+.tgp-play svg { width: 30px; height: 30px; }
+.tgp-lyrics {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.tgp-lyric {
+  font-size: 10px;
+  color: #d40a04;
+  text-align: center;
+  line-height: 1.5;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tgp-lyric.dim { opacity: 0.35; }
+.tgp-lyric.cur { opacity: 0.82; font-size: 11px; }
