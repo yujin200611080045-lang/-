@@ -427,26 +427,32 @@ export default function Listen() {
           <div className="me-profile">
             <div className="me-avatar-wrap">
               <svg className="me-avatar-thorns" viewBox="-90 -90 180 180" xmlns="http://www.w3.org/2000/svg">
-                {/* 15 irregular spikes radiating from r=36 (avatar edge) */}
+                {/* thorns without halos */}
                 <polygon points="-3.1,-35.9 0,-72 3.1,-35.9" />
                 <polygon points="14.6,-32.9 25.4,-47.7 19.1,-30.5" />
                 <polygon points="26.8,-24.1 52.0,-40.6 29.8,-20.1" />
                 <polygon points="34.4,-10.5 44.6,-11.1 35.3,-6.9" />
                 <polygon points="35.7,4.4 72.4,15.4 34.4,10.5" />
                 <polygon points="29.8,20.1 44.1,34.5 26.8,24.1" />
-                <polygon points="19.1,30.5 32.9,61.8 14.6,32.9" />
                 <polygon points="3.1,35.9 1.7,50.0 -0.6,36.0" />
                 <polygon points="-9.3,34.8 -26.0,71.4 -15.2,32.6" />
                 <polygon points="-23.6,27.2 -36.8,36.8 -27.2,23.6" />
                 <polygon points="-32.4,15.8 -63.0,25.5 -34.2,11.1" />
                 <polygon points="-35.9,3.1 -48.0,1.7 -36.0,-0.6" />
                 <polygon points="-35.5,-6.2 -69.5,-18.6 -33.8,-12.3" />
-                <polygon points="-29.1,-21.2 -42.1,-35.4 -25.9,-25.0" />
                 <polygon points="-17.5,-31.5 -27.0,-58.0 -12.9,-33.6" />
-                {/* golden halo on top-left short thorn (angle -140°, tip -42.1,-35.4) */}
-                <path d="M -7,0 A 7,7 0 0,1 7,0" fill="none" stroke="#FFD700" strokeWidth="2.5" strokeLinecap="round" transform="translate(-42.1,-35.4) rotate(-50)" />
-                {/* golden halo on bottom-right long thorn (angle 62°, tip 32.9,61.8) */}
-                <path d="M -9,0 A 9,9 0 0,1 9,0" fill="none" stroke="#FFD700" strokeWidth="2.5" strokeLinecap="round" transform="translate(32.9,61.8) rotate(152)" />
+
+                {/* thorn -140° with halo: back-ring → thorn → front-ring */}
+                {/* ring center at 75% of thorn length: (-31.6,-26.5), rotate -50° */}
+                <path d="M 7,0 A 7,2.5 0 0,0 -7,0" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" opacity="0.35" transform="translate(-31.6,-26.5) rotate(-50)" />
+                <polygon points="-29.1,-21.2 -42.1,-35.4 -25.9,-25.0" />
+                <path d="M -7,0 A 7,2.5 0 0,0 7,0" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" transform="translate(-31.6,-26.5) rotate(-50)" />
+
+                {/* thorn 62° with halo: back-ring → thorn → front-ring */}
+                {/* ring center at 78% of thorn length: (25.6,48.2), rotate 152° */}
+                <path d="M 9,0 A 9,3 0 0,0 -9,0" fill="none" stroke="#FFD700" strokeWidth="2.5" strokeLinecap="round" opacity="0.35" transform="translate(25.6,48.2) rotate(152)" />
+                <polygon points="19.1,30.5 32.9,61.8 14.6,32.9" />
+                <path d="M -9,0 A 9,3 0 0,0 9,0" fill="none" stroke="#FFD700" strokeWidth="2.5" strokeLinecap="round" transform="translate(25.6,48.2) rotate(152)" />
               </svg>
               {userProfile?.avatarUrl
                 ? <img src={userProfile.avatarUrl} className="me-avatar" alt="" />
