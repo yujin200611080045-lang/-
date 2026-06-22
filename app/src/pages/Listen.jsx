@@ -443,6 +443,10 @@ export default function Listen() {
                 <polygon points="-35.5,-6.2 -69.5,-18.6 -33.8,-12.3" />
                 <polygon points="-29.1,-21.2 -42.1,-35.4 -25.9,-25.0" />
                 <polygon points="-17.5,-31.5 -27.0,-58.0 -12.9,-33.6" />
+                {/* golden halo on top-left short thorn (angle -140°, tip -42.1,-35.4) */}
+                <path d="M -7,0 A 7,7 0 0,1 7,0" fill="none" stroke="#FFD700" strokeWidth="2.5" strokeLinecap="round" transform="translate(-42.1,-35.4) rotate(-50)" />
+                {/* golden halo on bottom-right long thorn (angle 62°, tip 32.9,61.8) */}
+                <path d="M -9,0 A 9,9 0 0,1 9,0" fill="none" stroke="#FFD700" strokeWidth="2.5" strokeLinecap="round" transform="translate(32.9,61.8) rotate(152)" />
               </svg>
               {userProfile?.avatarUrl
                 ? <img src={userProfile.avatarUrl} className="me-avatar" alt="" />
