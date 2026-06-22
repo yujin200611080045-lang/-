@@ -1132,8 +1132,8 @@
 
 .together-stage {
   position: relative;
-  width: 272px;
-  height: 336px;
+  width: 320px;
+  height: 340px;
 }
 
 .together-box {
@@ -1150,13 +1150,13 @@
 }
 
 .together-avatar-bl {
-  bottom: -22px;
-  left: -22px;
+  bottom: 68px;
+  left: 28px;
 }
 
 .together-avatar-tr {
-  top: -22px;
-  right: -22px;
+  top: 58px;
+  right: 28px;
 }
 
 .together-avatar-img,
