@@ -73,6 +73,7 @@ export default function Listen() {
   // 'player' | 'me'
   const [listenTab, setListenTab] = useState('player')
 
+  const [thornSpin, setThornSpin] = useState(false)
   const [sheet, setSheet] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -425,8 +426,8 @@ export default function Listen() {
       {phase === 'playing' && listenTab === 'me' && (
         <div className="listen-me-view">
           <div className="me-profile">
-            <div className="me-avatar-wrap">
-              <svg className="me-avatar-thorns" viewBox="-90 -90 180 180" xmlns="http://www.w3.org/2000/svg">
+            <div className="me-avatar-wrap" onClick={() => setThornSpin(s => !s)}>
+              <svg className={`me-avatar-thorns${thornSpin ? ' spinning' : ''}`} viewBox="-90 -90 180 180" xmlns="http://www.w3.org/2000/svg">
                 {/* thorns without halos */}
                 <polygon points="-3.1,-35.9 0,-72 3.1,-35.9" />
                 <polygon points="14.6,-32.9 25.4,-47.7 19.1,-30.5" />
@@ -443,10 +444,10 @@ export default function Listen() {
                 <polygon points="-17.5,-31.5 -27.0,-58.0 -12.9,-33.6" />
 
                 {/* thorn -140° with halo: back-ring → thorn → front-ring */}
-                {/* ring center at 75% of thorn length: (-31.6,-26.5), rotate -50° */}
-                <path d="M 7,0 A 7,2.5 0 0,0 -7,0" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" opacity="0.35" transform="translate(-31.6,-26.5) rotate(-50)" />
+                {/* ring center at 88% of thorn length: (-37.1,-31.1), rotate -50° */}
+                <path d="M 7,0 A 7,2.5 0 0,0 -7,0" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" opacity="0.35" transform="translate(-37.1,-31.1) rotate(-50)" />
                 <polygon points="-29.1,-21.2 -42.1,-35.4 -25.9,-25.0" />
-                <path d="M -7,0 A 7,2.5 0 0,0 7,0" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" transform="translate(-31.6,-26.5) rotate(-50)" />
+                <path d="M -7,0 A 7,2.5 0 0,0 7,0" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" transform="translate(-37.1,-31.1) rotate(-50)" />
 
                 {/* thorn 62° with halo: back-ring → thorn → front-ring */}
                 {/* ring center at 78% of thorn length: (25.6,48.2), rotate 152° */}

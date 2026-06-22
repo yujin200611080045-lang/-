@@ -766,7 +766,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: 60px;
 }
 
@@ -774,7 +774,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 4px 0 12px;
+  padding: 0 0 8px;
 }
 
 .me-avatar-wrap {
@@ -794,6 +794,16 @@
   height: 100%;
   pointer-events: none;
   fill: #0F0D0E;
+  transform-origin: center;
+}
+
+.me-avatar-thorns.spinning {
+  animation: spin-thorns 7s linear infinite;
+}
+
+@keyframes spin-thorns {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .me-avatar {
