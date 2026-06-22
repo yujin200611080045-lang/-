@@ -76,7 +76,6 @@ export default function Listen() {
   const [thornSpin, setThornSpin] = useState(false)
   const [playMode, setPlayMode] = useState('sequential')
   const [showModeMenu, setShowModeMenu] = useState(false)
-  const [showAiDialog, setShowAiDialog] = useState(false)
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
   const [sheet, setSheet] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -581,29 +580,6 @@ export default function Listen() {
               </svg>
             </div>
 
-            {/* right star — shorter line — AI cut dialog */}
-            <div className="star-ornament star-ornament-right">
-              <svg width="40" height="60" viewBox="0 0 40 60">
-                <defs>
-                  <filter id="dot-halo-r" x="-80%" y="-80%" width="260%" height="260%">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
-                    <feFlood floodColor="rgba(255,255,255,0.18)" result="col"/>
-                    <feComposite in="col" in2="blur" operator="in" result="glow"/>
-                    <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                </defs>
-                <g style={{cursor:'pointer'}} onClick={() => setShowAiDialog(true)}>
-                  <circle cx="30" cy="10" r="4.5" fill="rgba(255,255,255,0.06)"/>
-                  <circle cx="30" cy="10" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo-r)"/>
-                  <line x1="30" y1="14" x2="30" y2="39" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
-                  <polygon
-                    points="30,39 32.65,42.36 36.66,43.84 34.28,47.39 34.11,51.66 30,50.5 25.89,51.66 25.72,47.39 23.34,43.84 27.35,42.36"
-                    fill="#FFD700" style={{filter:'drop-shadow(0 2px 5px rgba(255,200,0,0.45))'}}
-                  />
-                </g>
-              </svg>
-            </div>
-
             {/* playback mode menu */}
             {showModeMenu && (
               <>
@@ -622,19 +598,6 @@ export default function Listen() {
                   ))}
                 </div>
               </>
-            )}
-
-            {/* AI cut-song dialog */}
-            {showAiDialog && (
-              <div className="ai-dialog-overlay" onClick={() => setShowAiDialog(false)}>
-                <div className="ai-dialog" onClick={e => e.stopPropagation()}>
-                  <p className="ai-dialog-title">是否允许祂切换歌曲</p>
-                  <div className="ai-dialog-btns">
-                    <button className="ai-dialog-btn" onClick={() => setShowAiDialog(false)}>否</button>
-                    <button className="ai-dialog-btn primary" onClick={() => setShowAiDialog(false)}>是</button>
-                  </div>
-                </div>
-              </div>
             )}
 
             <div className="listen-cover-wrap">

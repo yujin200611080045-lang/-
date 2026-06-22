@@ -725,7 +725,6 @@
 .star-ornament g   { pointer-events: all; }
 
 .star-ornament-left  { left: 8px; }
-.star-ornament-right { right: 5px; }
 
 /* ── playback mode menu ── */
 .mode-menu {
@@ -766,61 +765,6 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* ── AI cut dialog ── */
-.ai-dialog-overlay {
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 30;
-}
-
-.ai-dialog {
-  background: rgba(30, 30, 30, 0.52);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid rgba(255,255,255,0.16);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-  border-radius: 16px;
-  padding: 22px 24px 20px;
-  width: 210px;
-}
-
-.ai-dialog-title {
-  font-size: 15px;
-  color: rgba(230,230,230,0.92);
-  text-align: center;
-  margin-bottom: 18px;
-  font-weight: 500;
-}
-
-.ai-dialog-btns {
-  display: flex;
-  gap: 10px;
-}
-
-.ai-dialog-btn {
-  flex: 1;
-  padding: 10px 0;
-  border: none;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.92);
-  color: #2a2a2a;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-}
-
-.ai-dialog-btn.primary {
-  background: #fff;
-  color: #000;
-}
-
-.ai-dialog-btn:active { opacity: 0.72; }
 
 /* ── bottom nav ── */
 .listen-nav {
