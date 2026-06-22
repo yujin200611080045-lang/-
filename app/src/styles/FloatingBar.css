@@ -44,7 +44,7 @@
 .fb-name {
   font-size: 13px;
   font-weight: 500;
-  color: #808a92;
+  color: rgba(255, 255, 255, 0.88);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -52,7 +52,7 @@
 
 .fb-lyric {
   font-size: 11px;
-  color: rgba(128, 138, 146, 0.55);
+  color: rgba(255, 255, 255, 0.40);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -63,7 +63,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #808a92;
+  background: rgba(255, 255, 255, 0.92);
   border: none;
   cursor: pointer;
   display: flex;
@@ -80,5 +80,5 @@
 }
 
 .fb-btn:active {
-  background: #6a7278;
+  background: rgba(255, 255, 255, 0.65);
 }

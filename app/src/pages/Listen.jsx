@@ -570,35 +570,46 @@ export default function Listen() {
           <div className="listen-body">
 
             {/* ── hanging star ornaments ── */}
-            <div className="star-ornaments">
-              <svg width="72" height="72" viewBox="0 0 72 72" style={{overflow:'visible'}}>
+            {/* left star — longer line — mode menu */}
+            <div className="star-ornament star-ornament-left">
+              <svg width="40" height="80" viewBox="0 0 40 80">
                 <defs>
-                  <filter id="dot-halo" x="-80%" y="-80%" width="260%" height="260%">
+                  <filter id="dot-halo-l" x="-80%" y="-80%" width="260%" height="260%">
                     <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
                     <feFlood floodColor="rgba(255,255,255,0.18)" result="col"/>
                     <feComposite in="col" in2="blur" operator="in" result="glow"/>
                     <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
                   </filter>
                 </defs>
-
-                {/* left star — longer string, click = playback mode */}
                 <g style={{cursor:'pointer'}} onClick={() => setShowModeMenu(s => !s)}>
-                  <circle cx="16" cy="4" r="4" fill="rgba(255,255,255,0.06)"/>
-                  <circle cx="16" cy="4" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo)"/>
-                  <line x1="16" y1="7" x2="16" y2="49" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
+                  <circle cx="16" cy="10" r="4.5" fill="rgba(255,255,255,0.06)"/>
+                  <circle cx="16" cy="10" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo-l)"/>
+                  <line x1="16" y1="14" x2="16" y2="55" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
                   <polygon
-                    points="16,49 18.06,54.17 23.61,54.53 19.33,58.08 20.70,63.47 16,60.5 11.30,63.47 12.67,58.08 8.39,54.53 13.94,54.17"
+                    points="16,55 18.94,58.96 23.61,60.53 20.76,64.55 20.70,69.47 16,68 11.30,69.47 11.24,64.55 8.39,60.53 13.06,58.96"
                     fill="#FFD700" style={{filter:'drop-shadow(0 2px 5px rgba(255,200,0,0.45))'}}
                   />
                 </g>
+              </svg>
+            </div>
 
-                {/* right star — shorter string, click = AI cut permission */}
+            {/* right star — shorter line — AI cut dialog */}
+            <div className="star-ornament star-ornament-right">
+              <svg width="40" height="60" viewBox="0 0 40 60">
+                <defs>
+                  <filter id="dot-halo-r" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+                    <feFlood floodColor="rgba(255,255,255,0.18)" result="col"/>
+                    <feComposite in="col" in2="blur" operator="in" result="glow"/>
+                    <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
                 <g style={{cursor:'pointer'}} onClick={() => setShowAiDialog(true)}>
-                  <circle cx="46" cy="4" r="4" fill="rgba(255,255,255,0.06)"/>
-                  <circle cx="46" cy="4" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo)"/>
-                  <line x1="46" y1="7" x2="46" y2="31" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
+                  <circle cx="30" cy="10" r="4.5" fill="rgba(255,255,255,0.06)"/>
+                  <circle cx="30" cy="10" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo-r)"/>
+                  <line x1="30" y1="14" x2="30" y2="39" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
                   <polygon
-                    points="46,31 47.76,35.57 52.66,35.84 48.85,38.93 50.11,43.66 46,41 41.89,43.66 43.15,38.93 39.34,35.84 44.24,35.57"
+                    points="30,39 32.65,42.36 36.66,43.84 34.28,47.39 34.11,51.66 30,50.5 25.89,51.66 25.72,47.39 23.34,43.84 27.35,42.36"
                     fill="#FFD700" style={{filter:'drop-shadow(0 2px 5px rgba(255,200,0,0.45))'}}
                   />
                 </g>
