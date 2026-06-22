@@ -235,12 +235,9 @@
   margin: 4px 12px 76px;
   border-radius: 20px;
   position: relative;
-  background: rgba(255, 255, 255, 0.52);
-  backdrop-filter: blur(28px) saturate(140%);
-  -webkit-backdrop-filter: blur(28px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  background: #000000;
+  border: 1px solid rgba(128, 138, 146, 0.2);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
     0 -4px 20px rgba(0, 0, 0, 0.07),
     0 8px 28px rgba(0, 0, 0, 0.10);
 }
@@ -398,14 +395,14 @@
 
 .listen-loading {
   font-size: 13px;
-  color: var(--text-muted);
+  color: #808a92;
   padding: 8px 0;
 }
 
 .listen-name {
   font-size: 17px;
   font-weight: 400;
-  color: var(--text-primary);
+  color: #808a92;
   letter-spacing: 0.3px;
   white-space: nowrap;
   overflow: hidden;
@@ -414,7 +411,7 @@
 
 .listen-artist {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #808a92;
   margin-top: 4px;
 }
 
@@ -428,13 +425,13 @@
 .listen-progress-bar {
   position: relative;
   height: 2px;
-  background: var(--border);
+  background: rgba(128, 138, 146, 0.2);
   border-radius: 1px;
 }
 
 .listen-progress-fill {
   height: 100%;
-  background: var(--accent);
+  background: #808a92;
   border-radius: 1px;
   transition: width 0.1s linear;
 }
@@ -446,7 +443,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent);
+  background: #808a92;
   transition: left 0.1s linear;
 }
 
@@ -464,7 +461,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: #808a92;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -478,14 +475,14 @@
   height: 22px;
 }
 
-.ctrl-btn:active { color: var(--text-primary); }
+.ctrl-btn:active { color: #a0a8af; }
 
 .play-btn {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--text-primary);
-  color: var(--bg);
+  background: #808a92;
+  color: #000000;
 }
 
 .play-btn svg {
@@ -494,8 +491,8 @@
 }
 
 .play-btn:active {
-  background: var(--text-secondary);
-  color: var(--bg);
+  background: #6a7278;
+  color: #000000;
 }
 
 /* ── lyrics ── */
@@ -524,20 +521,20 @@
 .lyric-line {
   font-size: 14px;
   line-height: 2;
-  color: var(--text-muted);
+  color: rgba(128, 138, 146, 0.45);
   transition: color 0.3s, font-size 0.3s, font-weight 0.3s;
   padding: 2px 0;
 }
 
 .lyric-line.active {
-  color: var(--text-primary);
+  color: #808a92;
   font-size: 15px;
   font-weight: 500;
 }
 
 .lyric-empty {
   font-size: 13px;
-  color: var(--text-muted);
+  color: rgba(128, 138, 146, 0.45);
   margin-top: 24px;
 }
 
