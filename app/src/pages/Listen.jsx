@@ -484,23 +484,17 @@ export default function Listen() {
           <div className="together-stage">
             <div className="together-box" />
 
-            {/* crack: two jagged edges + dark fill between them */}
+            {/* crack: lens-shaped tear, thin at corners, wide at center */}
             <svg className="together-crack" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
-              {/* filled shadow between the two edges */}
               <polygon
                 className="crack-fill"
-                points="
-                  0,0 8,34 28,56 38,90 68,102 84,140 116,155 130,196 158,220 172,250 208,268 230,294 252,310 280,330 308,338 320,340
-                  320,322 318,288 308,258 292,228 266,212 248,180 212,166 192,130 158,112 136,82 102,68 88,40 56,26 32,8
-                "
+                points="0,0 6,39 37,57 38,102 79,109 78,155 118,164 126,202 161,215 171,251 216,255 227,290 266,299 286,327 320,340 309,305 282,284 276,244 242,231 241,186 205,174 195,138 156,127 150,87 104,85 100,43 51,43 39,9"
               />
-              {/* left edge (lower-left bulge) */}
               <polyline className="crack-edge"
-                points="0,0 8,34 28,56 38,90 68,102 84,140 116,155 130,196 158,220 172,250 208,268 230,294 252,310 280,330 308,338 320,340"
+                points="0,0 6,39 37,57 38,102 79,109 78,155 118,164 126,202 161,215 171,251 216,255 227,290 266,299 286,327 320,340"
               />
-              {/* right edge (upper-right bulge) */}
               <polyline className="crack-edge"
-                points="0,0 32,8 56,26 88,40 102,68 136,82 158,112 192,130 212,166 248,180 266,212 292,228 308,258 318,288 320,322 320,340"
+                points="0,0 39,9 51,43 100,43 104,85 150,87 156,127 195,138 205,174 241,186 242,231 276,244 282,284 309,305 320,340"
               />
             </svg>
 
