@@ -1150,13 +1150,13 @@
 }
 
 .together-avatar-bl {
-  bottom: 68px;
-  left: 28px;
+  left: 72px;
+  top: 210px;
 }
 
 .together-avatar-tr {
-  top: 58px;
-  right: 28px;
+  right: 72px;
+  top: 82px;
 }
 
 .together-avatar-img,
