@@ -1,6 +1,6 @@
 .navbar {
   position: absolute;
-  bottom: var(--safe-bottom, 0px);
+  bottom: 0;
   left: 16px;
   right: 16px;
   display: flex;
