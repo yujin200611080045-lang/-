@@ -357,13 +357,8 @@ export default function Listen() {
         ) : (
           <>
             <button className="listen-back" onClick={() => navigate('/')}>‹</button>
-            <span className="listen-title-music">music</span>
+            <span className="listen-title-music" onClick={() => setSheet('search')} style={{cursor:'pointer'}}>music</span>
             <div className="listen-header-actions">
-              <button className="icon-btn" onClick={() => setSheet('search')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
-                </svg>
-              </button>
               <button className="icon-btn" onClick={() => setSheet(s => s === 'queue' ? null : 'queue')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
@@ -472,7 +467,7 @@ export default function Listen() {
         <>
           {recommendations.length > 0 && (
             <div className="reco-section">
-              <p className="reco-label">猜你喜欢</p>
+
               <div
                 className="reco-stage"
                 onTouchStart={e => { recoTouchX.current = e.touches[0].clientX }}
