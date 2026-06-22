@@ -619,9 +619,6 @@ export default function Listen() {
         </div>
       )}
 
-      {/* ── safe area fill below nav ── */}
-      <div className="listen-nav-safe-fill" />
-
       {/* ── bottom nav ── */}
       {phase === 'playing' && (
         <nav className="listen-nav">
