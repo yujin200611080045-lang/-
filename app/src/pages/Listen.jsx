@@ -74,6 +74,9 @@ export default function Listen() {
   const [listenTab, setListenTab] = useState('player')
 
   const [thornSpin, setThornSpin] = useState(false)
+  const [playMode, setPlayMode] = useState('sequential')
+  const [showModeMenu, setShowModeMenu] = useState(false)
+  const [showAiDialog, setShowAiDialog] = useState(false)
   const [sheet, setSheet] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -298,7 +301,13 @@ export default function Listen() {
 
   function skipTo(delta) {
     if (!playlist.length) return
-    const idx = (playIdx + delta + playlist.length) % playlist.length
+    let idx
+    if (playMode === 'shuffle') {
+      do { idx = Math.floor(Math.random() * playlist.length) }
+      while (idx === playIdx && playlist.length > 1)
+    } else {
+      idx = (playIdx + delta + playlist.length) % playlist.length
+    }
     loadTrack(playlist[idx], idx)
   }
 
@@ -559,6 +568,77 @@ export default function Listen() {
           )}
 
           <div className="listen-body">
+
+            {/* ── hanging star ornaments ── */}
+            <div className="star-ornaments">
+              <svg width="72" height="72" viewBox="0 0 72 72" style={{overflow:'visible'}}>
+                <defs>
+                  <filter id="dot-halo" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+                    <feFlood floodColor="rgba(255,255,255,0.18)" result="col"/>
+                    <feComposite in="col" in2="blur" operator="in" result="glow"/>
+                    <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+
+                {/* left star — longer string, click = playback mode */}
+                <g style={{cursor:'pointer'}} onClick={() => setShowModeMenu(s => !s)}>
+                  <circle cx="16" cy="4" r="4" fill="rgba(255,255,255,0.06)"/>
+                  <circle cx="16" cy="4" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo)"/>
+                  <line x1="16" y1="7" x2="16" y2="49" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
+                  <polygon
+                    points="16,49 18.06,54.17 23.61,54.53 19.33,58.08 20.70,63.47 16,60.5 11.30,63.47 12.67,58.08 8.39,54.53 13.94,54.17"
+                    fill="#FFD700" style={{filter:'drop-shadow(0 2px 5px rgba(255,200,0,0.45))'}}
+                  />
+                </g>
+
+                {/* right star — shorter string, click = AI cut permission */}
+                <g style={{cursor:'pointer'}} onClick={() => setShowAiDialog(true)}>
+                  <circle cx="46" cy="4" r="4" fill="rgba(255,255,255,0.06)"/>
+                  <circle cx="46" cy="4" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo)"/>
+                  <line x1="46" y1="7" x2="46" y2="31" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
+                  <polygon
+                    points="46,31 47.76,35.57 52.66,35.84 48.85,38.93 50.11,43.66 46,41 41.89,43.66 43.15,38.93 39.34,35.84 44.24,35.57"
+                    fill="#FFD700" style={{filter:'drop-shadow(0 2px 5px rgba(255,200,0,0.45))'}}
+                  />
+                </g>
+              </svg>
+            </div>
+
+            {/* playback mode menu */}
+            {showModeMenu && (
+              <>
+                <div style={{position:'absolute',inset:0,zIndex:19}} onClick={() => setShowModeMenu(false)}/>
+                <div className="mode-menu">
+                  {[
+                    {key:'sequential', label:'顺序播放'},
+                    {key:'shuffle',    label:'随机播放'},
+                    {key:'single',     label:'单曲循环'},
+                  ].map(m => (
+                    <button
+                      key={m.key}
+                      className={`mode-menu-item${playMode === m.key ? ' active' : ''}`}
+                      onClick={() => { setPlayMode(m.key); setShowModeMenu(false) }}
+                    >{m.label}</button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* AI cut-song dialog */}
+            {showAiDialog && (
+              <div className="ai-dialog-overlay" onClick={() => setShowAiDialog(false)}>
+                <div className="ai-dialog" onClick={e => e.stopPropagation()}>
+                  <p className="ai-dialog-title">允许对方切歌？</p>
+                  <p className="ai-dialog-sub">开启后，AI 可以帮你切换播放曲目</p>
+                  <div className="ai-dialog-btns">
+                    <button className="ai-dialog-btn" onClick={() => setShowAiDialog(false)}>不了</button>
+                    <button className="ai-dialog-btn primary" onClick={() => setShowAiDialog(false)}>允许</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="listen-cover-wrap">
               <div className={`listen-cover${playing ? ' spinning' : ''}`}>
                 {track?.albumArt
@@ -630,7 +710,11 @@ export default function Listen() {
         </>
       )}
 
-      <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} onEnded={() => skipTo(1)} />
+      <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} onEnded={() => {
+        if (playMode === 'single') {
+          if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play().catch(() => {}) }
+        } else { skipTo(1) }
+      }} />
 
       {/* ── bottom sheet (queue only) ── */}
       {sheet && sheet !== 'search' && (
