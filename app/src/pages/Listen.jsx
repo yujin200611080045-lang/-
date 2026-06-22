@@ -39,6 +39,25 @@ function parseLrc(str) {
     .sort((a, b) => a.time - b.time)
 }
 
+// Crack base points — scale factor k=1 is "closed", k=2.5 is "fully open"
+const CRACK_L = [[0,0],[22,25],[44,51],[58,87],[86,108],[130,158],[131,201],[176,205],[184,244],[210,264],[248,274],[273,296],[298,318],[320,340]]
+const CRACK_R = [[0,0],[22,23],[50,43],[74,68],[112,82],[189,145],[212,216],[242,234],[263,259],[278,292],[298,316],[320,340]]
+
+function scalePt(x, y, k) {
+  if (k === 1) return [x, y]
+  const t = (320*x + 340*y) / 218000
+  const fx = 320*t, fy = 340*t
+  return [Math.round((fx + k*(x-fx))*10)/10, Math.round((fy + k*(y-fy))*10)/10]
+}
+function crackPolyPts(edge, k) {
+  return edge.map(([x,y]) => scalePt(x,y,k)).map(p => p.join(',')).join(' ')
+}
+function crackFillPts(k) {
+  const l = CRACK_L.map(([x,y]) => scalePt(x,y,k))
+  const r = CRACK_R.map(([x,y]) => scalePt(x,y,k)).slice(1,-1).reverse()
+  return [...l,...r].map(p => p.join(',')).join(' ')
+}
+
 export default function Listen() {
   const navigate = useNavigate()
 
@@ -78,6 +97,9 @@ export default function Listen() {
   const [showModeMenu, setShowModeMenu] = useState(false)
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
   const [sheet, setSheet] = useState(null)
+
+  const [crackK, setCrackK] = useState(1)
+  const crackAnimRef = useRef(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
@@ -292,6 +314,22 @@ export default function Listen() {
     }
   }, [])
 
+  function openCrack() {
+    if (crackAnimRef.current || crackK >= 2.5) return
+    crackAnimRef.current = true
+    // Stop-motion frames: discrete k values at irregular intervals
+    const frames = [1.18, 1.42, 1.7, 2.0, 2.22, 2.4, 2.5]
+    const waits  = [0, 300, 250, 340, 200, 280, 220]
+    let total = 0
+    frames.forEach((k, i) => {
+      total += waits[i]
+      setTimeout(() => {
+        setCrackK(k)
+        if (i === frames.length - 1) crackAnimRef.current = false
+      }, total)
+    })
+  }
+
   function togglePlay() {
     const a = audioRef.current
     if (!a) return
@@ -484,29 +522,28 @@ export default function Listen() {
           <div className="together-stage">
             <div className="together-box" />
 
-            {/* crack: middle narrowed ~10px per side toward diagonal */}
             <svg className="together-crack" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
-              <polygon
-                className="crack-fill"
-                points="0,0 22,25 44,51 58,87 86,108 130,158 131,201 176,205 184,244 210,264 248,274 273,296 298,318 320,340 298,316 278,292 263,259 242,234 212,216 189,145 112,82 74,68 50,43 22,23"
-              />
-              <polyline className="crack-edge"
-                points="0,0 22,25 44,51 58,87 86,108 130,158 131,201 176,205 184,244 210,264 248,274 273,296 298,318 320,340"
-              />
-              <polyline className="crack-edge"
-                points="0,0 22,23 50,43 74,68 112,82 189,145 212,216 242,234 263,259 278,292 298,316 320,340"
-              />
+              <polygon className="crack-fill" points={crackFillPts(crackK)} onClick={openCrack} />
+              <polyline className="crack-edge" points={crackPolyPts(CRACK_L, crackK)} />
+              <polyline className="crack-edge" points={crackPolyPts(CRACK_R, crackK)} />
             </svg>
 
-            <div className="together-avatar together-avatar-bl">
-              {userProfile?.avatarUrl
-                ? <img src={userProfile.avatarUrl} className="together-avatar-img" alt="" />
-                : <div className="together-avatar-circle" />
-              }
-            </div>
-            <div className="together-avatar together-avatar-tr">
-              <div className="together-avatar-circle" />
-            </div>
+            {(() => {
+              const prog = Math.min(1, (crackK - 1) / 1.5)
+              const blStyle = { left: Math.round(81 + prog*(8-81))+'px', top: Math.round(204 + prog*(284-204))+'px', transition: 'left 0.18s ease, top 0.18s ease' }
+              const trStyle = { left: Math.round(191 + prog*(264-191))+'px', top: Math.round(88 + prog*(8-88))+'px', transition: 'left 0.18s ease, top 0.18s ease' }
+              return (<>
+                <div className="together-avatar" style={blStyle}>
+                  {userProfile?.avatarUrl
+                    ? <img src={userProfile.avatarUrl} className="together-avatar-img" alt="" />
+                    : <div className="together-avatar-circle" />
+                  }
+                </div>
+                <div className="together-avatar" style={trStyle}>
+                  <div className="together-avatar-circle" />
+                </div>
+              </>)
+            })()}
           </div>
         </div>
       )}
