@@ -371,13 +371,15 @@ export default function Listen() {
             <button className="listen-back" onClick={() => navigate('/')}>‹</button>
             <span className="listen-title-music" onClick={() => setSheet('search')} style={{cursor:'pointer'}}>music</span>
             <div className="listen-header-actions">
-              <button className="icon-btn" onClick={() => setSheet(s => s === 'queue' ? null : 'queue')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
-                  <line x1="3" y1="18" x2="15" y2="18"/>
-                  <circle cx="19" cy="18" r="3"/>
-                </svg>
-              </button>
+              {phase === 'playing' && (
+                <button className="icon-btn" onClick={() => setSheet(s => s === 'queue' ? null : 'queue')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="15" y2="18"/>
+                    <circle cx="19" cy="18" r="3"/>
+                  </svg>
+                </button>
+              )}
             </div>
           </>
         )}

@@ -683,16 +683,16 @@
 .listen-nav {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 16px;
+  right: 16px;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 5px 8px calc(var(--safe-bottom, 0px) + 5px);
-  background: rgba(255, 255, 255, 0.90);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 6px 8px;
+  background: var(--bg-card);
+  border-radius: 20px;
+  box-shadow: 0 2px 16px rgba(15, 13, 14, 0.08), 0 1px 4px rgba(15, 13, 14, 0.05);
+  border: 1px solid var(--border);
   z-index: 3;
 }
 
