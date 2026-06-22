@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import Chat from './pages/Chat'
@@ -12,10 +11,6 @@ export default function App() {
   const location = useLocation()
   const isListen = location.pathname === '/listen'
 
-  useEffect(() => {
-    document.body.style.background = isListen ? '#ace7f3' : ''
-  }, [isListen])
-
   return (
     <>
       <FloatingBar />
@@ -26,7 +21,6 @@ export default function App() {
         flexDirection: 'column',
         height: '100dvh',
         width: '100%',
-        background: '#ace7f3',
       }}>
         <Listen />
       </div>
