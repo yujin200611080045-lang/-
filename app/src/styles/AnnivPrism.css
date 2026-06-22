@@ -6,7 +6,6 @@
   flex-shrink: 0;
   position: relative;
   z-index: 4;
-  background: #24292e;
 }
 
 .prism-wrap:active {
