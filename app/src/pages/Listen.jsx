@@ -174,11 +174,10 @@ export default function Listen() {
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [playlistExpanded, setPlaylistExpanded] = useState(false)
-  const [inlineDrillPl, setInlineDrillPl] = useState(null)
-  const [inlineDrillSongs, setInlineDrillSongs] = useState([])
-  const [inlineDrillLoading, setInlineDrillLoading] = useState(false)
-  const [printing, setPrinting] = useState(false)
-  const [printCard, setPrintCard] = useState(null)
+  const [showPrintOptions, setShowPrintOptions] = useState(false)
+  const [printMode, setPrintMode] = useState(null)
+  const [printLoading, setPrintLoading] = useState(false)
+  const [printData, setPrintData] = useState(null)
   const [favSongs, setFavSongs] = useState(() => new Set(JSON.parse(localStorage.getItem('fav_songs') || '[]')))
 
   const audioRef = useRef(null)
@@ -222,7 +221,7 @@ export default function Listen() {
     return '深夜'
   }
 
-  function generatePrintCard() {
+  function generateMeCard() {
     const pc = (() => { try { return JSON.parse(localStorage.getItem('play_counts') || '{}') } catch { return {} } })()
     const topSongs = Object.values(pc).sort((a, b) => b.count - a.count).slice(0, 3)
     const totalSec = listenSecondsRef.current
@@ -231,26 +230,78 @@ export default function Listen() {
     const ph = (() => { try { return JSON.parse(localStorage.getItem('play_hours') || '{}') } catch { return {} } })()
     const topHour = Object.entries(ph).sort((a, b) => b[1] - a[1])[0]
     const period = topHour ? formatHourPeriod(parseInt(topHour[0])) : null
+    return { topSongs, timeStr, period }
+  }
+
+  function generateTogetherCard() {
     const aiMsgs = tgMessages.filter(m => m.role === 'ai' && m.text.length > 5)
     const userMsgs = tgMessages.filter(m => m.role === 'user' && m.text.length > 5)
     return {
-      topSongs,
-      timeStr,
-      period,
+      currentSong: tgTrack?.name || null,
+      msgCount: tgMessages.length,
       aiQuote: aiMsgs[aiMsgs.length - 1]?.text || null,
       userQuote: userMsgs[userMsgs.length - 1]?.text || null,
     }
   }
 
-  function handlePrint() {
-    if (printing) return
-    setPrinting(true)
-    setPrintCard(null)
-    setTimeout(() => {
-      setPrintCard(generatePrintCard())
-      setPrinting(false)
-    }, 700)
+  async function callAIForSummary() {
+    const cfgUrl = (localStorage.getItem('cfg_api_url') || 'https://api.anthropic.com').replace(/\/+$/, '').replace(/\/v1$/, '')
+    const cfgKey = localStorage.getItem('cfg_api_key') || import.meta.env.VITE_ANTHROPIC_KEY || ''
+    const cfgModel = localStorage.getItem('cfg_model') || 'claude-haiku-4-5-20251001'
+    if (!cfgKey) return null
+    const isAnthropic = cfgUrl.includes('anthropic.com')
+    const chatLog = tgMessages.slice(-16).map(m => `${m.role === 'user' ? '我' : 'AI'}: ${m.text}`).join('\n')
+    const songInfo = tgTrack ? `歌曲: ${tgTrack.name}` : ''
+    const resp = await fetch(`${cfgUrl}/v1/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(isAnthropic
+          ? { 'x-api-key': cfgKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }
+          : { Authorization: `Bearer ${cfgKey}` }),
+      },
+      body: JSON.stringify({
+        model: cfgModel,
+        max_tokens: 120,
+        messages: [{ role: 'user', content: `用一两句诗意的话，总结这段我们一起听歌的时光。不超过40字。\n${songInfo}\n聊天:\n${chatLog || '(暂无)'}` }],
+      }),
+    })
+    const data = await resp.json()
+    return data.content?.[0]?.text || data.choices?.[0]?.message?.content || null
   }
+
+  async function handlePrintSelect(mode) {
+    setShowPrintOptions(false)
+    setPrintMode(mode)
+    setPrintLoading(true)
+    setPrintData(null)
+    if (mode === 'me') {
+      setTimeout(() => { setPrintData(generateMeCard()); setPrintLoading(false) }, 600)
+    } else {
+      const base = generateTogetherCard()
+      try {
+        const aiSummary = await callAIForSummary()
+        setPrintData({ ...base, aiSummary })
+      } catch {
+        setPrintData(base)
+      }
+      setPrintLoading(false)
+    }
+  }
+
+  // Pre-populate favSongs from cached playlist so stars are lit on first load
+  useEffect(() => {
+    if (playlist.length > 0) {
+      setFavSongs(prev => {
+        const ids = playlist.map(s => s.id)
+        const hasNew = ids.some(id => !prev.has(id))
+        if (!hasNew) return prev
+        const next = new Set([...prev, ...ids])
+        localStorage.setItem('fav_songs', JSON.stringify([...next]))
+        return next
+      })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!API) { setPhase('no-api'); return }
@@ -288,8 +339,6 @@ export default function Listen() {
 
   function toggleFav() {
     if (!track?.id) return
-    const alreadyInPlaylist = playlist.some(s => s.id === track.id)
-    if (alreadyInPlaylist) return
     const wasFaved = favSongs.has(track.id)
     setFavSongs(prev => {
       const next = new Set(prev)
@@ -348,6 +397,11 @@ export default function Listen() {
       if (songs?.length) {
         setPlaylist(songs)
         saveCache({ playlist: songs })
+        setFavSongs(prev => {
+          const next = new Set([...prev, ...songs.map(s => s.id)])
+          localStorage.setItem('fav_songs', JSON.stringify([...next]))
+          return next
+        })
         await loadTrack(songs[0], 0, false)
       }
     } catch (e) {
@@ -724,17 +778,6 @@ export default function Listen() {
     }
   }
 
-  async function drillInlinePlaylist(pl) {
-    setInlineDrillPl(pl)
-    setInlineDrillSongs([])
-    setInlineDrillLoading(true)
-    try {
-      const { songs } = await req('/playlist/track/all', { id: pl.id, limit: 200 })
-      setInlineDrillSongs(songs || [])
-    } catch {}
-    finally { setInlineDrillLoading(false) }
-  }
-
   async function playSearchResult(song) {
     const fullSong = { id: song.id, name: song.name, ar: song.artists, al: song.album }
     setSheet(null)
@@ -896,142 +939,159 @@ export default function Listen() {
             </div>
           </div>
 
-          {/* 我的歌单：细长黑边圆角框 + 向下展开列表 */}
+          {/* 我的歌单：花体英文按钮 + 全屏折线弹出 */}
           <div className="me-playlist-slim-wrap">
             <button
               className="me-playlist-slim-btn"
-              onClick={() => { setPlaylistExpanded(v => !v); setInlineDrillPl(null) }}
+              onClick={() => setPlaylistExpanded(v => !v)}
             >
-              <span>我的歌单</span>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ transition: 'transform 0.2s', transform: playlistExpanded ? 'rotate(180deg)' : 'none' }}>
-                <path d="M2 4.5l5 5 5-5" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <span className="me-playlist-cursive">My Playlist</span>
             </button>
 
             {playlistExpanded && (
-              <>
-                <div className="me-playlist-bd" onClick={() => { setPlaylistExpanded(false); setInlineDrillPl(null) }} />
-                <div className="me-playlist-drop">
-                  {inlineDrillLoading ? (
-                    <p className="me-drop-hint">加载中…</p>
-                  ) : !inlineDrillPl ? (
-                    <>
-                      {allPlaylists.length === 0 && <p className="me-drop-hint">暂无歌单</p>}
-                      {allPlaylists.map((pl, i) => {
-                        const lx = 11, rx = 23, H = 44
-                        const cx = i % 2 === 0 ? lx : rx
-                        const cy = H / 2
-                        const prevCx = (i - 1) % 2 === 0 ? lx : rx
+              <div className="me-playlist-overlay" onClick={() => setPlaylistExpanded(false)}>
+                <div className="me-zigzag-container" onClick={e => e.stopPropagation()}>
+                  {playlist.length === 0
+                    ? <p className="me-drop-hint">暂无歌曲</p>
+                    : (() => {
+                        const H = 48, lx = 11, rx = 23
                         return (
-                          <button key={pl.id} className="me-zigzag-row" onClick={() => drillInlinePlaylist(pl)}>
-                            <svg width="34" height={H} viewBox={`0 0 34 ${H}`} style={{ flexShrink: 0 }}>
-                              {i > 0 && (
-                                <line x1={prevCx} y1={0} x2={cx} y2={cy}
-                                  stroke="#1a1a1a" strokeWidth="1.1" strokeLinecap="round" opacity="0.55"/>
-                              )}
-                              {i < allPlaylists.length - 1 && (
-                                <line x1={cx} y1={cy} x2={(i + 1) % 2 === 0 ? lx : rx} y2={H}
-                                  stroke="#1a1a1a" strokeWidth="1.1" strokeLinecap="round" opacity="0.55"/>
-                              )}
-                              <circle cx={cx} cy={cy} r="3.5" fill="white" stroke="#1a1a1a" strokeWidth="1.2"/>
+                          <div className="me-zigzag-inner">
+                            <svg
+                              className="me-zigzag-svg"
+                              width="34"
+                              height={playlist.length * H}
+                            >
+                              {playlist.map((_, i) => {
+                                const cx = i % 2 === 0 ? lx : rx
+                                const cy = i * H + H / 2
+                                const nextCx = (i + 1) % 2 === 0 ? lx : rx
+                                const nextCy = (i + 1) * H + H / 2
+                                return (
+                                  <g key={i}>
+                                    {i < playlist.length - 1 && (
+                                      <line x1={cx} y1={cy} x2={nextCx} y2={nextCy}
+                                        stroke="rgba(255,255,255,0.55)" strokeWidth="1.1" strokeLinecap="round"/>
+                                    )}
+                                    <circle cx={cx} cy={cy} r="3.5" fill="white" fillOpacity="0.88"/>
+                                  </g>
+                                )
+                              })}
                             </svg>
-                            <span className="me-zigzag-name">{pl.name}</span>
-                          </button>
+                            <div className="me-zigzag-names">
+                              {playlist.map((song, i) => (
+                                <button
+                                  key={song.id}
+                                  className="me-zigzag-row"
+                                  style={{ height: H }}
+                                  onClick={async () => {
+                                    setListenTab('player')
+                                    setPlaylistExpanded(false)
+                                    await loadTrack(song, i)
+                                  }}
+                                >
+                                  <span className="me-zigzag-name">{song.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         )
-                      })}
-                    </>
-                  ) : (
-                    <>
-                      <button className="me-drop-back" onClick={e => { e.stopPropagation(); setInlineDrillPl(null) }}>
-                        ‹ {inlineDrillPl.name}
-                      </button>
-                      {inlineDrillSongs.map((song, i) => {
-                        const lx = 11, rx = 23, H = 44
-                        const cx = i % 2 === 0 ? lx : rx
-                        const cy = H / 2
-                        return (
-                          <button key={song.id} className="me-zigzag-row" onClick={async () => {
-                            setPlaylist(inlineDrillSongs)
-                            saveCache({ playlist: inlineDrillSongs })
-                            setListenTab('player')
-                            setPlaylistExpanded(false)
-                            setInlineDrillPl(null)
-                            await loadTrack(song, i)
-                          }}>
-                            <svg width="34" height={H} viewBox={`0 0 34 ${H}`} style={{ flexShrink: 0 }}>
-                              {i > 0 && (
-                                <line x1={(i - 1) % 2 === 0 ? lx : rx} y1={0} x2={cx} y2={cy}
-                                  stroke="#1a1a1a" strokeWidth="1.1" strokeLinecap="round" opacity="0.55"/>
-                              )}
-                              {i < inlineDrillSongs.length - 1 && (
-                                <line x1={cx} y1={cy} x2={(i + 1) % 2 === 0 ? lx : rx} y2={H}
-                                  stroke="#1a1a1a" strokeWidth="1.1" strokeLinecap="round" opacity="0.55"/>
-                              )}
-                              <circle cx={cx} cy={cy} r="3.5" fill="white" stroke="#1a1a1a" strokeWidth="1.2"/>
-                            </svg>
-                            <span className="me-zigzag-name">{song.name}</span>
-                          </button>
-                        )
-                      })}
-                    </>
-                  )}
+                      })()
+                  }
                 </div>
-              </>
+              </div>
             )}
           </div>
 
-          {/* 打印机：点击吐出收听记录卡片 */}
+          {/* 打印机：收听报告 */}
           <div className="me-printer-wrap">
-            <button className={`me-printer-box${printing ? ' printing' : ''}`} onClick={handlePrint}>
-              <svg viewBox="0 0 48 40" fill="none" className="me-printer-icon">
-                <rect x="6" y="12" width="36" height="22" rx="4" fill="white" opacity="0.12"/>
-                <rect x="6" y="12" width="36" height="22" rx="4" stroke="white" strokeWidth="1.6"/>
-                <rect x="12" y="3" width="24" height="12" rx="2" fill="white" opacity="0.18"/>
-                <rect x="12" y="3" width="24" height="12" rx="2" stroke="white" strokeWidth="1.4"/>
-                <rect x="14" y="26" width="20" height="3" rx="1.5" fill="white" opacity="0.35"/>
-                <circle cx="37" cy="20" r="2.2" fill="white" opacity="0.7"/>
-                <rect x="14" y="30" width="20" height="14" rx="2" fill="white"/>
-              </svg>
-            </button>
-            {printCard && (
-              <div className="me-print-card">
-                <div className="me-print-date">{new Date().toLocaleDateString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit' })}</div>
-
-                {printCard.topSongs.length > 0 && (
-                  <div className="me-print-section">
-                    <div className="me-print-label">常听</div>
-                    {printCard.topSongs.map((s, i) => (
-                      <div key={i} className="me-print-song">
-                        <span className="me-print-song-n">{i + 1}</span>
-                        <span className="me-print-song-name">{s.name}</span>
-                        <span className="me-print-song-cnt">×{s.count}</span>
-                      </div>
-                    ))}
+            <div
+              className="me-printer-box"
+              onClick={() => { if (!showPrintOptions && !printMode) setShowPrintOptions(true) }}
+            >
+              <div className="me-printer-inner">
+                {userProfile?.avatarUrl
+                  ? <img src={`${userProfile.avatarUrl}?param=80y80`} className="me-printer-avatar" alt=""/>
+                  : <div className="me-printer-avatar-ph"/>
+                }
+                <div className="me-printer-pname">{userProfile?.nickname || '—'}</div>
+                <div className="me-printer-psub">听歌报告</div>
+                {printMode && (
+                  <div className={`me-printer-badge${printLoading ? ' loading' : ''}`}>
+                    {printLoading ? '生成中…' : '已完成'}
                   </div>
                 )}
+              </div>
+              {showPrintOptions && (
+                <div className="me-printer-opts">
+                  <button className="me-printer-opt" onClick={e => { e.stopPropagation(); handlePrintSelect('me') }}>我</button>
+                  <button className="me-printer-opt" onClick={e => { e.stopPropagation(); handlePrintSelect('together') }}>我们</button>
+                </div>
+              )}
+              <div className="me-printer-slot"/>
+            </div>
 
-                <div className="me-print-section">
-                  <div className="me-print-row">
-                    <span className="me-print-label">时长</span>
-                    <span className="me-print-val">{printCard.timeStr || '—'}</span>
+            {printMode && !printLoading && printData && (
+              <div className="me-print-receipt">
+                <div className="me-receipt-date">
+                  {new Date().toLocaleDateString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit' })}
+                  <span className="me-receipt-mode-tag">{printMode === 'me' ? ' · 个人' : ' · 我们'}</span>
+                </div>
+
+                {printMode === 'me' ? (<>
+                  {printData.topSongs?.length > 0 && printData.topSongs.map((s, i) => (
+                    <div key={i} className="me-receipt-item">
+                      <span className="me-receipt-label">#{i+1}&nbsp;{s.name}</span>
+                      <span className="me-receipt-val">×{s.count}</span>
+                    </div>
+                  ))}
+                  <hr className="me-receipt-divider"/>
+                  <div className="me-receipt-item">
+                    <span className="me-receipt-label">总时长</span>
+                    <span className="me-receipt-val">{printData.timeStr || '—'}</span>
                   </div>
-                  {printCard.period && (
-                    <div className="me-print-row">
-                      <span className="me-print-label">偏好</span>
-                      <span className="me-print-val">{printCard.period}</span>
+                  {printData.period && (
+                    <div className="me-receipt-item">
+                      <span className="me-receipt-label">偏好时段</span>
+                      <span className="me-receipt-val">{printData.period}</span>
                     </div>
                   )}
-                </div>
+                </>) : (<>
+                  {printData.currentSong && (
+                    <div className="me-receipt-item">
+                      <span className="me-receipt-label">当前歌曲</span>
+                      <span className="me-receipt-val">{printData.currentSong}</span>
+                    </div>
+                  )}
+                  <div className="me-receipt-item">
+                    <span className="me-receipt-label">聊天条数</span>
+                    <span className="me-receipt-val">{printData.msgCount}</span>
+                  </div>
+                  {printData.aiSummary && (
+                    <>
+                      <hr className="me-receipt-divider"/>
+                      <div className="me-receipt-summary">{printData.aiSummary}</div>
+                    </>
+                  )}
+                  {(printData.aiQuote || printData.userQuote) && (
+                    <>
+                      <hr className="me-receipt-divider"/>
+                      <div className="me-receipt-quote-block">
+                        <span className="me-receipt-qlabel">TA说</span>
+                        <span className="me-receipt-quote">{printData.aiQuote || 'nothing here'}</span>
+                      </div>
+                      <div className="me-receipt-quote-block">
+                        <span className="me-receipt-qlabel">我说</span>
+                        <span className="me-receipt-quote">{printData.userQuote || 'nothing here'}</span>
+                      </div>
+                    </>
+                  )}
+                </>)}
 
-                <div className="me-print-divider" />
-
-                <div className="me-print-section">
-                  <div className="me-print-label">TA说</div>
-                  <div className="me-print-quote">{printCard.aiQuote || 'nothing here'}</div>
-                </div>
-                <div className="me-print-section">
-                  <div className="me-print-label">我说</div>
-                  <div className="me-print-quote">{printCard.userQuote || 'nothing here'}</div>
+                <hr className="me-receipt-divider me-receipt-divider-final"/>
+                <div className="me-receipt-footer">
+                  <span>🎵 记录完毕</span>
+                  <span>{new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })}</span>
                 </div>
               </div>
             )}
@@ -1365,8 +1425,7 @@ export default function Listen() {
 
             {/* ── hanging star ornament — 左侧收藏星 ── */}
             {(() => {
-              const inPlaylist = track && playlist.some(s => s.id === track.id)
-              const starLit = inPlaylist || (track && favSongs.has(track.id))
+              const starLit = track && favSongs.has(track.id)
               return (
                 <div className="star-ornament star-ornament-left">
                   <svg width="40" height="80" viewBox="0 0 40 80">
@@ -1386,7 +1445,7 @@ export default function Listen() {
                         </filter>
                       )}
                     </defs>
-                    <g style={{cursor: inPlaylist ? 'default' : 'pointer'}} onClick={toggleFav}>
+                    <g style={{cursor: 'pointer'}} onClick={toggleFav}>
                       <circle cx="16" cy="10" r="4.5" fill="rgba(255,255,255,0.06)"/>
                       <circle cx="16" cy="10" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo-l)"/>
                       <line x1="16" y1="14" x2="16" y2="55" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
