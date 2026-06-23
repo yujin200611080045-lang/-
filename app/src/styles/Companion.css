@@ -219,3 +219,25 @@
 .chibi-float.grabbing {
   cursor: grabbing;
 }
+
+/* ── emotion burst from floating chibi ── */
+.chibi-burst {
+  position: fixed;
+  pointer-events: none;
+  z-index: 102;
+}
+
+.burst-symbol {
+  position: absolute;
+  line-height: 1;
+  opacity: 0;
+  animation: burst-float 1.9s ease-out var(--delay, 0s) forwards;
+  color: #e03060;
+}
+
+@keyframes burst-float {
+  0%   { opacity: 0;    transform: translate(0, 0) scale(0.35); }
+  16%  { opacity: 0.92; transform: translate(calc(var(--tx) * 0.12), -9px) scale(1.05); }
+  55%  { opacity: 0.7;  transform: translate(calc(var(--tx) * 0.6), calc(var(--ty) * 0.55)) scale(0.9); }
+  100% { opacity: 0;    transform: translate(var(--tx), var(--ty)) scale(0.65); }
+}

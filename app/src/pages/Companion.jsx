@@ -17,6 +17,8 @@ const EMOJIS = [
   '✨','🌙','⭐','🔥','💫','🌸','🎀','🍓',
 ]
 
+const BURST_SYMS = ['♥','♥','♥','♡','✦','✨','⭑','✿','♥','✦','♡','✨']
+
 export default function Companion() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -28,6 +30,7 @@ export default function Companion() {
   const [rippleKey, setRippleKey] = useState(0)
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
+  const [bursts, setBursts] = useState([])
 
   const wrapperRef = useRef(null)
   const posRef = useRef({ x: 0, y: 0 })
@@ -60,6 +63,23 @@ export default function Companion() {
     }
   }
 
+  function triggerBurst() {
+    if (Math.random() >= 0.4) return
+    const id = Date.now()
+    const items = Array.from({ length: 10 }, () => ({
+      sym: BURST_SYMS[Math.floor(Math.random() * BURST_SYMS.length)],
+      tx: `${((Math.random() - 0.5) * 56).toFixed(1)}px`,
+      ty: `${(-(30 + Math.random() * 52)).toFixed(1)}px`,
+      delay: `${(Math.random() * 0.45).toFixed(3)}s`,
+      size: `${(7 + Math.random() * 8).toFixed(1)}px`,
+      ox: `${((Math.random() - 0.5) * 22).toFixed(1)}px`,
+      oy: `${(Math.random() * 12).toFixed(1)}px`,
+    }))
+    const { x, y } = posRef.current
+    setBursts(b => [...b, { id, x, y, items }])
+    setTimeout(() => setBursts(b => b.filter(v => v.id !== id)), 2400)
+  }
+
   function sendMessage() {
     const text = inputText.trim()
     if (!text) return
@@ -68,6 +88,7 @@ export default function Companion() {
     })
     setMessages(m => [...m, { text, side: 'sent', time }])
     setInputText('')
+    if (mode === 'floating') triggerBurst()
   }
 
   function handleKeyDown(e) {
@@ -220,6 +241,32 @@ export default function Companion() {
           alt=""
         />
       )}
+
+      {/* emotion bursts from floating chibi */}
+      {bursts.map(burst => (
+        <div
+          key={burst.id}
+          className="chibi-burst"
+          style={{ left: burst.x + 40, top: burst.y + 18 }}
+        >
+          {burst.items.map((item, i) => (
+            <span
+              key={i}
+              className="burst-symbol"
+              style={{
+                '--tx': item.tx,
+                '--ty': item.ty,
+                '--delay': item.delay,
+                fontSize: item.size,
+                left: item.ox,
+                top: item.oy,
+              }}
+            >
+              {item.sym}
+            </span>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }
