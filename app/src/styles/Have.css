@@ -8,116 +8,119 @@
   position: relative;
 }
 
-/* ── puddle scene container ── */
 .puddle-scene {
   position: relative;
-  width: 260px;
-  height: 240px;
+  width: 220px;
+  height: 200px;
   margin-bottom: 60px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 
-/*
-  Lens/eye shape viewed from low angle.
-  Width >> height gives floor-puddle perspective.
-  Two cubic-bezier arcs meet at left (0,35) and right (220,35) tips.
-  Center horizontal line (y=35) = the water surface.
-*/
+/* full ellipse — dark water, behind character */
 .puddle-back {
   position: absolute;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 220px;
-  height: 70px;
+  width: 130px;
+  height: 50px;
+  border-radius: 50%;
   z-index: 1;
-  clip-path: path('M 0,35 C 55,5 165,5 220,35 C 165,65 55,65 0,35 Z');
   background:
-    radial-gradient(ellipse 65% 45% at 50% 28%, rgba(55,55,88,0.38) 0%, transparent 100%),
-    radial-gradient(ellipse at 50% 55%, #1e1e2c 0%, #101020 50%, #060610 100%);
+    radial-gradient(ellipse 60% 40% at 50% 30%, rgba(50,50,80,0.35) 0%, transparent 100%),
+    radial-gradient(ellipse at 50% 55%, #1c1c2a 0%, #0e0e1c 50%, #060610 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
-/* specular reflection on water surface (top half of lens) */
 .puddle-sheen {
   position: absolute;
-  top: 8%;
-  left: 22%;
-  width: 18%;
-  height: 32%;
+  top: 12%;
+  left: 20%;
+  width: 20%;
+  height: 35%;
   background: rgba(255, 255, 255, 0.07);
   border-radius: 50%;
-  filter: blur(3px);
+  filter: blur(2px);
 }
 
 /*
-  Character sandwiched between puddle layers (z=2).
-  At rest: bottom=0 places feet at puddle floor; puddle-front covers
-  the lower ~44% of the character's body (below water surface at y=35).
-  Upper body / head stays visible above the lens midline.
+  Wrapper clips character so it only shows above the water surface.
+  bottom = midline of puddle (50px / 2 = 25px from scene bottom).
+  overflow: hidden hides character when pushed down via translateY(100%).
 */
-.chibi-char {
+.chibi-wrapper {
   position: absolute;
-  bottom: 0;
+  bottom: 25px;
   left: 50%;
-  width: 86px;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 80px;
+  overflow: hidden;
   z-index: 2;
-  transform: translateX(-50%) translateY(0);
-  /* fast punch-out, no spring overshoot */
-  transition: transform 0.22s cubic-bezier(0.0, 0.9, 0.57, 1);
   pointer-events: none;
 }
 
-/* peeking: lifts character so bottom clears water surface */
+/* default: hidden below wrapper — translateY(100%) = move down by own height */
+.chibi-char {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(100%);
+  transition: transform 0.2s cubic-bezier(0.0, 0.9, 0.57, 1);
+}
+
+/* peeking: bottom edge exactly at wrapper bottom = water surface midline */
 .chibi-char.peeking {
-  transform: translateX(-50%) translateY(-50px);
+  transform: translateY(0);
 }
 
 /*
-  Puddle front = bottom half of lens shape (z=3).
-  Covers the character's lower body like a water surface wall.
-  Path: straight line across water surface, then the bottom arc.
+  Bottom half of puddle ellipse (z=3) — the near "water wall" at low angle.
+  Path = straight water-surface line + bottom arc of 130×50 ellipse.
+  Kappa control points: dx = 65×0.5523 ≈ 35.9, dy = 25×0.5523 ≈ 13.8
 */
 .puddle-front {
   position: absolute;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 220px;
-  height: 70px;
+  width: 130px;
+  height: 50px;
   z-index: 3;
   pointer-events: none;
-  clip-path: path('M 0,35 L 220,35 C 165,65 55,65 0,35 Z');
+  clip-path: path('M 0,25 L 130,25 C 130,38.8 100.9,50 65,50 C 29.1,50 0,38.8 0,25 Z');
   background: linear-gradient(
     to bottom,
-    rgba(14, 14, 24, 0.97) 0%,
-    rgba(7, 7, 14, 1) 100%
+    rgba(12, 12, 22, 0.96) 0%,
+    rgba(6, 6, 12, 1) 100%
   );
 }
 
-/* thin glow at the water surface line (top edge of puddle-front clip) */
+/* subtle glow at the water surface line (top edge of puddle-front clip) */
 .puddle-rim {
   position: absolute;
-  top: 35px;
+  top: 25px;
   left: 5%;
   width: 90%;
   height: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.09);
   border-radius: 50%;
   filter: blur(1px);
 }
 
-/* ── ripple rings centered on the water surface ── */
+/* ripple center = 10 + 15 = 25px from scene bottom = water surface */
 .ripple-ring {
   position: absolute;
-  bottom: 15px; /* center of ring = 15 + 20 = 35px = water surface */
+  bottom: 10px;
   left: 50%;
-  width: 180px;
-  height: 40px;
+  width: 110px;
+  height: 30px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transform: translateX(-50%); /* pre-center during animation delay */
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transform: translateX(-50%);
   opacity: 0;
   animation: puddle-ripple 1s ease-out forwards;
   pointer-events: none;
@@ -126,11 +129,11 @@
 
 @keyframes puddle-ripple {
   from {
-    opacity: 0.6;
+    opacity: 0.55;
     transform: translateX(-50%) scale(1);
   }
   to {
     opacity: 0;
-    transform: translateX(-50%) scale(1.7);
+    transform: translateX(-50%) scale(1.6);
   }
 }

@@ -15,12 +15,25 @@ export default function Have() {
     <div className="have-page">
       <div className="puddle-scene" onClick={handleTap}>
 
-        {/* Back of puddle — behind the character */}
+        {/* full ellipse — dark water behind character */}
         <div className="puddle-back">
           <div className="puddle-sheen" />
         </div>
 
-        {/* Ripple rings — keyed so they restart on every tap */}
+        {/*
+          wrapper bottom = puddle midline (water surface).
+          overflow:hidden clips character when translateY(100%) pushes it below.
+        */}
+        <div className="chibi-wrapper">
+          <img
+            src="/chibi-have.png"
+            className={`chibi-char${peeking ? ' peeking' : ''}`}
+            alt=""
+            draggable={false}
+          />
+        </div>
+
+        {/* ripple rings restart on every tap */}
         {[0, 170, 340].map(delay => (
           <div
             key={`${rippleKey}-${delay}`}
@@ -29,15 +42,7 @@ export default function Have() {
           />
         ))}
 
-        {/* Character — sandwiched between puddle layers */}
-        <img
-          src="/chibi-have.png"
-          className={`chibi-char${peeking ? ' peeking' : ''}`}
-          alt=""
-          draggable={false}
-        />
-
-        {/* Front puddle surface — covers lower body of character */}
+        {/* bottom-half ellipse — covers water depth, z-index above character */}
         <div className="puddle-front">
           <div className="puddle-rim" />
         </div>
