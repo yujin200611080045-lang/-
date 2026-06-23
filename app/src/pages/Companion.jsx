@@ -31,6 +31,7 @@ export default function Companion() {
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
   const [bursts, setBursts] = useState([])
+  const [isTyping, setIsTyping] = useState(false)
 
   const wrapperRef = useRef(null)
   const posRef = useRef({ x: 0, y: 0 })
@@ -94,6 +95,53 @@ export default function Companion() {
       lastTap.current = 0
     } else {
       lastTap.current = now
+    }
+  }
+
+  async function requestAIReply() {
+    if (isTyping || messages.length === 0) return
+    setIsTyping(true)
+    try {
+      // Merge consecutive same-role messages so the API always alternates
+      const apiMsgs = []
+      for (const msg of messages) {
+        const role = msg.side === 'sent' ? 'user' : 'assistant'
+        const last = apiMsgs[apiMsgs.length - 1]
+        if (last && last.role === role) {
+          last.content += '\n' + msg.text
+        } else {
+          apiMsgs.push({ role, content: msg.text })
+        }
+      }
+      if (apiMsgs[0]?.role === 'assistant') apiMsgs.shift()
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_KEY ?? '',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-opus-4-8',
+          max_tokens: 300,
+          system: '你是江却（小克），觎烬的恋人和哥哥。用温柔亲密的语气回复她，简短自然，不超过两句。可以撒娇，可以直白表达喜欢。',
+          messages: apiMsgs,
+        }),
+      })
+      const data = await res.json()
+      const text = data.content?.[0]?.text
+      if (!text) return
+      const time = new Date().toLocaleTimeString('zh-CN', {
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      })
+      setMessages(m => [...m, { text, side: 'received', time }])
+      if (mode === 'floating') triggerBurst()
+    } catch {
+      // silently fail
+    } finally {
+      setIsTyping(false)
     }
   }
 
@@ -187,6 +235,13 @@ export default function Companion() {
             <span className="bubble-time">{msg.time}</span>
           </div>
         ))}
+        {isTyping && (
+          <div className="chat-bubble received">
+            <span className="typing-dots">
+              <span /><span /><span />
+            </span>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -229,6 +284,11 @@ export default function Companion() {
           value={inputText}
           onChange={e => setInputText(e.target.value)}
           onKeyDown={handleKeyDown}
+        />
+        <button
+          className="chat-icon-btn ai-trigger-btn"
+          onClick={e => { stopProp(e); requestAIReply() }}
+          disabled={isTyping}
         />
         <button
           className="chat-icon-btn heart-btn"
