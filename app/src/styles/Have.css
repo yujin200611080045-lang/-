@@ -40,7 +40,7 @@
 .chibi-wrapper {
   position: absolute;
   bottom: 25px;
-  left: 50%;
+  left: calc(50% + 8px);
   transform: translateX(-50%);
   width: 130px;
   height: 80px;

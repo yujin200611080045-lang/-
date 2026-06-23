@@ -85,17 +85,16 @@
   border-bottom-left-radius: 4px;
 }
 
-/* ── input bar — no border, safe-area-aware bottom padding ── */
+/* ── input bar — sits above safe area, page background fills below ── */
 .chat-inputbar {
   position: fixed;
-  bottom: 0;
+  bottom: env(safe-area-inset-bottom, 0px);
   left: 0;
   right: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   background: var(--bg-main, #fafaf9);
   z-index: 30;
 }

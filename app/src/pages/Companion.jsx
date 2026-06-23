@@ -121,7 +121,7 @@ export default function Companion() {
       </div>
 
       {/* messages */}
-      <div className="chat-messages" onClick={stopProp}>
+      <div className="chat-messages">
         {messages.map((msg, i) => (
           <div key={i} className={`chat-bubble ${msg.side}`}>
             <span className="bubble-text">{msg.text}</span>
