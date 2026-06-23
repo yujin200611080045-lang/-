@@ -5,28 +5,23 @@ import '../styles/Have.css'
 export default function Have() {
   const [peeking, setPeeking] = useState(false)
   const [rippleKey, setRippleKey] = useState(0)
-  const [rippling, setRippling] = useState(false)
 
   function handleTap() {
     setPeeking(v => !v)
-    setRippling(false)
-    requestAnimationFrame(() => {
-      setRippling(true)
-      setRippleKey(k => k + 1)
-    })
+    setRippleKey(k => k + 1)
   }
 
   return (
     <div className="have-page">
       <div className="puddle-scene" onClick={handleTap}>
 
-        {/* Back of puddle — visible behind the character */}
+        {/* Back of puddle — behind the character */}
         <div className="puddle-back">
           <div className="puddle-sheen" />
         </div>
 
-        {/* Ripple rings */}
-        {rippling && [0, 160, 320].map(delay => (
+        {/* Ripple rings — keyed so they restart on every tap */}
+        {[0, 170, 340].map(delay => (
           <div
             key={`${rippleKey}-${delay}`}
             className="ripple-ring"
@@ -34,7 +29,7 @@ export default function Have() {
           />
         ))}
 
-        {/* The character — starts mostly submerged */}
+        {/* Character — sandwiched between puddle layers */}
         <img
           src="/chibi-have.png"
           className={`chibi-char${peeking ? ' peeking' : ''}`}
@@ -42,8 +37,10 @@ export default function Have() {
           draggable={false}
         />
 
-        {/* Front puddle surface — masks lower body of character */}
-        <div className="puddle-front" />
+        {/* Front puddle surface — covers lower body of character */}
+        <div className="puddle-front">
+          <div className="puddle-rim" />
+        </div>
 
       </div>
 
