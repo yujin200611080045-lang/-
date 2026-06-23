@@ -158,7 +158,7 @@ export default function Listen() {
   const [threadStep, setThreadStep] = useState(0)
   const [threadOpacity, setThreadOpacity] = useState(1)
   const [bindReveal, setBindReveal] = useState(0)
-  const pausedInListenRef = useRef(false)  // true = 在 listen 页内暂停过，离开时隐藏悬浮条
+  const [pausedInListen, setPausedInListen] = useState(false)
   // together player — independent from main player
   const tgAudioRef = useRef(null)
   const tgPlayIdxRef = useRef(0)
@@ -359,20 +359,6 @@ export default function Listen() {
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [curLyric, lyrics.length])
 
-  // 跟踪暂停来源：只监听 playing/tgPlaying 变化，不受歌词 tick 影响
-  useEffect(() => {
-    const isTg = listenTab === 'together'
-    const cur = isTg ? tgPlaying : playing
-    if (cur) {
-      pausedInListenRef.current = false
-    } else if (window.__pausedFromFloatingBar) {
-      window.__pausedFromFloatingBar = false
-      pausedInListenRef.current = false
-    } else {
-      pausedInListenRef.current = true
-    }
-  }, [playing, tgPlaying, listenTab])
-
   // 广播播放状态供悬浮条使用（together tab 优先用 tg*，tgTrack 空时回退 main track）
   useEffect(() => {
     const isTg = listenTab === 'together'
@@ -382,10 +368,10 @@ export default function Listen() {
       playing:    isTg ? tgPlaying : playing,
       curLyric:   isTg ? tgCurLyric : curLyric,
       lyrics:     isTg ? tgLyrics : lyrics,
-      pausedInListen: pausedInListenRef.current,
+      pausedInListen,
     }
     window.dispatchEvent(new CustomEvent('music:statechange'))
-  }, [listenTab, track, playing, curLyric, lyrics, tgTrack, tgPlaying, tgCurLyric, tgLyrics])
+  }, [listenTab, track, playing, curLyric, lyrics, tgTrack, tgPlaying, tgCurLyric, tgLyrics, pausedInListen])
 
   // 保持最新函数引用，避免 stale closure
   useEffect(() => { togglePlayRef.current = togglePlay })
@@ -496,7 +482,7 @@ export default function Listen() {
       const url = urlRes.data?.[0]?.url
       if (url) {
         a.src = url
-        a.play().then(() => setTgPlaying(true)).catch(() => setTgPlaying(false))
+        a.play().then(() => { setTgPlaying(true); setPausedInListen(false) }).catch(() => setTgPlaying(false))
       }
       setTgLyrics(parseLrc(lrcRes.lrc?.lyric || ''))
     } catch {}
@@ -505,8 +491,14 @@ export default function Listen() {
   function tgTogglePlay() {
     const a = tgAudioRef.current
     if (!a) return
-    if (tgPlaying) { a.pause(); setTgPlaying(false) }
-    else { a.play().then(() => setTgPlaying(true)).catch(() => {}) }
+    const fromFloating = !!window.__pausedFromFloatingBar
+    window.__pausedFromFloatingBar = false
+    if (tgPlaying) {
+      a.pause(); setTgPlaying(false)
+      if (!fromFloating) setPausedInListen(true)
+    } else {
+      a.play().then(() => { setTgPlaying(true); setPausedInListen(false) }).catch(() => {})
+    }
   }
 
   function tgSkipTo(delta) {
@@ -518,8 +510,14 @@ export default function Listen() {
   function togglePlay() {
     const a = audioRef.current
     if (!a) return
-    if (playing) { a.pause(); setPlaying(false) }
-    else { a.play(); setPlaying(true) }
+    const fromFloating = !!window.__pausedFromFloatingBar
+    window.__pausedFromFloatingBar = false
+    if (playing) {
+      a.pause(); setPlaying(false)
+      if (!fromFloating) setPausedInListen(true)
+    } else {
+      a.play(); setPlaying(true); setPausedInListen(false)
+    }
   }
 
   function skipTo(delta) {
