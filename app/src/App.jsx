@@ -6,6 +6,7 @@ import Calendar from './pages/Calendar'
 import Listen from './pages/Listen'
 import Books from './pages/Books'
 import Settings from './pages/Settings'
+import Have from './pages/Have'
 import FloatingBar from './components/FloatingBar'
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/books" element={<Books />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/have" element={<Have />} />
         </Routes>
       )}
     </>
