@@ -62,7 +62,8 @@ export default function FloatingBar() {
     return () => wrap.removeEventListener('touchmove', handleMove)
   })
 
-  const visible = !isListen && ms?.track
+  // 在 listen 页内暂停后离开 → 隐藏；在悬浮条上暂停 → 继续显示
+  const visible = !isListen && ms?.track && (ms?.playing || !ms?.pausedInListen)
   if (!visible) return null
 
   const { track, playing, curLyric, lyrics } = ms
@@ -176,7 +177,10 @@ export default function FloatingBar() {
             <div className="fb-name">{track.name}</div>
             <div className="fb-lyric">{lyricText || track.artist}</div>
           </div>
-          <button className="fb-btn" onClick={() => window.dispatchEvent(new CustomEvent('music:toggle'))}>
+          <button className="fb-btn" onClick={() => {
+            if (playing) window.__pausedFromFloatingBar = true
+            window.dispatchEvent(new CustomEvent('music:toggle'))
+          }}>
             {playing
               ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
               : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>

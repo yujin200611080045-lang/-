@@ -64,27 +64,52 @@ function crackClipPath(k) {
   return 'polygon(' + [...l,...r].map(([x,y]) => `${x}px ${y}px`).join(',') + ')'
 }
 
-// 从缝隙边 (fx,fy) 牵出一根线，缠绕中心在 (cx,cy) 的头像约1.9圈
-// 返回 { d: 路径, len: 总长 }，len 用于 stroke-dashoffset 抽线动画
-function bindPath(cx, cy, fx, fy) {
-  const entryAng = Math.atan2(fy - cy, fx - cx)
-  const startR = 20, turns = 1.9, steps = 64
-  const ex = cx + startR * Math.cos(entryAng)
-  const ey = cy + startR * Math.sin(entryAng)
-  let d = `M${fx.toFixed(1)},${fy.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}`
-  let len = Math.hypot(ex - fx, ey - fy)
-  let px = ex, py = ey
-  for (let i = 1; i <= steps; i++) {
-    const f = i / steps
-    const ang = entryAng + f * turns * 2 * Math.PI
-    const rr = startR + f * 9 + 2 * Math.sin(ang * 2)   // 边向外缠 + 编织起伏
-    const x = cx + rr * Math.cos(ang)
-    const y = cy + rr * Math.sin(ang)
-    d += ` L${x.toFixed(1)},${y.toFixed(1)}`
-    len += Math.hypot(x - px, y - py)
-    px = x; py = y
+// 棉线效果：3股丝丝缕缕，从缝隙边弯曲延伸，螺旋缠住头像
+// cx/cy: 头像中心, fx/fy: 缝隙锚点, entryAngle: 入线侧角度, cpOffX/Y: 曲线控制点偏移
+function bindStrandPaths(cx, cy, fx, fy, entryAngle, cpOffX, cpOffY) {
+  const r = 24
+  const entryX = cx + r * Math.cos(entryAngle)
+  const entryY = cy + r * Math.sin(entryAngle)
+  const cpx = (fx + entryX) / 2 + cpOffX
+  const cpy = (fy + entryY) / 2 + cpOffY
+
+  // 估算二次贝塞尔弧长
+  function bezLen(fxs, fys) {
+    let len = 0, px = fxs, py = fys
+    for (let i = 1; i <= 24; i++) {
+      const t = i / 24, mt = 1 - t
+      const x = mt*mt*fxs + 2*mt*t*cpx + t*t*entryX
+      const y = mt*mt*fys + 2*mt*t*cpy + t*t*entryY
+      len += Math.hypot(x - px, y - py); px = x; py = y
+    }
+    return len
   }
-  return { d, len }
+
+  // 入线方向的法向量，用于 3 股横向展开
+  const pnx = Math.cos(entryAngle + Math.PI / 2)
+  const pny = Math.sin(entryAngle + Math.PI / 2)
+
+  return [
+    { sOff: -1.4, rD: -0.8, aO: -0.06, op: 0.55, sw: 0.7  },
+    { sOff:  0,   rD:  0,   aO:  0,    op: 0.93, sw: 1.15  },
+    { sOff:  1.4, rD:  0.7, aO:  0.06, op: 0.50, sw: 0.65  },
+  ].map(({ sOff, rD, aO, op, sw }) => {
+    const fxs = fx + sOff * pnx, fys = fy + sOff * pny
+    let d = `M${fxs.toFixed(1)},${fys.toFixed(1)} Q${cpx.toFixed(1)},${cpy.toFixed(1)} ${entryX.toFixed(1)},${entryY.toFixed(1)}`
+    let len = bezLen(fxs, fys)
+    let px = entryX, py = entryY
+    for (let i = 1; i <= 64; i++) {
+      const f = i / 64
+      const ang = entryAngle + aO + f * 1.9 * 2 * Math.PI
+      const rr = r + rD + f * 9 + 1.5 * Math.sin(ang * 3)
+      const x = cx + rr * Math.cos(ang)
+      const y = cy + rr * Math.sin(ang)
+      d += ` L${x.toFixed(1)},${y.toFixed(1)}`
+      len += Math.hypot(x - px, y - py)
+      px = x; py = y
+    }
+    return { d, len, op, sw }
+  })
 }
 
 export default function Listen() {
@@ -132,7 +157,8 @@ export default function Listen() {
   const threadAnimRef = useRef(false)
   const [threadStep, setThreadStep] = useState(0)
   const [threadOpacity, setThreadOpacity] = useState(1)
-  const [bindReveal, setBindReveal] = useState(0)  // 缠绕红线抽出进度 0→1
+  const [bindReveal, setBindReveal] = useState(0)
+  const pausedInListenRef = useRef(false)  // true = 在 listen 页内暂停过，离开时隐藏悬浮条
   // together player — independent from main player
   const tgAudioRef = useRef(null)
   const tgPlayIdxRef = useRef(0)
@@ -333,12 +359,30 @@ export default function Listen() {
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [curLyric, lyrics.length])
 
-  // 广播播放状态供悬浮条使用（together tab 优先用 tg* 状态）
+  // 跟踪暂停来源：只监听 playing/tgPlaying 变化，不受歌词 tick 影响
   useEffect(() => {
-    if (listenTab === 'together') {
-      window.__musicState = { track: tgTrack, playing: tgPlaying, curLyric: tgCurLyric, lyrics: tgLyrics }
+    const isTg = listenTab === 'together'
+    const cur = isTg ? tgPlaying : playing
+    if (cur) {
+      pausedInListenRef.current = false
+    } else if (window.__pausedFromFloatingBar) {
+      window.__pausedFromFloatingBar = false
+      pausedInListenRef.current = false
     } else {
-      window.__musicState = { track, playing, curLyric, lyrics }
+      pausedInListenRef.current = true
+    }
+  }, [playing, tgPlaying, listenTab])
+
+  // 广播播放状态供悬浮条使用（together tab 优先用 tg*，tgTrack 空时回退 main track）
+  useEffect(() => {
+    const isTg = listenTab === 'together'
+    const activeTrack = (isTg ? tgTrack : null) ?? track
+    window.__musicState = {
+      track:      activeTrack,
+      playing:    isTg ? tgPlaying : playing,
+      curLyric:   isTg ? tgCurLyric : curLyric,
+      lyrics:     isTg ? tgLyrics : lyrics,
+      pausedInListen: pausedInListenRef.current,
     }
     window.dispatchEvent(new CustomEvent('music:statechange'))
   }, [listenTab, track, playing, curLyric, lyrics, tgTrack, tgPlaying, tgCurLyric, tgLyrics])
@@ -784,24 +828,26 @@ export default function Listen() {
                 )
               })()}
 
-              {/* 缠绕红线：从缝隙边蔓延出两根，各缠住一个头像 */}
+              {/* 缠绕棉线：3股丝丝缕缕，左下从右侧向上拱出，右上从左下向下拱出 */}
               {bindReveal > 0 && (() => {
                 const prog = Math.min(1, (crackK - 1) / 2.5)
-                const blC = [ (81 + prog*(8-81)) + 24, (204 + prog*(284-204)) + 24 ]
-                const trC = [ (191 + prog*(264-191)) + 24, (88 + prog*(8-88)) + 24 ]
-                const blO = scalePt(131, 201, crackK)   // 左下：从 CRACK_L 边牵出
-                const trO = scalePt(189, 145, crackK)   // 右上：从 CRACK_R 边牵出
-                const binds = [
-                  bindPath(blC[0], blC[1], blO[0], blO[1]),
-                  bindPath(trC[0], trC[1], trO[0], trO[1]),
-                ]
+                const blCx = (81 + prog*(8  - 81 )) + 24
+                const blCy = (204 + prog*(284 - 204)) + 24
+                const trCx = (191 + prog*(264 - 191)) + 24
+                const trCy = (88  + prog*(8  - 88 )) + 24
+                const blO = scalePt(131, 201, crackK)  // CRACK_L 左下锚
+                const trO = scalePt(189, 145, crackK)  // CRACK_R 右上锚
+                // bl: 右侧入线 angle=0，控制点向右+向上拱 → 线从右侧弯曲延伸上去
+                const blStrands = bindStrandPaths(blCx, blCy, blO[0], blO[1], 0, 30, -15)
+                // tr: 左下角入线 angle=225°，控制点向左下拱 → 线从左下角弯曲延伸下去
+                const trStrands = bindStrandPaths(trCx, trCy, trO[0], trO[1], Math.PI * 5 / 4, -15, 30)
                 return (
                   <g filter="url(#thread-over)" style={{ opacity: threadOpacity, transition: 'opacity 0.65s ease-out' }}>
-                    {binds.map(({ d, len }, i) => (
+                    {[...blStrands, ...trStrands].map(({ d, len, op, sw }, i) => (
                       <path key={i} d={d} fill="none" strokeLinecap="round" strokeLinejoin="round"
                         style={{
-                          stroke: 'rgba(170,20,20,0.94)',
-                          strokeWidth: '1.3',
+                          stroke: `rgba(165,18,18,${op})`,
+                          strokeWidth: sw,
                           strokeDasharray: len,
                           strokeDashoffset: len * (1 - bindReveal),
                           transition: 'stroke-dashoffset 0.24s linear',
@@ -819,13 +865,10 @@ export default function Listen() {
               const trStyle = { left: Math.round(191 + prog*(264-191))+'px', top: Math.round(88 + prog*(8-88))+'px', transition: 'left 0.18s ease, top 0.18s ease' }
               return (<>
                 <div className="together-avatar" style={blStyle} onClick={e => e.stopPropagation()}>
-                  {userProfile?.avatarUrl
-                    ? <img src={userProfile.avatarUrl} className="together-avatar-img" alt="" />
-                    : <div className="together-avatar-circle" />
-                  }
+                  <img src="/together-bl.jpeg" className="together-avatar-img" alt="" />
                 </div>
                 <div className="together-avatar" style={trStyle} onClick={e => e.stopPropagation()}>
-                  <div className="together-avatar-circle" />
+                  <img src="/together-tr.jpeg" className="together-avatar-img" alt="" />
                 </div>
               </>)
             })()}
