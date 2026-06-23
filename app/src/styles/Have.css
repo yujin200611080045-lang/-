@@ -49,19 +49,22 @@
   pointer-events: none;
 }
 
-/* centered within wrapper; hidden by default — translateY(100%) pushes below */
+/* fill wrapper box; object-fit centers the image content */
 .chibi-char {
   position: absolute;
   bottom: 0;
-  left: 50%;
-  width: 80px;
-  transform: translateX(-50%) translateY(100%);
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  transform: translateY(100%);
   transition: transform 0.2s cubic-bezier(0.0, 0.9, 0.57, 1);
 }
 
 /* peeking: bottom edge at wrapper bottom = water surface midline */
 .chibi-char.peeking {
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 /*
