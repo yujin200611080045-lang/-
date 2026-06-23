@@ -35,24 +35,37 @@ export default function Settings() {
     setPulling(true)
     setPullMsg('')
     setPullOk(false)
+
+    const base = apiUrl.replace(/\/$/, '')
+    const endpoint = `${base}/v1/models`
+
+    async function tryFetch(headers) {
+      const r = await fetch(endpoint, { headers })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    }
+
     try {
-      const base = apiUrl.replace(/\/$/, '')
-      // try Anthropic header format first
-      const resp = await fetch(`${base}/v1/models`, {
-        headers: {
+      let data
+      try {
+        // 中转站通常是 OpenAI 兼容格式，用 Bearer
+        data = await tryFetch({ 'Authorization': `Bearer ${apiKey}` })
+      } catch {
+        // fallback: Anthropic 原生格式
+        data = await tryFetch({
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-      })
-      const data = await resp.json()
+        })
+      }
+
       const list = (data.data || data.models || [])
         .map(m => m.id || m.name || String(m))
         .filter(Boolean)
         .sort()
+
       if (!list.length) {
-        setPullMsg('未获取到模型列表，请手动填写')
+        setPullMsg('接口返回了空列表，请手动填写模型名')
         return
       }
       setFetchedModels(list)
@@ -60,11 +73,10 @@ export default function Settings() {
       setPullMsg(`已拉取 ${list.length} 个模型`)
       setPullOk(true)
     } catch (e) {
-      // CORS or network error — give actionable message
       const isCors = e instanceof TypeError
       setPullMsg(isCors
-        ? '跨域限制，无法直接拉取（Anthropic 官方接口有此限制）\n请手动填写模型名'
-        : '拉取失败：' + e.message)
+        ? '跨域限制（CORS）\n如果中转站没有配置跨域头，浏览器会拦截请求\n请手动填写模型名'
+        : `拉取失败：${e.message}`)
     } finally {
       setPulling(false)
     }

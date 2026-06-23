@@ -542,13 +542,15 @@ export default function Listen() {
       const cfgUrl = (localStorage.getItem('cfg_api_url') || 'https://api.anthropic.com').replace(/\/$/, '')
       const cfgKey = localStorage.getItem('cfg_api_key') || import.meta.env.VITE_ANTHROPIC_KEY || ''
       const cfgModel = localStorage.getItem('cfg_model') || 'claude-haiku-4-5-20251001'
+      const isAnthropic = cfgUrl.includes('anthropic.com')
       const resp = await fetch(`${cfgUrl}/v1/messages`, {
         method: 'POST',
         headers: {
-          'x-api-key': cfgKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
           'content-type': 'application/json',
+          ...(isAnthropic
+            ? { 'x-api-key': cfgKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }
+            : { 'Authorization': `Bearer ${cfgKey}` }
+          ),
         },
         body: JSON.stringify({
           model: cfgModel,
