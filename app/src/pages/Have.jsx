@@ -1,14 +1,17 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import '../styles/Have.css'
 
 export default function Have() {
+  const navigate = useNavigate()
   const [peeking, setPeeking] = useState(false)
   const [rippleKey, setRippleKey] = useState(0)
 
   function handleTap() {
-    setPeeking(v => !v)
+    setPeeking(true)
     setRippleKey(k => k + 1)
+    setTimeout(() => navigate('/companion'), 200)
   }
 
   return (
