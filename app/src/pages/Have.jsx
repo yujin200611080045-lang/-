@@ -16,9 +16,7 @@ export default function Have() {
       <div className="puddle-scene" onClick={handleTap}>
 
         {/* full ellipse — dark water behind character */}
-        <div className="puddle-back">
-          <div className="puddle-sheen" />
-        </div>
+        <div className="puddle-back" />
 
         {/*
           wrapper bottom = puddle midline (water surface).

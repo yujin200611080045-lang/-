@@ -28,53 +28,40 @@
   height: 50px;
   border-radius: 50%;
   z-index: 1;
-  background:
-    radial-gradient(ellipse 60% 40% at 50% 30%, rgba(50,50,80,0.35) 0%, transparent 100%),
-    radial-gradient(ellipse at 50% 55%, #1c1c2a 0%, #0e0e1c 50%, #060610 100%);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-}
-
-.puddle-sheen {
-  position: absolute;
-  top: 12%;
-  left: 20%;
-  width: 20%;
-  height: 35%;
-  background: rgba(255, 255, 255, 0.07);
-  border-radius: 50%;
-  filter: blur(2px);
+  background: radial-gradient(ellipse at 50% 50%, #14141f 0%, #09091a 55%, #040410 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 /*
-  Wrapper clips character so it only shows above the water surface.
+  Wrapper same width as puddle (130px) so character can be explicitly
+  centered. overflow:hidden hides character when below wrapper bottom.
   bottom = midline of puddle (50px / 2 = 25px from scene bottom).
-  overflow: hidden hides character when pushed down via translateY(100%).
 */
 .chibi-wrapper {
   position: absolute;
   bottom: 25px;
   left: 50%;
   transform: translateX(-50%);
-  width: 80px;
+  width: 130px;
   height: 80px;
   overflow: hidden;
   z-index: 2;
   pointer-events: none;
 }
 
-/* default: hidden below wrapper — translateY(100%) = move down by own height */
+/* centered within wrapper; hidden by default — translateY(100%) pushes below */
 .chibi-char {
   position: absolute;
   bottom: 0;
-  left: 0;
-  width: 100%;
-  transform: translateY(100%);
+  left: 50%;
+  width: 80px;
+  transform: translateX(-50%) translateY(100%);
   transition: transform 0.2s cubic-bezier(0.0, 0.9, 0.57, 1);
 }
 
-/* peeking: bottom edge exactly at wrapper bottom = water surface midline */
+/* peeking: bottom edge at wrapper bottom = water surface midline */
 .chibi-char.peeking {
-  transform: translateY(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 /*
