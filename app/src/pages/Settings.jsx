@@ -36,7 +36,8 @@ export default function Settings() {
     setPullMsg('')
     setPullOk(false)
 
-    const base = apiUrl.replace(/\/$/, '')
+    // 去掉末尾多余的 /v1，避免拼成 /v1/v1/models
+    const base = apiUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
     const endpoint = `${base}/v1/models`
 
     async function tryFetch(headers) {

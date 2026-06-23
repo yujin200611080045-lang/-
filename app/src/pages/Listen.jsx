@@ -539,7 +539,7 @@ export default function Listen() {
     try {
       const currentLyric = tgLyrics[tgCurLyric]?.text || ''
       const trackInfo = tgTrack ? `${tgTrack.name}${tgTrack.artist ? ` - ${tgTrack.artist}` : ''}` : '未知歌曲'
-      const cfgUrl = (localStorage.getItem('cfg_api_url') || 'https://api.anthropic.com').replace(/\/$/, '')
+      const cfgUrl = (localStorage.getItem('cfg_api_url') || 'https://api.anthropic.com').replace(/\/+$/, '').replace(/\/v1$/, '')
       const cfgKey = localStorage.getItem('cfg_api_key') || import.meta.env.VITE_ANTHROPIC_KEY || ''
       const cfgModel = localStorage.getItem('cfg_model') || 'claude-haiku-4-5-20251001'
       const isAnthropic = cfgUrl.includes('anthropic.com')
