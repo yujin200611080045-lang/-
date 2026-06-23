@@ -1,6 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import NavBar from '../components/NavBar'
 import '../styles/Settings.css'
+
+const PRESET_MODELS = [
+  'claude-opus-4-8',
+  'claude-sonnet-4-6',
+  'claude-haiku-4-5-20251001',
+  'claude-3-5-sonnet-20241022',
+  'claude-3-5-haiku-20241022',
+  'claude-3-opus-20240229',
+]
 
 function load(key, def = '') {
   return localStorage.getItem(key) || def
@@ -9,46 +18,53 @@ function load(key, def = '') {
 export default function Settings() {
   const [apiUrl, setApiUrl] = useState(() => load('cfg_api_url', 'https://api.anthropic.com'))
   const [apiKey, setApiKey] = useState(() => load('cfg_api_key'))
-  const [model, setModel] = useState(() => load('cfg_model'))
-  const [models, setModels] = useState([])
+  const [model, setModel] = useState(() => load('cfg_model', 'claude-haiku-4-5-20251001'))
+  const [fetchedModels, setFetchedModels] = useState([])
   const [pulling, setPulling] = useState(false)
   const [pullMsg, setPullMsg] = useState('')
+  const [pullOk, setPullOk] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showKey, setShowKey] = useState(false)
 
   async function pullModels() {
     if (!apiUrl.trim() || !apiKey.trim()) {
       setPullMsg('请先填写 URL 和密钥')
+      setPullOk(false)
       return
     }
     setPulling(true)
     setPullMsg('')
+    setPullOk(false)
     try {
       const base = apiUrl.replace(/\/$/, '')
-      // try Anthropic header format
-      let resp = await fetch(`${base}/v1/models`, {
+      // try Anthropic header format first
+      const resp = await fetch(`${base}/v1/models`, {
         headers: {
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
+          'Authorization': `Bearer ${apiKey}`,
         },
       })
-      if (!resp.ok) {
-        // fallback: OpenAI Bearer format
-        resp = await fetch(`${base}/v1/models`, {
-          headers: { Authorization: `Bearer ${apiKey}` },
-        })
-      }
       const data = await resp.json()
       const list = (data.data || data.models || [])
         .map(m => m.id || m.name || String(m))
         .filter(Boolean)
-      if (!list.length) { setPullMsg('未获取到模型列表'); setPulling(false); return }
-      setModels(list)
-      if (!model || !list.includes(model)) setModel(list[0])
+        .sort()
+      if (!list.length) {
+        setPullMsg('未获取到模型列表，请手动填写')
+        return
+      }
+      setFetchedModels(list)
+      if (!list.includes(model)) setModel(list[0])
       setPullMsg(`已拉取 ${list.length} 个模型`)
+      setPullOk(true)
     } catch (e) {
-      setPullMsg('拉取失败：' + e.message)
+      // CORS or network error — give actionable message
+      const isCors = e instanceof TypeError
+      setPullMsg(isCors
+        ? '跨域限制，无法直接拉取（Anthropic 官方接口有此限制）\n请手动填写模型名'
+        : '拉取失败：' + e.message)
     } finally {
       setPulling(false)
     }
@@ -57,10 +73,12 @@ export default function Settings() {
   function save() {
     localStorage.setItem('cfg_api_url', apiUrl.trim())
     localStorage.setItem('cfg_api_key', apiKey.trim())
-    if (model) localStorage.setItem('cfg_model', model)
+    localStorage.setItem('cfg_model', model.trim())
     setSaved(true)
     setTimeout(() => setSaved(false), 1800)
   }
+
+  const displayModels = fetchedModels.length ? fetchedModels : PRESET_MODELS
 
   return (
     <div className="settings-page">
@@ -104,34 +122,44 @@ export default function Settings() {
           </div>
         </div>
 
-        <button className="cfg-pull-btn" onClick={pullModels} disabled={pulling}>
-          {pulling ? '拉取中…' : '拉取模型'}
-        </button>
-        {pullMsg && <p className="cfg-pull-msg">{pullMsg}</p>}
-
-        {models.length > 0 && (
-          <div className="cfg-section">
-            <label className="cfg-label">选择模型</label>
-            <div className="cfg-model-list">
-              {models.map(m => (
-                <button
-                  key={m}
-                  className={`cfg-model-item${model === m ? ' active' : ''}`}
-                  onClick={() => setModel(m)}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
+        <div className="cfg-section">
+          <div className="cfg-model-header">
+            <label className="cfg-label">模型</label>
+            <button className="cfg-pull-inline" onClick={pullModels} disabled={pulling}>
+              {pulling ? '拉取中…' : '拉取'}
+            </button>
           </div>
-        )}
+          {pullMsg && (
+            <p className={`cfg-pull-msg${pullOk ? ' ok' : ''}`}>{pullMsg}</p>
+          )}
 
-        {model && models.length === 0 && (
-          <div className="cfg-section">
-            <label className="cfg-label">当前模型</label>
-            <p className="cfg-current-model">{model}</p>
+          {/* 手填模型名 */}
+          <input
+            className="cfg-input"
+            placeholder="claude-haiku-4-5-20251001"
+            value={model}
+            onChange={e => setModel(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+
+          {/* 模型列表（拉取成功则显示真实列表，否则显示预设快捷选项） */}
+          <p className="cfg-model-hint">
+            {fetchedModels.length ? '点击选择' : '快捷选择 →'}
+          </p>
+          <div className="cfg-model-list">
+            {displayModels.map(m => (
+              <button
+                key={m}
+                className={`cfg-model-item${model === m ? ' active' : ''}`}
+                onClick={() => setModel(m)}
+              >
+                {m}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         <button className="cfg-save-btn" onClick={save}>
           {saved ? '已保存 ✓' : '保存'}
