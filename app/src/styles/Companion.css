@@ -1,14 +1,199 @@
 .companion-page {
   width: 100%;
   height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: var(--bg-main, #fafaf9);
   position: relative;
 }
 
-/* floating draggable character */
+/* ── top bar ── */
+.chat-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-main, #fafaf9);
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
+  z-index: 30;
+}
+
+.chat-name {
+  background: #111;
+  color: #fff;
+  padding: 4px 18px;
+  border-radius: 5px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* ── messages ── */
+.chat-messages {
+  position: absolute;
+  top: 54px;
+  bottom: 58px;
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-bubble {
+  background: #111;
+  color: #fff;
+  border-radius: 18px;
+  padding: 10px 14px;
+  max-width: 72%;
+  line-height: 1.5;
+  font-size: 15px;
+  word-break: break-word;
+}
+
+.chat-bubble.sent {
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.received {
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+/* ── input bar ── */
+.chat-inputbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-main, #fafaf9);
+  border-top: 1px solid var(--border, rgba(0,0,0,0.08));
+  z-index: 30;
+}
+
+.chat-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  padding: 6px 0;
+  font-family: inherit;
+  color: var(--text-primary, #111);
+}
+
+.chat-input::placeholder {
+  color: var(--text-muted, #bbb);
+  font-style: italic;
+}
+
+.chat-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--text-primary, #111);
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.heart-btn {
+  color: #e03060;
+  font-size: 20px;
+}
+
+/* ── plus panel ── */
+.chat-plus-panel {
+  position: fixed;
+  bottom: 58px;
+  left: 0;
+  right: 0;
+  background: var(--bg-card, #fff);
+  border-top: 1px solid var(--border, rgba(0,0,0,0.08));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 18px 16px;
+  z-index: 35;
+}
+
+.plus-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 20px;
+  border: none;
+  background: rgba(0,0,0,0.04);
+  cursor: pointer;
+  border-radius: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.plus-opt-icon {
+  font-size: 26px;
+}
+
+.plus-opt-label {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+}
+
+/* ── emoji / sticker panel ── */
+.chat-emoji-panel {
+  position: fixed;
+  bottom: 58px;
+  left: 0;
+  right: 0;
+  background: var(--bg-card, #fff);
+  border-top: 1px solid var(--border, rgba(0,0,0,0.08));
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  padding: 10px 8px;
+  gap: 2px;
+  z-index: 35;
+}
+
+.emoji-btn {
+  border: none;
+  background: none;
+  font-size: 24px;
+  padding: 8px 2px;
+  cursor: pointer;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── puddle overlay (docked mode) — fixed center, transparent bg ── */
+.puddle-overlay {
+  position: fixed;
+  left: 50%;
+  bottom: 140px;
+  transform: translateX(-50%);
+  z-index: 50;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── floating draggable character ── */
 .chibi-float {
   position: fixed;
   width: 80px;
