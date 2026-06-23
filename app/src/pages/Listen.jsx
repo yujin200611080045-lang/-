@@ -64,6 +64,29 @@ function crackClipPath(k) {
   return 'polygon(' + [...l,...r].map(([x,y]) => `${x}px ${y}px`).join(',') + ')'
 }
 
+// 从缝隙边 (fx,fy) 牵出一根线，缠绕中心在 (cx,cy) 的头像约1.9圈
+// 返回 { d: 路径, len: 总长 }，len 用于 stroke-dashoffset 抽线动画
+function bindPath(cx, cy, fx, fy) {
+  const entryAng = Math.atan2(fy - cy, fx - cx)
+  const startR = 20, turns = 1.9, steps = 64
+  const ex = cx + startR * Math.cos(entryAng)
+  const ey = cy + startR * Math.sin(entryAng)
+  let d = `M${fx.toFixed(1)},${fy.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}`
+  let len = Math.hypot(ex - fx, ey - fy)
+  let px = ex, py = ey
+  for (let i = 1; i <= steps; i++) {
+    const f = i / steps
+    const ang = entryAng + f * turns * 2 * Math.PI
+    const rr = startR + f * 9 + 2 * Math.sin(ang * 2)   // 边向外缠 + 编织起伏
+    const x = cx + rr * Math.cos(ang)
+    const y = cy + rr * Math.sin(ang)
+    d += ` L${x.toFixed(1)},${y.toFixed(1)}`
+    len += Math.hypot(x - px, y - py)
+    px = x; py = y
+  }
+  return { d, len }
+}
+
 export default function Listen() {
   const navigate = useNavigate()
 
@@ -109,6 +132,7 @@ export default function Listen() {
   const threadAnimRef = useRef(false)
   const [threadStep, setThreadStep] = useState(0)
   const [threadOpacity, setThreadOpacity] = useState(1)
+  const [bindReveal, setBindReveal] = useState(0)  // 缠绕红线抽出进度 0→1
   // together player — independent from main player
   const tgAudioRef = useRef(null)
   const tgPlayIdxRef = useRef(0)
@@ -376,6 +400,9 @@ export default function Listen() {
       setThreadOpacity(1)
       const tDelays = [0, 230, 450, 670, 880, 1090, 1300, 1510, 1720]
       tDelays.forEach((d, i) => setTimeout(() => setThreadStep(i + 1), d))
+      // 两根缠绕线随裂缝一起从缝隙边蔓延出去
+      const bDelays = [0, 240, 480, 720, 960, 1200, 1440, 1680, 1920]
+      bDelays.forEach((d, i) => setTimeout(() => setBindReveal((i + 1) / bDelays.length), d))
     }
   }
 
@@ -385,6 +412,7 @@ export default function Listen() {
     setThreadOpacity(0)
     setTimeout(() => {
       setThreadStep(0)
+      setBindReveal(0)
       threadAnimRef.current = false
       setThreadOpacity(1)
     }, 680)
@@ -752,6 +780,34 @@ export default function Listen() {
                         />
                       )
                     })}
+                  </g>
+                )
+              })()}
+
+              {/* 缠绕红线：从缝隙边蔓延出两根，各缠住一个头像 */}
+              {bindReveal > 0 && (() => {
+                const prog = Math.min(1, (crackK - 1) / 2.5)
+                const blC = [ (81 + prog*(8-81)) + 24, (204 + prog*(284-204)) + 24 ]
+                const trC = [ (191 + prog*(264-191)) + 24, (88 + prog*(8-88)) + 24 ]
+                const blO = scalePt(131, 201, crackK)   // 左下：从 CRACK_L 边牵出
+                const trO = scalePt(189, 145, crackK)   // 右上：从 CRACK_R 边牵出
+                const binds = [
+                  bindPath(blC[0], blC[1], blO[0], blO[1]),
+                  bindPath(trC[0], trC[1], trO[0], trO[1]),
+                ]
+                return (
+                  <g filter="url(#thread-over)" style={{ opacity: threadOpacity, transition: 'opacity 0.65s ease-out' }}>
+                    {binds.map(({ d, len }, i) => (
+                      <path key={i} d={d} fill="none" strokeLinecap="round" strokeLinejoin="round"
+                        style={{
+                          stroke: 'rgba(170,20,20,0.94)',
+                          strokeWidth: '1.3',
+                          strokeDasharray: len,
+                          strokeDashoffset: len * (1 - bindReveal),
+                          transition: 'stroke-dashoffset 0.24s linear',
+                        }}
+                      />
+                    ))}
                   </g>
                 )
               })()}
