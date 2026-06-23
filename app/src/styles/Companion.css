@@ -5,18 +5,19 @@
   position: relative;
 }
 
-/* ── top bar ── */
+/* ── top bar — sits below system status bar via safe-area-inset-top ── */
 .chat-topbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 54px;
+  height: calc(54px + env(safe-area-inset-top, 44px));
+  padding-top: env(safe-area-inset-top, 44px);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  padding-bottom: 10px;
   background: var(--bg-main, #fafaf9);
-  border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
   z-index: 30;
 }
 
@@ -30,11 +31,11 @@
   letter-spacing: 0.3px;
 }
 
-/* ── messages ── */
+/* ── messages — between top bar and input bar ── */
 .chat-messages {
   position: absolute;
-  top: 54px;
-  bottom: 58px;
+  top: calc(54px + env(safe-area-inset-top, 44px));
+  bottom: calc(54px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   overflow-y: auto;
@@ -84,7 +85,7 @@
   border-bottom-left-radius: 4px;
 }
 
-/* ── input bar ── */
+/* ── input bar — no border, safe-area-aware bottom padding ── */
 .chat-inputbar {
   position: fixed;
   bottom: 0;
@@ -94,8 +95,8 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   background: var(--bg-main, #fafaf9);
-  border-top: 1px solid var(--border, rgba(0,0,0,0.08));
   z-index: 30;
 }
 
@@ -138,14 +139,13 @@
   font-size: 20px;
 }
 
-/* ── plus panel ── */
+/* ── panels slide up from above input bar ── */
 .chat-plus-panel {
   position: fixed;
-  bottom: 58px;
+  bottom: calc(54px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   background: var(--bg-card, #fff);
-  border-top: 1px solid var(--border, rgba(0,0,0,0.08));
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -166,23 +166,15 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.plus-opt-icon {
-  font-size: 26px;
-}
+.plus-opt-icon { font-size: 26px; }
+.plus-opt-label { font-size: 11px; color: var(--text-muted, #888); }
 
-.plus-opt-label {
-  font-size: 11px;
-  color: var(--text-muted, #888);
-}
-
-/* ── emoji / sticker panel ── */
 .chat-emoji-panel {
   position: fixed;
-  bottom: 58px;
+  bottom: calc(54px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   background: var(--bg-card, #fff);
-  border-top: 1px solid var(--border, rgba(0,0,0,0.08));
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   padding: 10px 8px;
@@ -200,11 +192,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ── puddle overlay (docked mode) — fixed center, transparent bg ── */
+/*
+  Puddle overlay: position matches Have page layout.
+  Have page centers scene with margin-bottom:100px → scene top = 50% - 150px.
+*/
 .puddle-overlay {
   position: fixed;
   left: 50%;
-  bottom: 140px;
+  top: calc(50% - 150px);
   transform: translateX(-50%);
   z-index: 50;
   cursor: pointer;

@@ -45,7 +45,7 @@ export default function Companion() {
     setShowEmoji(false)
     const now = Date.now()
     if (now - lastTap.current < 500) {
-      navigate('/have')
+      navigate(-1)
       lastTap.current = 0
     } else {
       lastTap.current = now
