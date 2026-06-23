@@ -36,6 +36,7 @@ export default function Companion() {
   const posRef = useRef({ x: 0, y: 0 })
   const dragOffset = useRef({ x: 0, y: 0 })
   const draggingRef = useRef(false)
+  const tapStartRef = useRef({ x: 0, y: 0 })
   const lastTap = useRef(0)
   const messagesEndRef = useRef(null)
 
@@ -114,6 +115,7 @@ export default function Companion() {
       x: e.clientX - posRef.current.x,
       y: e.clientY - posRef.current.y,
     }
+    tapStartRef.current = { x: e.clientX, y: e.clientY }
     draggingRef.current = true
     setDragging(true)
   }
@@ -126,9 +128,12 @@ export default function Companion() {
     setPos({ x, y })
   }
 
-  function onPointerUp() {
+  function onPointerUp(e) {
     draggingRef.current = false
     setDragging(false)
+    const dx = e.clientX - tapStartRef.current.x
+    const dy = e.clientY - tapStartRef.current.y
+    if (Math.hypot(dx, dy) < 6) triggerBurst()
   }
 
   const stopProp = e => e.stopPropagation()
