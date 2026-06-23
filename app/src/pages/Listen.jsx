@@ -174,6 +174,9 @@ export default function Listen() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
+  const [modalDrillPl, setModalDrillPl] = useState(null)
+  const [modalDrillSongs, setModalDrillSongs] = useState([])
+  const [modalDrillLoading, setModalDrillLoading] = useState(false)
 
   const audioRef = useRef(null)
   const lyricBoxRef = useRef(null)
@@ -367,15 +370,15 @@ export default function Listen() {
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [curLyric, lyrics.length])
 
-  // 广播播放状态供悬浮条使用（together tab 优先用 tg*，tgTrack 空时回退 main track）
+  // 广播播放状态供悬浮条使用：tg播放中时优先用tg状态（无论当前tab），否则用主播放器
   useEffect(() => {
-    const isTg = listenTab === 'together'
-    const activeTrack = (isTg ? tgTrack : null) ?? track
+    const preferTg = listenTab === 'together' || tgPlaying
+    const activeTrack = (preferTg ? tgTrack : null) ?? track
     window.__musicState = {
       track:      activeTrack,
-      playing:    isTg ? tgPlaying : playing,
-      curLyric:   isTg ? tgCurLyric : curLyric,
-      lyrics:     isTg ? tgLyrics : lyrics,
+      playing:    preferTg ? tgPlaying : playing,
+      curLyric:   preferTg ? tgCurLyric : curLyric,
+      lyrics:     preferTg ? tgLyrics : lyrics,
       pausedInListen,
     }
     window.dispatchEvent(new CustomEvent('music:statechange'))
@@ -633,6 +636,17 @@ export default function Listen() {
     }
   }
 
+  async function drillPlaylist(pl) {
+    setModalDrillPl(pl)
+    setModalDrillSongs([])
+    setModalDrillLoading(true)
+    try {
+      const { songs } = await req('/playlist/track/all', { id: pl.id, limit: 200 })
+      setModalDrillSongs(songs || [])
+    } catch {}
+    finally { setModalDrillLoading(false) }
+  }
+
   async function playSearchResult(song) {
     const fullSong = { id: song.id, name: song.name, ar: song.artists, al: song.album }
     setSheet(null)
@@ -762,7 +776,37 @@ export default function Listen() {
                 : <div className="me-avatar-placeholder" />
               }
             </div>
-            <div className="me-nickname">{userProfile?.nickname || ''}</div>
+            {/* "My dearest," 花体签名 + 网名压在延伸的 t 尾线上 */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 58" className="me-dearest-svg">
+              <defs>
+                <linearGradient id="dear-tail-g" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#111" stopOpacity="0.78"/>
+                  <stop offset="48%" stopColor="#111" stopOpacity="0.32"/>
+                  <stop offset="100%" stopColor="#111" stopOpacity="0"/>
+                </linearGradient>
+              </defs>
+              {/* My dearest, — 花体，粗 */}
+              <text x="4" y="44"
+                fontFamily="'Pinyon Script', cursive"
+                fontSize="36"
+                fontWeight="700"
+                fill="#111111"
+                letterSpacing="-0.5"
+              >My dearest,</text>
+              {/* 延伸的 t 横划：从文字尾端渐渐消失 */}
+              <line x1="174" y1="25" x2="298" y2="25"
+                stroke="url(#dear-tail-g)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              {/* 网名：不加粗，坐在横线上方 */}
+              <text x="180" y="23"
+                fontFamily="'Pinyon Script', cursive"
+                fontSize="15"
+                fontWeight="400"
+                fill="#111111"
+              >{userProfile?.nickname || ''}</text>
+            </svg>
           </div>
           <button className="me-section-btn" onClick={() => setShowPlaylistModal(true)}>
             <span>我的歌单</span>
@@ -1012,32 +1056,37 @@ export default function Listen() {
         </div>
       )}
 
-      {/* ── mini player (me view, when track loaded) ── */}
-      {phase === 'playing' && listenTab === 'me' && track && (
-        <div className="listen-mini-player" onClick={() => setListenTab('player')}>
-          <div className={`mini-cover${playing ? ' spinning' : ''}`}>
-            {track.albumArt
-              ? <img src={`${track.albumArt}?param=80y80`} alt="" />
-              : <div className="mini-cover-placeholder" />
-            }
+      {/* ── mini player (me view) ── together player优先；没有together时用主播放器 ── */}
+      {phase === 'playing' && listenTab === 'me' && (tgTrack || track) && (() => {
+        const useTg = !!tgTrack
+        const miniTrack = useTg ? tgTrack : track
+        const miniPlaying = useTg ? tgPlaying : playing
+        return (
+          <div className="listen-mini-player" onClick={() => setListenTab(useTg ? 'together' : 'player')}>
+            <div className={`mini-cover${miniPlaying ? ' spinning' : ''}`}>
+              {miniTrack.albumArt
+                ? <img src={`${miniTrack.albumArt}?param=80y80`} alt="" />
+                : <div className="mini-cover-placeholder" />
+              }
+            </div>
+            <div className="mini-info">
+              <div className="mini-name">{miniTrack.name}</div>
+              <div className="mini-artist">{miniTrack.artist}</div>
+            </div>
+            <button className="mini-ctrl-btn" onClick={e => { e.stopPropagation(); useTg ? tgTogglePlay() : togglePlay() }}>
+              {miniPlaying
+                ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              }
+            </button>
+            <button className="mini-ctrl-btn" onClick={e => { e.stopPropagation(); useTg ? tgSkipTo(1) : skipTo(1) }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M5 5l10 7-10 7V5z"/><line x1="19" y1="5" x2="19" y2="19"/>
+              </svg>
+            </button>
           </div>
-          <div className="mini-info">
-            <div className="mini-name">{track.name}</div>
-            <div className="mini-artist">{track.artist}</div>
-          </div>
-          <button className="mini-ctrl-btn" onClick={e => { e.stopPropagation(); togglePlay() }}>
-            {playing
-              ? <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-              : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            }
-          </button>
-          <button className="mini-ctrl-btn" onClick={e => { e.stopPropagation(); skipTo(1) }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M5 5l10 7-10 7V5z"/><line x1="19" y1="5" x2="19" y2="19"/>
-            </svg>
-          </button>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── player view ── */}
       {phase === 'playing' && listenTab === 'player' && (
@@ -1248,28 +1297,54 @@ export default function Listen() {
 
       {/* ── playlist modal ── */}
       {showPlaylistModal && (
-        <div className="playlist-modal-overlay" onClick={() => setShowPlaylistModal(false)}>
+        <div className="playlist-modal-overlay" onClick={() => { setShowPlaylistModal(false); setModalDrillPl(null) }}>
           <div className="playlist-modal" onClick={e => e.stopPropagation()}>
             <div className="playlist-modal-header">
-              <span className="playlist-modal-title">我的歌单</span>
-              <button className="playlist-modal-close" onClick={() => setShowPlaylistModal(false)}>×</button>
+              {modalDrillPl ? (
+                <button className="playlist-modal-back" onClick={() => setModalDrillPl(null)}>‹</button>
+              ) : null}
+              <span className="playlist-modal-title">
+                {modalDrillPl ? modalDrillPl.name : '我的歌单'}
+              </span>
+              <button className="playlist-modal-close" onClick={() => { setShowPlaylistModal(false); setModalDrillPl(null) }}>×</button>
             </div>
             <div className="playlist-modal-list">
-              {allPlaylists.map(pl => (
-                <div key={pl.id} className="playlist-modal-item"
-                  onClick={() => { switchPlaylist(pl); setShowPlaylistModal(false) }}>
-                  <img
-                    src={`${pl.coverImgUrl}?param=100y100`}
-                    className="playlist-modal-cover"
-                    alt=""
-                    onError={e => { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.removeAttribute('src') }}
-                  />
-                  <div className="playlist-modal-info">
-                    <div className="playlist-modal-name">{pl.name}</div>
-                    <div className="playlist-modal-count">{pl.trackCount} 首</div>
+              {!modalDrillPl ? (
+                allPlaylists.map(pl => (
+                  <div key={pl.id} className="playlist-modal-item" onClick={() => drillPlaylist(pl)}>
+                    <img
+                      src={`${pl.coverImgUrl}?param=100y100`}
+                      className="playlist-modal-cover"
+                      alt=""
+                      onError={e => { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.removeAttribute('src') }}
+                    />
+                    <div className="playlist-modal-info">
+                      <div className="playlist-modal-name">{pl.name}</div>
+                      <div className="playlist-modal-count">{pl.trackCount} 首</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : modalDrillLoading ? (
+                <p className="sheet-hint">加载中…</p>
+              ) : (
+                modalDrillSongs.map((song, i) => (
+                  <div key={song.id} className="playlist-modal-item playlist-modal-song"
+                    onClick={async () => {
+                      setPlaylist(modalDrillSongs)
+                      saveCache({ playlist: modalDrillSongs })
+                      setListenTab('player')
+                      setShowPlaylistModal(false)
+                      setModalDrillPl(null)
+                      await loadTrack(song, i)
+                    }}>
+                    <div className="playlist-modal-song-num">{i + 1}</div>
+                    <div className="playlist-modal-info">
+                      <div className="playlist-modal-name">{song.name}</div>
+                      <div className="playlist-modal-count">{song.ar?.map(a => a.name).join(' / ')}</div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

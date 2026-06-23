@@ -887,6 +887,14 @@
   letter-spacing: 0.3px;
 }
 
+.me-dearest-svg {
+  width: 100%;
+  max-width: 300px;
+  display: block;
+  margin-top: 10px;
+  overflow: visible;
+}
+
 .me-section-btn {
   display: flex;
   align-items: center;
@@ -1007,6 +1015,29 @@
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 3px;
+}
+
+.playlist-modal-back {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  margin-right: 4px;
+}
+
+.playlist-modal-song {
+  padding: 9px 18px;
+}
+
+.playlist-modal-song-num {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 22px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .me-playlist-item {
@@ -1306,8 +1337,8 @@
 /* 觎烬的气泡：右对齐，尾巴朝右下（border-radius 右下角为0） */
 .tg-bubble-user {
   align-self: flex-end;
-  background: rgba(212, 10, 4, 0.09);
-  color: #7a0000;
+  background: #1a1a1a;
+  color: #fff;
   border-radius: 14px 14px 0 14px;
 }
 
