@@ -34,6 +34,7 @@ export default function Companion() {
 
   const wrapperRef = useRef(null)
   const posRef = useRef({ x: 0, y: 0 })
+  const modeRef = useRef('docked')
   const dragOffset = useRef({ x: 0, y: 0 })
   const draggingRef = useRef(false)
   const tapStartRef = useRef({ x: 0, y: 0 })
@@ -43,6 +44,38 @@ export default function Companion() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Keep modeRef in sync so the unmount closure can read the latest value
+  useEffect(() => { modeRef.current = mode }, [mode])
+
+  // Restore floating state if last session was < 1 hour ago
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('companion-state')
+      if (!raw) return
+      const { savedMode, savedPos, ts } = JSON.parse(raw)
+      if (savedMode === 'floating' && Date.now() - ts < 3_600_000) {
+        const x = Math.max(0, Math.min(savedPos.x, window.innerWidth - 80))
+        const y = Math.max(0, Math.min(savedPos.y, window.innerHeight - 80))
+        posRef.current = { x, y }
+        setPos({ x, y })
+        setMode('floating')
+      }
+    } catch {}
+  }, [])
+
+  // Save state on unmount (navigating away from the have/companion flow)
+  useEffect(() => {
+    return () => {
+      try {
+        localStorage.setItem('companion-state', JSON.stringify({
+          savedMode: modeRef.current,
+          savedPos: posRef.current,
+          ts: Date.now(),
+        }))
+      } catch {}
+    }
+  }, [])
 
   // Restart ripples each time the companion page becomes active
   useEffect(() => {

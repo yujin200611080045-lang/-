@@ -35,7 +35,7 @@
 .chat-messages {
   position: absolute;
   top: calc(54px + env(safe-area-inset-top, 44px));
-  bottom: calc(54px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   overflow-y: auto;
@@ -85,16 +85,17 @@
   border-bottom-left-radius: 4px;
 }
 
-/* ── input bar — sits above safe area, page background fills below ── */
+/* ── input bar — flush at bottom, env() only fills safe area color ── */
 .chat-inputbar {
   position: fixed;
-  bottom: env(safe-area-inset-bottom, 0px);
+  bottom: 0;
   left: 0;
   right: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 6px 14px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--bg-main, #fafaf9);
   z-index: 30;
 }
@@ -141,7 +142,7 @@
 /* ── panels slide up from above input bar ── */
 .chat-plus-panel {
   position: fixed;
-  bottom: calc(54px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   background: var(--bg-card, #fff);
@@ -170,7 +171,7 @@
 
 .chat-emoji-panel {
   position: fixed;
-  bottom: calc(54px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   background: var(--bg-card, #fff);
