@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import '../styles/Have.css'
 import '../styles/Companion.css'
 
@@ -19,12 +19,13 @@ const EMOJIS = [
 
 export default function Companion() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [mode, setMode] = useState('docked')
   const [messages, setMessages] = useState([])
   const [inputText, setInputText] = useState('')
   const [showPlus, setShowPlus] = useState(false)
   const [showEmoji, setShowEmoji] = useState(false)
-  const [rippleKey] = useState(1)
+  const [rippleKey, setRippleKey] = useState(0)
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
 
@@ -38,6 +39,13 @@ export default function Companion() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Restart ripples each time the companion page becomes active
+  useEffect(() => {
+    if (location.pathname === '/companion') {
+      setRippleKey(k => k + 1)
+    }
+  }, [location.pathname])
 
   // double-tap anywhere on background to exit
   function handlePageTap() {
