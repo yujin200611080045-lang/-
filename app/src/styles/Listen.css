@@ -879,20 +879,261 @@
   border: 1px solid var(--border);
 }
 
-.me-nickname {
+/* ── 网名气泡（尾巴在上方正中，朝向头像） ── */
+.me-nickname-bubble {
+  position: relative;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 14px;
+  padding: 9px 22px;
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-primary);
-  margin-top: 10px;
+  letter-spacing: 0.3px;
+  margin-top: 16px;
+}
+
+.me-nickname-bubble::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 9px solid #1a1a1a;
+}
+
+/* ── 我的歌单：细长黑边圆角框 + 下拉展开 ── */
+.me-playlist-slim-wrap {
+  width: calc(100% - 40px);
+  margin: 16px 20px 0;
+  position: relative;
+  z-index: 40;
+}
+
+.me-playlist-slim-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 50px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: #1a1a1a;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.me-playlist-bd {
+  position: fixed;
+  inset: 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.12);
+  z-index: 38;
+}
+
+.me-playlist-drop {
+  position: relative;
+  z-index: 39;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1.5px solid #1a1a1a;
+  border-top: none;
+  border-radius: 0 0 18px 18px;
+  max-height: 300px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.me-playlist-drop::-webkit-scrollbar { display: none; }
+
+.me-drop-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 18px;
+  margin: 0;
+}
+
+.me-zigzag-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 14px 0 4px;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.me-zigzag-row:active { background: rgba(26, 26, 26, 0.04); }
+
+.me-zigzag-name {
+  font-size: 13px;
+  color: #1a1a1a;
+  flex: 1;
+  padding-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 44px;
+}
+
+.me-drop-back {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(26, 26, 26, 0.1);
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: left;
+  cursor: pointer;
   letter-spacing: 0.3px;
 }
 
-.me-dearest-svg {
+/* ── 打印机 ── */
+.me-printer-wrap {
+  width: calc(100% - 40px);
+  margin: 12px 20px 0;
+}
+
+.me-printer-box {
   width: 100%;
-  max-width: 300px;
-  display: block;
-  margin-top: 10px;
-  overflow: visible;
+  background: #1a1a1a;
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.08s;
+}
+
+.me-printer-box:active { transform: scale(0.97); }
+
+.me-printer-box.printing {
+  animation: printer-shake 0.5s ease;
+}
+
+@keyframes printer-shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-3px); }
+  40%      { transform: translateX(3px); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
+}
+
+.me-printer-icon {
+  width: 44px;
+  height: 38px;
+}
+
+.me-print-card {
+  background: #fff;
+  border: 1px solid rgba(26, 26, 26, 0.15);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  padding: 14px 18px 18px;
+  animation: print-eject 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+  overflow: hidden;
+}
+
+@keyframes print-eject {
+  from { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+  to   { max-height: 500px; opacity: 1; padding-top: 14px; padding-bottom: 18px; }
+}
+
+.me-print-date {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+.me-print-section {
+  margin-bottom: 10px;
+}
+
+.me-print-label {
+  font-size: 9px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+
+.me-print-song {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.me-print-song-n {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 14px;
+  flex-shrink: 0;
+  font-family: 'Courier New', monospace;
+}
+
+.me-print-song-name {
+  font-size: 12px;
+  color: #1a1a1a;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.me-print-song-cnt {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.me-print-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.me-print-val {
+  font-size: 12px;
+  color: #1a1a1a;
+  font-family: 'Courier New', monospace;
+}
+
+.me-print-divider {
+  border: none;
+  border-top: 1px dashed rgba(26, 26, 26, 0.2);
+  margin: 10px 0;
+}
+
+.me-print-quote {
+  font-size: 12px;
+  color: #333;
+  line-height: 1.6;
+  font-style: italic;
+  padding-left: 6px;
+  border-left: 2px solid rgba(26, 26, 26, 0.15);
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .me-section-btn {

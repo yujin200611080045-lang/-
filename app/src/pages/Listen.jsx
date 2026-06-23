@@ -149,7 +149,6 @@ export default function Listen() {
   const [thornSpin, setThornSpin] = useState(false)
   const [playMode, setPlayMode] = useState('sequential')
   const [showModeMenu, setShowModeMenu] = useState(false)
-  const [showPlaylistModal, setShowPlaylistModal] = useState(false)
   const [sheet, setSheet] = useState(null)
 
   const [crackK, setCrackK] = useState(1)
@@ -174,9 +173,12 @@ export default function Listen() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
-  const [modalDrillPl, setModalDrillPl] = useState(null)
-  const [modalDrillSongs, setModalDrillSongs] = useState([])
-  const [modalDrillLoading, setModalDrillLoading] = useState(false)
+  const [playlistExpanded, setPlaylistExpanded] = useState(false)
+  const [inlineDrillPl, setInlineDrillPl] = useState(null)
+  const [inlineDrillSongs, setInlineDrillSongs] = useState([])
+  const [inlineDrillLoading, setInlineDrillLoading] = useState(false)
+  const [printing, setPrinting] = useState(false)
+  const [printCard, setPrintCard] = useState(null)
 
   const audioRef = useRef(null)
   const lyricBoxRef = useRef(null)
@@ -192,6 +194,62 @@ export default function Listen() {
   const tgTopScrollRef = useRef(null)
   const tgBotScrollRef = useRef(null)
   const tgMsgIdRef = useRef(0)
+  const listenSecondsRef = useRef(parseInt(localStorage.getItem('listen_total_sec') || '0'))
+  const listenTimerRef = useRef(null)
+
+  function recordPlay(song) {
+    if (!song?.id) return
+    try {
+      const pc = JSON.parse(localStorage.getItem('play_counts') || '{}')
+      pc[song.id] = { name: song.name, artist: song.artist || '', count: (pc[song.id]?.count || 0) + 1 }
+      localStorage.setItem('play_counts', JSON.stringify(pc))
+    } catch {}
+    try {
+      const h = new Date().getHours()
+      const ph = JSON.parse(localStorage.getItem('play_hours') || '{}')
+      ph[h] = (ph[h] || 0) + 1
+      localStorage.setItem('play_hours', JSON.stringify(ph))
+    } catch {}
+  }
+
+  function formatHourPeriod(h) {
+    if (h >= 5 && h < 9)  return '清晨'
+    if (h >= 9 && h < 12) return '上午'
+    if (h >= 12 && h < 14) return '午后'
+    if (h >= 14 && h < 18) return '下午'
+    if (h >= 18 && h < 22) return '傍晚'
+    return '深夜'
+  }
+
+  function generatePrintCard() {
+    const pc = (() => { try { return JSON.parse(localStorage.getItem('play_counts') || '{}') } catch { return {} } })()
+    const topSongs = Object.values(pc).sort((a, b) => b.count - a.count).slice(0, 3)
+    const totalSec = listenSecondsRef.current
+    const h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60)
+    const timeStr = h > 0 ? `${h}h ${m}m` : `${m}m`
+    const ph = (() => { try { return JSON.parse(localStorage.getItem('play_hours') || '{}') } catch { return {} } })()
+    const topHour = Object.entries(ph).sort((a, b) => b[1] - a[1])[0]
+    const period = topHour ? formatHourPeriod(parseInt(topHour[0])) : null
+    const aiMsgs = tgMessages.filter(m => m.role === 'ai' && m.text.length > 5)
+    const userMsgs = tgMessages.filter(m => m.role === 'user' && m.text.length > 5)
+    return {
+      topSongs,
+      timeStr,
+      period,
+      aiQuote: aiMsgs[aiMsgs.length - 1]?.text || null,
+      userQuote: userMsgs[userMsgs.length - 1]?.text || null,
+    }
+  }
+
+  function handlePrint() {
+    if (printing) return
+    setPrinting(true)
+    setPrintCard(null)
+    setTimeout(() => {
+      setPrintCard(generatePrintCard())
+      setPrinting(false)
+    }, 700)
+  }
 
   useEffect(() => {
     if (!API) { setPhase('no-api'); return }
@@ -383,6 +441,21 @@ export default function Listen() {
     }
     window.dispatchEvent(new CustomEvent('music:statechange'))
   }, [listenTab, track, playing, curLyric, lyrics, tgTrack, tgPlaying, tgCurLyric, tgLyrics, pausedInListen])
+
+  useEffect(() => { if (track?.id) recordPlay(track) }, [track?.id])
+  useEffect(() => {
+    if (playing || tgPlaying) {
+      listenTimerRef.current = setInterval(() => {
+        listenSecondsRef.current++
+        if (listenSecondsRef.current % 15 === 0)
+          localStorage.setItem('listen_total_sec', listenSecondsRef.current)
+      }, 1000)
+    } else {
+      clearInterval(listenTimerRef.current)
+      localStorage.setItem('listen_total_sec', listenSecondsRef.current)
+    }
+    return () => clearInterval(listenTimerRef.current)
+  }, [playing, tgPlaying])
 
   // 保持最新函数引用，避免 stale closure
   useEffect(() => { togglePlayRef.current = togglePlay })
@@ -636,15 +709,15 @@ export default function Listen() {
     }
   }
 
-  async function drillPlaylist(pl) {
-    setModalDrillPl(pl)
-    setModalDrillSongs([])
-    setModalDrillLoading(true)
+  async function drillInlinePlaylist(pl) {
+    setInlineDrillPl(pl)
+    setInlineDrillSongs([])
+    setInlineDrillLoading(true)
     try {
       const { songs } = await req('/playlist/track/all', { id: pl.id, limit: 200 })
-      setModalDrillSongs(songs || [])
+      setInlineDrillSongs(songs || [])
     } catch {}
-    finally { setModalDrillLoading(false) }
+    finally { setInlineDrillLoading(false) }
   }
 
   async function playSearchResult(song) {
@@ -744,7 +817,6 @@ export default function Listen() {
           <div className="me-profile">
             <div className="me-avatar-wrap" onClick={() => setThornSpin(s => !s)}>
               <svg className={`me-avatar-thorns${thornSpin ? ' spinning' : ''}`} viewBox="-90 -90 180 180" xmlns="http://www.w3.org/2000/svg">
-                {/* thorns without halos */}
                 <polygon points="-3.1,-35.9 0,-72 3.1,-35.9" />
                 <polygon points="14.6,-32.9 25.4,-47.7 19.1,-30.5" />
                 <polygon points="26.8,-24.1 52.0,-40.6 29.8,-20.1" />
@@ -758,15 +830,9 @@ export default function Listen() {
                 <polygon points="-35.9,3.1 -48.0,1.7 -36.0,-0.6" />
                 <polygon points="-35.5,-6.2 -69.5,-18.6 -33.8,-12.3" />
                 <polygon points="-17.5,-31.5 -27.0,-58.0 -12.9,-33.6" />
-
-                {/* thorn -140° with halo: back-ring → thorn → front-ring */}
-                {/* ring center at 88% of thorn length: (-37.1,-31.1), rotate -50° */}
                 <path d="M 7,0 A 7,2.5 0 0,0 -7,0" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" opacity="0.35" transform="translate(-37.1,-31.1) rotate(-50)" />
                 <polygon points="-29.1,-21.2 -42.1,-35.4 -25.9,-25.0" />
                 <path d="M -7,0 A 7,2.5 0 0,0 7,0" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" transform="translate(-37.1,-31.1) rotate(-50)" />
-
-                {/* thorn 62° with halo: back-ring → thorn → front-ring */}
-                {/* ring center at 78% of thorn length: (25.6,48.2), rotate 152° */}
                 <path d="M 9,0 A 9,3 0 0,0 -9,0" fill="none" stroke="#FFD700" strokeWidth="2.5" strokeLinecap="round" opacity="0.35" transform="translate(25.6,48.2) rotate(152)" />
                 <polygon points="19.1,30.5 32.9,61.8 14.6,32.9" />
                 <path d="M -9,0 A 9,3 0 0,0 9,0" fill="none" stroke="#FFD700" strokeWidth="2.5" strokeLinecap="round" transform="translate(25.6,48.2) rotate(152)" />
@@ -776,42 +842,152 @@ export default function Listen() {
                 : <div className="me-avatar-placeholder" />
               }
             </div>
-            {/* "My dearest," 花体签名 + 网名压在延伸的 t 尾线上 */}
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 58" className="me-dearest-svg">
-              <defs>
-                <linearGradient id="dear-tail-g" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#111" stopOpacity="0.78"/>
-                  <stop offset="48%" stopColor="#111" stopOpacity="0.32"/>
-                  <stop offset="100%" stopColor="#111" stopOpacity="0"/>
-                </linearGradient>
-              </defs>
-              {/* My dearest, — 花体，粗 */}
-              <text x="4" y="44"
-                fontFamily="'Pinyon Script', cursive"
-                fontSize="36"
-                fontWeight="700"
-                fill="#111111"
-                letterSpacing="-0.5"
-              >My dearest,</text>
-              {/* 延伸的 t 横划：从文字尾端渐渐消失 */}
-              <line x1="174" y1="25" x2="298" y2="25"
-                stroke="url(#dear-tail-g)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              {/* 网名：不加粗，坐在横线上方 */}
-              <text x="180" y="23"
-                fontFamily="'Pinyon Script', cursive"
-                fontSize="15"
-                fontWeight="400"
-                fill="#111111"
-              >{userProfile?.nickname || ''}</text>
-            </svg>
+            {/* 网名气泡：尾巴朝上正中，对准上方头像框 */}
+            <div className="me-nickname-bubble">
+              {userProfile?.nickname || ''}
+            </div>
           </div>
-          <button className="me-section-btn" onClick={() => setShowPlaylistModal(true)}>
-            <span>我的歌单</span>
-            <span className="me-section-arrow">›</span>
-          </button>
+
+          {/* 我的歌单：细长黑边圆角框 + 向下展开列表 */}
+          <div className="me-playlist-slim-wrap">
+            <button
+              className="me-playlist-slim-btn"
+              onClick={() => { setPlaylistExpanded(v => !v); setInlineDrillPl(null) }}
+            >
+              <span>我的歌单</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ transition: 'transform 0.2s', transform: playlistExpanded ? 'rotate(180deg)' : 'none' }}>
+                <path d="M2 4.5l5 5 5-5" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            {playlistExpanded && (
+              <>
+                <div className="me-playlist-bd" onClick={() => { setPlaylistExpanded(false); setInlineDrillPl(null) }} />
+                <div className="me-playlist-drop">
+                  {inlineDrillLoading ? (
+                    <p className="me-drop-hint">加载中…</p>
+                  ) : !inlineDrillPl ? (
+                    <>
+                      {allPlaylists.length === 0 && <p className="me-drop-hint">暂无歌单</p>}
+                      {allPlaylists.map((pl, i) => {
+                        const lx = 11, rx = 23, H = 44
+                        const cx = i % 2 === 0 ? lx : rx
+                        const cy = H / 2
+                        const prevCx = (i - 1) % 2 === 0 ? lx : rx
+                        return (
+                          <button key={pl.id} className="me-zigzag-row" onClick={() => drillInlinePlaylist(pl)}>
+                            <svg width="34" height={H} viewBox={`0 0 34 ${H}`} style={{ flexShrink: 0 }}>
+                              {i > 0 && (
+                                <line x1={prevCx} y1={0} x2={cx} y2={cy}
+                                  stroke="#1a1a1a" strokeWidth="1.1" strokeLinecap="round" opacity="0.55"/>
+                              )}
+                              {i < allPlaylists.length - 1 && (
+                                <line x1={cx} y1={cy} x2={(i + 1) % 2 === 0 ? lx : rx} y2={H}
+                                  stroke="#1a1a1a" strokeWidth="1.1" strokeLinecap="round" opacity="0.55"/>
+                              )}
+                              <circle cx={cx} cy={cy} r="3.5" fill="white" stroke="#1a1a1a" strokeWidth="1.2"/>
+                            </svg>
+                            <span className="me-zigzag-name">{pl.name}</span>
+                          </button>
+                        )
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      <button className="me-drop-back" onClick={e => { e.stopPropagation(); setInlineDrillPl(null) }}>
+                        ‹ {inlineDrillPl.name}
+                      </button>
+                      {inlineDrillSongs.map((song, i) => {
+                        const lx = 11, rx = 23, H = 44
+                        const cx = i % 2 === 0 ? lx : rx
+                        const cy = H / 2
+                        return (
+                          <button key={song.id} className="me-zigzag-row" onClick={async () => {
+                            setPlaylist(inlineDrillSongs)
+                            saveCache({ playlist: inlineDrillSongs })
+                            setListenTab('player')
+                            setPlaylistExpanded(false)
+                            setInlineDrillPl(null)
+                            await loadTrack(song, i)
+                          }}>
+                            <svg width="34" height={H} viewBox={`0 0 34 ${H}`} style={{ flexShrink: 0 }}>
+                              {i > 0 && (
+                                <line x1={(i - 1) % 2 === 0 ? lx : rx} y1={0} x2={cx} y2={cy}
+                                  stroke="#1a1a1a" strokeWidth="1.1" strokeLinecap="round" opacity="0.55"/>
+                              )}
+                              {i < inlineDrillSongs.length - 1 && (
+                                <line x1={cx} y1={cy} x2={(i + 1) % 2 === 0 ? lx : rx} y2={H}
+                                  stroke="#1a1a1a" strokeWidth="1.1" strokeLinecap="round" opacity="0.55"/>
+                              )}
+                              <circle cx={cx} cy={cy} r="3.5" fill="white" stroke="#1a1a1a" strokeWidth="1.2"/>
+                            </svg>
+                            <span className="me-zigzag-name">{song.name}</span>
+                          </button>
+                        )
+                      })}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 打印机：点击吐出收听记录卡片 */}
+          <div className="me-printer-wrap">
+            <button className={`me-printer-box${printing ? ' printing' : ''}`} onClick={handlePrint}>
+              <svg viewBox="0 0 48 40" fill="none" className="me-printer-icon">
+                <rect x="6" y="12" width="36" height="22" rx="4" fill="white" opacity="0.12"/>
+                <rect x="6" y="12" width="36" height="22" rx="4" stroke="white" strokeWidth="1.6"/>
+                <rect x="12" y="3" width="24" height="12" rx="2" fill="white" opacity="0.18"/>
+                <rect x="12" y="3" width="24" height="12" rx="2" stroke="white" strokeWidth="1.4"/>
+                <rect x="14" y="26" width="20" height="3" rx="1.5" fill="white" opacity="0.35"/>
+                <circle cx="37" cy="20" r="2.2" fill="white" opacity="0.7"/>
+                <rect x="14" y="30" width="20" height="14" rx="2" fill="white"/>
+              </svg>
+            </button>
+            {printCard && (
+              <div className="me-print-card">
+                <div className="me-print-date">{new Date().toLocaleDateString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit' })}</div>
+
+                {printCard.topSongs.length > 0 && (
+                  <div className="me-print-section">
+                    <div className="me-print-label">常听</div>
+                    {printCard.topSongs.map((s, i) => (
+                      <div key={i} className="me-print-song">
+                        <span className="me-print-song-n">{i + 1}</span>
+                        <span className="me-print-song-name">{s.name}</span>
+                        <span className="me-print-song-cnt">×{s.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="me-print-section">
+                  <div className="me-print-row">
+                    <span className="me-print-label">时长</span>
+                    <span className="me-print-val">{printCard.timeStr || '—'}</span>
+                  </div>
+                  {printCard.period && (
+                    <div className="me-print-row">
+                      <span className="me-print-label">偏好</span>
+                      <span className="me-print-val">{printCard.period}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="me-print-divider" />
+
+                <div className="me-print-section">
+                  <div className="me-print-label">TA说</div>
+                  <div className="me-print-quote">{printCard.aiQuote || 'nothing here'}</div>
+                </div>
+                <div className="me-print-section">
+                  <div className="me-print-label">我说</div>
+                  <div className="me-print-quote">{printCard.userQuote || 'nothing here'}</div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1295,60 +1471,6 @@ export default function Listen() {
         </div>
       )}
 
-      {/* ── playlist modal ── */}
-      {showPlaylistModal && (
-        <div className="playlist-modal-overlay" onClick={() => { setShowPlaylistModal(false); setModalDrillPl(null) }}>
-          <div className="playlist-modal" onClick={e => e.stopPropagation()}>
-            <div className="playlist-modal-header">
-              {modalDrillPl ? (
-                <button className="playlist-modal-back" onClick={() => setModalDrillPl(null)}>‹</button>
-              ) : null}
-              <span className="playlist-modal-title">
-                {modalDrillPl ? modalDrillPl.name : '我的歌单'}
-              </span>
-              <button className="playlist-modal-close" onClick={() => { setShowPlaylistModal(false); setModalDrillPl(null) }}>×</button>
-            </div>
-            <div className="playlist-modal-list">
-              {!modalDrillPl ? (
-                allPlaylists.map(pl => (
-                  <div key={pl.id} className="playlist-modal-item" onClick={() => drillPlaylist(pl)}>
-                    <img
-                      src={`${pl.coverImgUrl}?param=100y100`}
-                      className="playlist-modal-cover"
-                      alt=""
-                      onError={e => { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.removeAttribute('src') }}
-                    />
-                    <div className="playlist-modal-info">
-                      <div className="playlist-modal-name">{pl.name}</div>
-                      <div className="playlist-modal-count">{pl.trackCount} 首</div>
-                    </div>
-                  </div>
-                ))
-              ) : modalDrillLoading ? (
-                <p className="sheet-hint">加载中…</p>
-              ) : (
-                modalDrillSongs.map((song, i) => (
-                  <div key={song.id} className="playlist-modal-item playlist-modal-song"
-                    onClick={async () => {
-                      setPlaylist(modalDrillSongs)
-                      saveCache({ playlist: modalDrillSongs })
-                      setListenTab('player')
-                      setShowPlaylistModal(false)
-                      setModalDrillPl(null)
-                      await loadTrack(song, i)
-                    }}>
-                    <div className="playlist-modal-song-num">{i + 1}</div>
-                    <div className="playlist-modal-info">
-                      <div className="playlist-modal-name">{song.name}</div>
-                      <div className="playlist-modal-count">{song.ar?.map(a => a.name).join(' / ')}</div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── bottom nav ── */}
       {phase === 'playing' && (
