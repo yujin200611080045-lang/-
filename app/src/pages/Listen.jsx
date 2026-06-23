@@ -108,6 +108,7 @@ export default function Listen() {
   const crackAnimRef = useRef(false)
   const threadAnimRef = useRef(false)
   const [threadStep, setThreadStep] = useState(0)
+  const [threadOpacity, setThreadOpacity] = useState(1)
   // together player — independent from main player
   const tgAudioRef = useRef(null)
   const tgPlayIdxRef = useRef(0)
@@ -127,6 +128,9 @@ export default function Listen() {
   const recoTouchX = useRef(null)
   const togglePlayRef = useRef(null)
   const skipToRef = useRef(null)
+  const tgTogglePlayRef = useRef(null)
+  const tgSkipToRef = useRef(null)
+  const listenTabRef = useRef('player')
 
   useEffect(() => {
     if (!API) { setPhase('no-api'); return }
@@ -305,21 +309,37 @@ export default function Listen() {
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [curLyric, lyrics.length])
 
-  // 广播播放状态供悬浮条使用
+  // 广播播放状态供悬浮条使用（together tab 优先用 tg* 状态）
   useEffect(() => {
-    window.__musicState = { track, playing, curLyric, lyrics }
+    if (listenTab === 'together') {
+      window.__musicState = { track: tgTrack, playing: tgPlaying, curLyric: tgCurLyric, lyrics: tgLyrics }
+    } else {
+      window.__musicState = { track, playing, curLyric, lyrics }
+    }
     window.dispatchEvent(new CustomEvent('music:statechange'))
-  }, [track, playing, curLyric, lyrics])
+  }, [listenTab, track, playing, curLyric, lyrics, tgTrack, tgPlaying, tgCurLyric, tgLyrics])
 
   // 保持最新函数引用，避免 stale closure
   useEffect(() => { togglePlayRef.current = togglePlay })
   useEffect(() => { skipToRef.current = skipTo })
+  useEffect(() => { tgTogglePlayRef.current = tgTogglePlay })
+  useEffect(() => { tgSkipToRef.current = tgSkipTo })
+  useEffect(() => { listenTabRef.current = listenTab }, [listenTab])
 
-  // 监听悬浮条发出的控制事件
+  // 监听悬浮条发出的控制事件，together tab 时路由到 tg* 播放器
   useEffect(() => {
-    const onToggle = () => togglePlayRef.current?.()
-    const onNext = () => skipToRef.current?.(1)
-    const onPrev = () => skipToRef.current?.(-1)
+    const onToggle = () => {
+      if (listenTabRef.current === 'together') tgTogglePlayRef.current?.()
+      else togglePlayRef.current?.()
+    }
+    const onNext = () => {
+      if (listenTabRef.current === 'together') tgSkipToRef.current?.(1)
+      else skipToRef.current?.(1)
+    }
+    const onPrev = () => {
+      if (listenTabRef.current === 'together') tgSkipToRef.current?.(-1)
+      else skipToRef.current?.(-1)
+    }
     window.addEventListener('music:toggle', onToggle)
     window.addEventListener('music:next', onNext)
     window.addEventListener('music:prev', onPrev)
@@ -337,21 +357,6 @@ export default function Listen() {
     }
   }, [listenTab])
 
-  // 裂缝打开时逐段穿引红线；关闭复位
-  useEffect(() => {
-    if (crackK >= 3.5 && !threadAnimRef.current) {
-      threadAnimRef.current = true
-      // 步骤: 1=cross0, 2=return0, 3=cross1, 4=return1, 5=cross2, 6=return2, 7=cross3, 8=return3, 9=cross4
-      const delays = [0, 210, 400, 600, 790, 990, 1180, 1380, 1570]
-      const tids = delays.map((d, i) => setTimeout(() => setThreadStep(i + 1), d))
-      return () => tids.forEach(clearTimeout)
-    }
-    if (crackK <= 1.01) {
-      threadAnimRef.current = false
-      setThreadStep(0)
-    }
-  }, [crackK])
-
   function openCrack() {
     if (crackAnimRef.current || crackK > 1) return
     crackAnimRef.current = true
@@ -365,10 +370,24 @@ export default function Listen() {
         if (i === frames.length - 1) crackAnimRef.current = false
       }, total)
     })
+    // 同步开始穿线动画
+    if (!threadAnimRef.current) {
+      threadAnimRef.current = true
+      setThreadOpacity(1)
+      const tDelays = [0, 230, 450, 670, 880, 1090, 1300, 1510, 1720]
+      tDelays.forEach((d, i) => setTimeout(() => setThreadStep(i + 1), d))
+    }
   }
 
   function closeCrack() {
     if (crackAnimRef.current || crackK < 3.5) return
+    // 红线先淡出
+    setThreadOpacity(0)
+    setTimeout(() => {
+      setThreadStep(0)
+      threadAnimRef.current = false
+      setThreadOpacity(1)
+    }, 680)
     crackAnimRef.current = true
     const frames = [3.1, 2.65, 2.2, 1.8, 1.45, 1.15, 1.0]
     const waits  = [0, 250, 270, 200, 290, 210, 260]
@@ -675,7 +694,7 @@ export default function Listen() {
                   { a:[184,244], via:[210,264], b:[248,274], step:8 },
                 ]
                 return (
-                  <g filter="url(#thread-under)">
+                  <g filter="url(#thread-under)" style={{ opacity: threadOpacity, transition: 'opacity 0.65s ease-out' }}>
                     {segs.map(({ a, via, b, step }, i) => {
                       const [ax, ay] = scalePt(a[0], a[1], crackK)
                       const [bx, by] = scalePt(b[0], b[1], crackK)
@@ -711,7 +730,7 @@ export default function Listen() {
                   { a:[248,274], b:[263,259], bend:-1, step:9 },
                 ]
                 return (
-                  <g filter="url(#thread-over)">
+                  <g filter="url(#thread-over)" style={{ opacity: threadOpacity, transition: 'opacity 0.65s ease-out' }}>
                     {segs.map(({ a, b, bend, step }, i) => {
                       const [ax, ay] = scalePt(a[0], a[1], crackK)
                       const [bx, by] = scalePt(b[0], b[1], crackK)
