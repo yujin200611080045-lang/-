@@ -1,0 +1,84 @@
+.fb-wrap {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 12px;
+  right: 12px;
+  background: #000;
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px;
+  z-index: 1000;
+  border: 1px solid rgba(128, 138, 146, 0.18);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+  transition: border-radius 0.3s;
+}
+
+.fb-cover {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.fb-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fb-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a;
+}
+
+.fb-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fb-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fb-lyric {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.40);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.fb-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #000;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fb-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fb-btn:active {
+  background: rgba(255, 255, 255, 0.65);
+}

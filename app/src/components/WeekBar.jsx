@@ -37,25 +37,28 @@ export default function WeekBar() {
   }
 
   return (
-    <div className="week-bar">
-      {days.map((d, i) => {
-        const key = d.toDateString()
-        const isToday = key === today
-        const mood = moods[key] || 0
-        return (
-          <div key={i} className={`week-day${isToday ? ' today' : ''}`}>
-            <span className="wd-name">{DAY_NAMES[i]}</span>
-            <span className="wd-date">{d.getDate()}</span>
-            <button
-              className={`mood-dot${mood ? ' filled' : ''}`}
-              onClick={() => cycleMood(key)}
-              title="点击切换心情"
-            >
-              {mood ? MOODS[mood] : ''}
-            </button>
-          </div>
-        )
-      })}
+    <div className="weekbar-wrap">
+      <div className="weekbar-holder" />
+      <div className="week-bar">
+        {days.map((d, i) => {
+          const key = d.toDateString()
+          const isToday = key === today
+          const mood = moods[key] || 0
+          return (
+            <div key={i} className={`week-day${isToday ? ' today' : ''}`}>
+              <span className="wd-name">{DAY_NAMES[i]}</span>
+              <span className="wd-date">{d.getDate()}</span>
+              <button
+                className={`mood-dot${mood ? ' filled' : ''}`}
+                onClick={() => cycleMood(key)}
+                title="点击切换心情"
+              >
+                {mood ? MOODS[mood] : ''}
+              </button>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

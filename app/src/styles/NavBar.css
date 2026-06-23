@@ -1,12 +1,17 @@
 .navbar {
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 10px 0;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
+  padding: 6px 8px;
   background: var(--bg-card);
+  border-radius: 20px;
+  box-shadow: 0 2px 16px rgba(15, 13, 14, 0.08), 0 1px 4px rgba(15, 13, 14, 0.05);
+  border: 1px solid var(--border);
+  z-index: 3;
 }
 
 .nav-item {
@@ -18,8 +23,9 @@
   color: var(--text-muted);
   cursor: pointer;
   letter-spacing: 0.5px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   transition: color 0.2s;
+  border-radius: 12px;
 }
 
 .nav-item.active {
