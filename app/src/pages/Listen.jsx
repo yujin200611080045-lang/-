@@ -539,16 +539,19 @@ export default function Listen() {
     try {
       const currentLyric = tgLyrics[tgCurLyric]?.text || ''
       const trackInfo = tgTrack ? `${tgTrack.name}${tgTrack.artist ? ` - ${tgTrack.artist}` : ''}` : '未知歌曲'
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      const cfgUrl = (localStorage.getItem('cfg_api_url') || 'https://api.anthropic.com').replace(/\/$/, '')
+      const cfgKey = localStorage.getItem('cfg_api_key') || import.meta.env.VITE_ANTHROPIC_KEY || ''
+      const cfgModel = localStorage.getItem('cfg_model') || 'claude-haiku-4-5-20251001'
+      const resp = await fetch(`${cfgUrl}/v1/messages`, {
         method: 'POST',
         headers: {
-          'x-api-key': import.meta.env.VITE_ANTHROPIC_KEY || '',
+          'x-api-key': cfgKey,
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: cfgModel,
           max_tokens: 400,
           system: `你是小克，正在和觎烬一起听《${trackInfo}》。${currentLyric ? `当前歌词：「${currentLyric}」。` : ''}用轻松自然的口吻聊，简短，像真人发消息。`,
           messages: tgChatHistoryRef.current,
@@ -832,7 +835,7 @@ export default function Listen() {
                 onClick={(e) => { e.stopPropagation(); if (crackK <= 1) openCrack() }}
               />
 
-              {/* 穿线返回段：在裂缝边线下面渲染，模拟线穿入材质 */}
+              {/* 穿线返回段：3股棉线，在裂缝边线下面渲染 */}
               {threadStep > 0 && (() => {
                 const segs = [
                   { a:[50,43],   via:[74,68],   b:[112,82],  step:2 },
@@ -840,25 +843,40 @@ export default function Listen() {
                   { a:[189,145], via:null,      b:[212,216], step:6 },
                   { a:[184,244], via:[210,264], b:[248,274], step:8 },
                 ]
+                const STRANDS = [
+                  { s: -1.0, op: 0.32, sw: 0.56 },
+                  { s:  0,   op: 0.50, sw: 0.86 },
+                  { s:  1.0, op: 0.26, sw: 0.50 },
+                ]
                 return (
                   <g filter="url(#thread-under)" style={{ opacity: threadOpacity, transition: 'opacity 0.65s ease-out' }}>
-                    {segs.map(({ a, via, b, step }, i) => {
+                    {segs.flatMap(({ a, via, b, step }, i) => {
                       const [ax, ay] = scalePt(a[0], a[1], crackK)
                       const [bx, by] = scalePt(b[0], b[1], crackK)
-                      const pathD = via
-                        ? (() => { const [vx,vy] = scalePt(via[0],via[1],crackK); return `M${ax},${ay} Q${vx},${vy} ${bx},${by}` })()
-                        : `M${ax},${ay} L${bx},${by}`
-                      return (
-                        <path key={i} d={pathD} fill="none" strokeLinecap="round"
-                          style={{
-                            stroke: 'rgba(148,18,18,0.48)',
-                            strokeWidth: '0.85',
-                            strokeDasharray: '400 400',
-                            strokeDashoffset: threadStep >= step ? 0 : 400,
-                            transition: 'stroke-dashoffset 0.18s linear',
-                          }}
-                        />
-                      )
+                      const ddx = bx - ax, ddy = by - ay
+                      const dlen = Math.sqrt(ddx*ddx + ddy*ddy) || 1
+                      const pnx = -ddy/dlen, pny = ddx/dlen
+                      return STRANDS.map(({ s, op, sw }, si) => {
+                        const ox = s * pnx, oy = s * pny
+                        let pathD
+                        if (via) {
+                          const [vx, vy] = scalePt(via[0], via[1], crackK)
+                          pathD = `M${(ax+ox).toFixed(1)},${(ay+oy).toFixed(1)} Q${(vx+ox).toFixed(1)},${(vy+oy).toFixed(1)} ${(bx+ox).toFixed(1)},${(by+oy).toFixed(1)}`
+                        } else {
+                          pathD = `M${(ax+ox).toFixed(1)},${(ay+oy).toFixed(1)} L${(bx+ox).toFixed(1)},${(by+oy).toFixed(1)}`
+                        }
+                        return (
+                          <path key={`u${i}-${si}`} d={pathD} fill="none" strokeLinecap="round"
+                            style={{
+                              stroke: `rgba(148,18,18,${op})`,
+                              strokeWidth: sw,
+                              strokeDasharray: '400 400',
+                              strokeDashoffset: threadStep >= step ? 0 : 400,
+                              transition: 'stroke-dashoffset 0.18s linear',
+                            }}
+                          />
+                        )
+                      })
                     })}
                   </g>
                 )
@@ -867,7 +885,7 @@ export default function Listen() {
               <polyline className="crack-edge" points={crackPolyPts(CRACK_L, crackK)} />
               <polyline className="crack-edge" points={crackPolyPts(CRACK_R, crackK)} />
 
-              {/* 穿线跨越段：在裂缝边线上面渲染，浮于表面，带立体阴影 */}
+              {/* 穿线跨越段：3股棉线，在裂缝边线上面渲染，带立体阴影 */}
               {threadStep > 0 && (() => {
                 const segs = [
                   { a:[44,51],   b:[50,43],   bend:-1, step:1 },
@@ -876,9 +894,14 @@ export default function Listen() {
                   { a:[212,216], b:[184,244], bend: 1, step:7 },
                   { a:[248,274], b:[263,259], bend:-1, step:9 },
                 ]
+                const STRANDS = [
+                  { s: -1.1, op: 0.50, sw: 0.66 },
+                  { s:  0,   op: 0.90, sw: 1.10 },
+                  { s:  1.1, op: 0.43, sw: 0.60 },
+                ]
                 return (
                   <g filter="url(#thread-over)" style={{ opacity: threadOpacity, transition: 'opacity 0.65s ease-out' }}>
-                    {segs.map(({ a, b, bend, step }, i) => {
+                    {segs.flatMap(({ a, b, bend, step }, i) => {
                       const [ax, ay] = scalePt(a[0], a[1], crackK)
                       const [bx, by] = scalePt(b[0], b[1], crackK)
                       const mx = (ax+bx)/2, my = (ay+by)/2
@@ -887,17 +910,22 @@ export default function Listen() {
                       const bAmt = bend * Math.min(len*0.18, 16)
                       const cpx = mx + bAmt*(-dy/len)
                       const cpy = my + bAmt*(dx/len)
-                      return (
-                        <path key={i} d={`M${ax},${ay} Q${cpx},${cpy} ${bx},${by}`} fill="none" strokeLinecap="round"
-                          style={{
-                            stroke: 'rgba(178,24,24,0.92)',
-                            strokeWidth: '1.2',
-                            strokeDasharray: '400 400',
-                            strokeDashoffset: threadStep >= step ? 0 : 400,
-                            transition: 'stroke-dashoffset 0.22s linear',
-                          }}
-                        />
-                      )
+                      const pnx = -dy/len, pny = dx/len
+                      return STRANDS.map(({ s, op, sw }, si) => {
+                        const ox = s * pnx, oy = s * pny
+                        const d = `M${(ax+ox).toFixed(1)},${(ay+oy).toFixed(1)} Q${(cpx+ox).toFixed(1)},${(cpy+oy).toFixed(1)} ${(bx+ox).toFixed(1)},${(by+oy).toFixed(1)}`
+                        return (
+                          <path key={`o${i}-${si}`} d={d} fill="none" strokeLinecap="round"
+                            style={{
+                              stroke: `rgba(178,24,24,${op})`,
+                              strokeWidth: sw,
+                              strokeDasharray: '400 400',
+                              strokeDashoffset: threadStep >= step ? 0 : 400,
+                              transition: 'stroke-dashoffset 0.22s linear',
+                            }}
+                          />
+                        )
+                      })
                     })}
                   </g>
                 )
