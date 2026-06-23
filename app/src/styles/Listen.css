@@ -1124,8 +1124,9 @@
 .together-view {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  overflow: hidden;
   padding-bottom: 70px;
   padding-top: env(safe-area-inset-top, 0px);
 }
@@ -1252,3 +1253,148 @@
 }
 .tgp-lyric.dim { opacity: 0.35; }
 .tgp-lyric.cur { opacity: 0.82; font-size: 11px; }
+
+/* ── together chat areas ── */
+.tg-chat-area {
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 80px;
+}
+
+.tg-chat-top {
+  cursor: text;
+}
+
+.tg-chat-scroll {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 20px;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 28%,
+    black 72%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 28%,
+    black 72%,
+    transparent 100%
+  );
+}
+
+.tg-chat-scroll::-webkit-scrollbar { display: none; }
+
+.tg-bubble {
+  max-width: 72%;
+  padding: 8px 13px;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: break-word;
+  flex-shrink: 0;
+}
+
+/* 觎烬的气泡：右对齐，尾巴朝右下（border-radius 右下角为0） */
+.tg-bubble-user {
+  align-self: flex-end;
+  background: rgba(212, 10, 4, 0.09);
+  color: #7a0000;
+  border-radius: 14px 14px 0 14px;
+}
+
+/* 小克的气泡：左对齐，尾巴朝左上（border-radius 左上角为0） */
+.tg-bubble-ai {
+  align-self: flex-start;
+  background: rgba(26, 40, 48, 0.07);
+  color: var(--text-primary);
+  border-radius: 0 14px 14px 14px;
+}
+
+/* 打字动画 */
+.tg-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+}
+
+.tg-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: tg-blink 1.2s ease-in-out infinite;
+}
+
+.tg-dot:nth-child(2) { animation-delay: 0.2s; }
+.tg-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes tg-blink {
+  0%, 100% { opacity: 0.25; transform: scale(0.75); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* 输入浮层 */
+.tg-input-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: env(keyboard-inset-height, 0px);
+}
+
+.tg-input-box {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.tg-input {
+  flex: 1;
+  background: rgba(26, 40, 48, 0.06);
+  border: 1px solid var(--border);
+  outline: none;
+  border-radius: 22px;
+  padding: 10px 16px;
+  font-size: 15px;
+  color: var(--text-primary);
+  -webkit-appearance: none;
+}
+
+.tg-input::placeholder { color: var(--text-muted); }
+
+.tg-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #d40a04;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tg-send-btn:disabled { opacity: 0.35; cursor: default; }
+.tg-send-btn svg { width: 15px; height: 15px; }

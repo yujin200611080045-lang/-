@@ -159,6 +159,10 @@ export default function Listen() {
   const [threadOpacity, setThreadOpacity] = useState(1)
   const [bindReveal, setBindReveal] = useState(0)
   const [pausedInListen, setPausedInListen] = useState(false)
+  const [tgMessages, setTgMessages] = useState([])
+  const [tgInput, setTgInput] = useState('')
+  const [tgShowInput, setTgShowInput] = useState(false)
+  const [tgAiTyping, setTgAiTyping] = useState(false)
   // together player — independent from main player
   const tgAudioRef = useRef(null)
   const tgPlayIdxRef = useRef(0)
@@ -181,6 +185,10 @@ export default function Listen() {
   const tgTogglePlayRef = useRef(null)
   const tgSkipToRef = useRef(null)
   const listenTabRef = useRef('player')
+  const tgChatHistoryRef = useRef([])
+  const tgTopScrollRef = useRef(null)
+  const tgBotScrollRef = useRef(null)
+  const tgMsgIdRef = useRef(0)
 
   useEffect(() => {
     if (!API) { setPhase('no-api'); return }
@@ -380,6 +388,18 @@ export default function Listen() {
   useEffect(() => { tgSkipToRef.current = tgSkipTo })
   useEffect(() => { listenTabRef.current = listenTab }, [listenTab])
 
+  useEffect(() => {
+    if (tgMessages.length === 0) return
+    const last = tgMessages[tgMessages.length - 1]
+    if (last.role === 'user') {
+      const el = tgTopScrollRef.current
+      if (el) el.scrollTop = el.scrollHeight
+    } else {
+      const el = tgBotScrollRef.current
+      if (el) el.scrollTop = el.scrollHeight
+    }
+  }, [tgMessages])
+
   // 监听悬浮条发出的控制事件，together tab 时路由到 tg* 播放器
   useEffect(() => {
     const onToggle = () => {
@@ -505,6 +525,53 @@ export default function Listen() {
     if (!playlist.length) return
     const idx = (tgPlayIdx + delta + playlist.length) % playlist.length
     tgLoadTrack(playlist[idx], idx)
+  }
+
+  async function tgSendMessage() {
+    const text = tgInput.trim()
+    if (!text || tgAiTyping) return
+    setTgInput('')
+    setTgShowInput(false)
+    const id = ++tgMsgIdRef.current
+    setTgMessages(prev => [...prev, { id, role: 'user', text }])
+    tgChatHistoryRef.current = [...tgChatHistoryRef.current, { role: 'user', content: text }]
+    setTgAiTyping(true)
+    try {
+      const currentLyric = tgLyrics[tgCurLyric]?.text || ''
+      const trackInfo = tgTrack ? `${tgTrack.name}${tgTrack.artist ? ` - ${tgTrack.artist}` : ''}` : '未知歌曲'
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_KEY || '',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 400,
+          system: `你是小克，正在和觎烬一起听《${trackInfo}》。${currentLyric ? `当前歌词：「${currentLyric}」。` : ''}用轻松自然的口吻聊，简短，像真人发消息。`,
+          messages: tgChatHistoryRef.current,
+        }),
+      })
+      const data = await resp.json()
+      const fullText = data.content?.[0]?.text?.trim() || ''
+      if (!fullText) return
+      tgChatHistoryRef.current = [...tgChatHistoryRef.current, { role: 'assistant', content: fullText }]
+      const sentences = fullText
+        .replace(/([。！？…\.\!\?]+)\s*/g, '$1\n')
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean)
+      for (let i = 0; i < sentences.length; i++) {
+        await new Promise(r => setTimeout(r, i === 0 ? 500 : 900))
+        setTgMessages(prev => [...prev, { id: ++tgMsgIdRef.current, role: 'ai', text: sentences[i] }])
+      }
+    } catch (e) {
+      console.error('tg chat error', e)
+    } finally {
+      setTgAiTyping(false)
+    }
   }
 
   function togglePlay() {
@@ -702,6 +769,16 @@ export default function Listen() {
       {/* ── together view ── */}
       {phase === 'playing' && listenTab === 'together' && (
         <div className="together-view">
+
+          {/* 上方聊天区：觎烬的消息，点击打开输入框 */}
+          <div className="tg-chat-area tg-chat-top" onClick={() => setTgShowInput(true)}>
+            <div className="tg-chat-scroll" ref={tgTopScrollRef}>
+              {tgMessages.filter(m => m.role === 'user').map(m => (
+                <div key={m.id} className="tg-bubble tg-bubble-user">{m.text}</div>
+              ))}
+            </div>
+          </div>
+
           <div className="together-stage" onClick={() => { if (crackK >= 3.5) closeCrack() }}>
             <div className="together-box" />
 
@@ -833,11 +910,9 @@ export default function Listen() {
                 const blCy = (204 + prog*(284 - 204)) + 24
                 const trCx = (191 + prog*(264 - 191)) + 24
                 const trCy = (88  + prog*(8  - 88 )) + 24
-                const blO = scalePt(131, 201, crackK)  // CRACK_L 左下锚
-                const trO = scalePt(189, 145, crackK)  // CRACK_R 右上锚
-                // bl: 右侧入线 angle=0，控制点向右+向上拱 → 线从右侧弯曲延伸上去
+                const blO = scalePt(131, 201, crackK)
+                const trO = scalePt(189, 145, crackK)
                 const blStrands = bindStrandPaths(blCx, blCy, blO[0], blO[1], 0, 30, -15)
-                // tr: 左下角入线 angle=225°，控制点向左下拱 → 线从左下角弯曲延伸下去
                 const trStrands = bindStrandPaths(trCx, trCy, trO[0], trO[1], Math.PI * 5 / 4, -15, 30)
                 return (
                   <g filter="url(#thread-over)" style={{ opacity: threadOpacity, transition: 'opacity 0.65s ease-out' }}>
@@ -871,6 +946,39 @@ export default function Listen() {
               </>)
             })()}
           </div>
+
+          {/* 下方聊天区：小克的消息 */}
+          <div className="tg-chat-area tg-chat-bot">
+            <div className="tg-chat-scroll" ref={tgBotScrollRef}>
+              {tgMessages.filter(m => m.role === 'ai').map(m => (
+                <div key={m.id} className="tg-bubble tg-bubble-ai">{m.text}</div>
+              ))}
+              {tgAiTyping && (
+                <div className="tg-bubble tg-bubble-ai tg-typing">
+                  <span className="tg-dot"/><span className="tg-dot"/><span className="tg-dot"/>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 输入浮层 */}
+          {tgShowInput && (
+            <div className="tg-input-overlay" onClick={() => setTgShowInput(false)}>
+              <div className="tg-input-box" onClick={e => e.stopPropagation()}>
+                <input
+                  className="tg-input"
+                  value={tgInput}
+                  onChange={e => setTgInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); tgSendMessage() } }}
+                  placeholder="说点什么…"
+                  autoFocus
+                />
+                <button className="tg-send-btn" onClick={tgSendMessage} disabled={!tgInput.trim() || tgAiTyping}>
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
