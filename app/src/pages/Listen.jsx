@@ -179,6 +179,7 @@ export default function Listen() {
   const [inlineDrillLoading, setInlineDrillLoading] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [printCard, setPrintCard] = useState(null)
+  const [favSongs, setFavSongs] = useState(() => new Set(JSON.parse(localStorage.getItem('fav_songs') || '[]')))
 
   const audioRef = useRef(null)
   const lyricBoxRef = useRef(null)
@@ -284,6 +285,20 @@ export default function Listen() {
       clearTimeout(searchTimer.current)
     }
   }, [])
+
+  function toggleFav() {
+    if (!track?.id) return
+    const alreadyInPlaylist = playlist.some(s => s.id === track.id)
+    if (alreadyInPlaylist) return
+    const wasFaved = favSongs.has(track.id)
+    setFavSongs(prev => {
+      const next = new Set(prev)
+      wasFaved ? next.delete(track.id) : next.add(track.id)
+      localStorage.setItem('fav_songs', JSON.stringify([...next]))
+      return next
+    })
+    req('/like', { id: track.id, like: !wasFaved }).catch(() => {})
+  }
 
   async function startQr() {
     setPhase('qr')
@@ -761,15 +776,48 @@ export default function Listen() {
           <>
             <button className="listen-back" onClick={() => navigate('/')}>‹</button>
             <span className="listen-title-music" onClick={() => setSheet('search')} style={{cursor:'pointer'}}>music</span>
-            <div className="listen-header-actions">
+            <div className="listen-header-actions" style={{ position: 'relative' }}>
               {phase === 'playing' && (
-                <button className="icon-btn" onClick={() => setSheet(s => s === 'queue' ? null : 'queue')}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
-                    <line x1="3" y1="18" x2="15" y2="18"/>
-                    <circle cx="19" cy="18" r="3"/>
-                  </svg>
-                </button>
+                <>
+                  <button className="icon-btn" onClick={() => setShowModeMenu(s => !s)}>
+                    {playMode === 'sequential' && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="15" y2="18"/>
+                        <path d="M17 15l3 3-3 3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                    {playMode === 'shuffle' && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M16 3h5v5M4 20l6.5-6.5M14 9.5L20 3M4 4l16 16M16 21h5v-5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                    {playMode === 'single' && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M17 3l4 4-4 4M3 7h18M7 21l-4-4 4-4M21 17H3" strokeLinecap="round" strokeLinejoin="round"/>
+                        <text x="9.5" y="14" fontSize="7" fill="currentColor" stroke="none" fontWeight="600">1</text>
+                      </svg>
+                    )}
+                  </button>
+                  {showModeMenu && (
+                    <>
+                      <div style={{position:'fixed',inset:0,zIndex:19}} onClick={() => setShowModeMenu(false)}/>
+                      <div className="mode-menu mode-menu-header">
+                        {[
+                          {key:'sequential', label:'顺序播放'},
+                          {key:'shuffle',    label:'随机播放'},
+                          {key:'single',     label:'单曲循环'},
+                        ].map(m => (
+                          <button
+                            key={m.key}
+                            className={`mode-menu-item${playMode === m.key ? ' active' : ''}`}
+                            onClick={() => { setPlayMode(m.key); setShowModeMenu(false) }}
+                          >{m.label}</button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
               )}
             </div>
           </>
@@ -1315,49 +1363,45 @@ export default function Listen() {
 
           <div className="listen-body">
 
-            {/* ── hanging star ornaments ── */}
-            {/* left star — longer line — mode menu */}
-            <div className="star-ornament star-ornament-left">
-              <svg width="40" height="80" viewBox="0 0 40 80">
-                <defs>
-                  <filter id="dot-halo-l" x="-80%" y="-80%" width="260%" height="260%">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
-                    <feFlood floodColor="rgba(255,255,255,0.18)" result="col"/>
-                    <feComposite in="col" in2="blur" operator="in" result="glow"/>
-                    <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                </defs>
-                <g style={{cursor:'pointer'}} onClick={() => setShowModeMenu(s => !s)}>
-                  <circle cx="16" cy="10" r="4.5" fill="rgba(255,255,255,0.06)"/>
-                  <circle cx="16" cy="10" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo-l)"/>
-                  <line x1="16" y1="14" x2="16" y2="55" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
-                  <polygon
-                    points="16,55 18.94,58.96 23.61,60.53 20.76,64.55 20.70,69.47 16,68 11.30,69.47 11.24,64.55 8.39,60.53 13.06,58.96"
-                    fill="#FFD700" style={{filter:'drop-shadow(0 2px 5px rgba(255,200,0,0.45))'}}
-                  />
-                </g>
-              </svg>
-            </div>
-
-            {/* playback mode menu */}
-            {showModeMenu && (
-              <>
-                <div style={{position:'absolute',inset:0,zIndex:19}} onClick={() => setShowModeMenu(false)}/>
-                <div className="mode-menu">
-                  {[
-                    {key:'sequential', label:'顺序播放'},
-                    {key:'shuffle',    label:'随机播放'},
-                    {key:'single',     label:'单曲循环'},
-                  ].map(m => (
-                    <button
-                      key={m.key}
-                      className={`mode-menu-item${playMode === m.key ? ' active' : ''}`}
-                      onClick={() => { setPlayMode(m.key); setShowModeMenu(false) }}
-                    >{m.label}</button>
-                  ))}
+            {/* ── hanging star ornament — 左侧收藏星 ── */}
+            {(() => {
+              const inPlaylist = track && playlist.some(s => s.id === track.id)
+              const starLit = inPlaylist || (track && favSongs.has(track.id))
+              return (
+                <div className="star-ornament star-ornament-left">
+                  <svg width="40" height="80" viewBox="0 0 40 80">
+                    <defs>
+                      <filter id="dot-halo-l" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+                        <feFlood floodColor="rgba(255,255,255,0.18)" result="col"/>
+                        <feComposite in="col" in2="blur" operator="in" result="glow"/>
+                        <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+                      </filter>
+                      {starLit && (
+                        <filter id="star-glow" x="-60%" y="-60%" width="220%" height="220%">
+                          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+                          <feFlood floodColor="rgba(255,210,0,0.75)" result="col"/>
+                          <feComposite in="col" in2="blur" operator="in" result="glow"/>
+                          <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                      )}
+                    </defs>
+                    <g style={{cursor: inPlaylist ? 'default' : 'pointer'}} onClick={toggleFav}>
+                      <circle cx="16" cy="10" r="4.5" fill="rgba(255,255,255,0.06)"/>
+                      <circle cx="16" cy="10" r="3" fill="#242424" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" filter="url(#dot-halo-l)"/>
+                      <line x1="16" y1="14" x2="16" y2="55" stroke="#6B1A1A" strokeWidth="1" strokeLinecap="round"/>
+                      <polygon
+                        points="16,55 18.94,58.96 23.61,60.53 20.76,64.55 20.70,69.47 16,68 11.30,69.47 11.24,64.55 8.39,60.53 13.06,58.96"
+                        fill={starLit ? '#FFD700' : 'rgba(255,215,0,0.18)'}
+                        stroke={starLit ? 'none' : 'rgba(255,215,0,0.35)'}
+                        strokeWidth="0.7"
+                        style={{ filter: starLit ? 'drop-shadow(0 2px 8px rgba(255,200,0,0.85))' : 'none', transition: 'fill 0.25s, filter 0.25s' }}
+                      />
+                    </g>
+                  </svg>
                 </div>
-              </>
-            )}
+              )
+            })()}
 
             <div className="listen-cover-wrap">
               <div className={`listen-cover${playing ? ' spinning' : ''}`}>
