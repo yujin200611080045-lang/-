@@ -55,7 +55,10 @@ export default function Companion() {
   function sendMessage() {
     const text = inputText.trim()
     if (!text) return
-    setMessages(m => [...m, { text, side: 'sent' }])
+    const time = new Date().toLocaleTimeString('zh-CN', {
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    })
+    setMessages(m => [...m, { text, side: 'sent', time }])
     setInputText('')
   }
 
@@ -113,7 +116,8 @@ export default function Companion() {
       <div className="chat-messages" onClick={stopProp}>
         {messages.map((msg, i) => (
           <div key={i} className={`chat-bubble ${msg.side}`}>
-            {msg.text}
+            <span className="bubble-text">{msg.text}</span>
+            <span className="bubble-time">{msg.time}</span>
           </div>
         ))}
         <div ref={messagesEndRef} />

@@ -51,9 +51,27 @@
   border-radius: 18px;
   padding: 10px 14px;
   max-width: 72%;
-  line-height: 1.5;
   font-size: 15px;
   word-break: break-word;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bubble-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.bubble-time {
+  font-size: 10px;
+  opacity: 0.5;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-bottom: 1px;
 }
 
 .chat-bubble.sent {
