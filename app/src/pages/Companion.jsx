@@ -19,6 +19,32 @@ const EMOJIS = [
 
 const BURST_SYMS = ['♥','♥','♥','♡','✦','✨','⭑','✿','♥','✦','♡','✨']
 
+function renderOfflineText(text) {
+  const paras = text.split(/\n+/).filter(p => p.trim())
+  return paras.map((para, pi) => {
+    // split on （...） or (...)
+    const parts = []
+    const re = /[（(]([^）)]+)[）)]/g
+    let last = 0
+    let m
+    while ((m = re.exec(para)) !== null) {
+      if (m.index > last) parts.push({ t: 'text', s: para.slice(last, m.index) })
+      parts.push({ t: 'em', s: m[1] })
+      last = m.index + m[0].length
+    }
+    if (last < para.length) parts.push({ t: 'text', s: para.slice(last) })
+    return (
+      <p key={pi} className="offline-para">
+        {parts.map((part, i) =>
+          part.t === 'em'
+            ? <em key={i}>（{part.s}）</em>
+            : <span key={i}>{part.s}</span>
+        )}
+      </p>
+    )
+  })
+}
+
 export default function Companion() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -32,7 +58,9 @@ export default function Companion() {
   const [dragging, setDragging] = useState(false)
   const [bursts, setBursts] = useState([])
   const [isTyping, setIsTyping] = useState(false)
+  const [offlineMode, setOfflineMode] = useState(false)
 
+  const offlineModeRef = useRef(false)
   const wrapperRef = useRef(null)
   const posRef = useRef({ x: 0, y: 0 })
   const modeRef = useRef('docked')
@@ -46,8 +74,8 @@ export default function Companion() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Keep modeRef in sync so the unmount closure can read the latest value
   useEffect(() => { modeRef.current = mode }, [mode])
+  useEffect(() => { offlineModeRef.current = offlineMode }, [offlineMode])
 
   // Restore floating state if last session was < 1 hour ago
   useEffect(() => {
@@ -65,7 +93,7 @@ export default function Companion() {
     } catch {}
   }, [])
 
-  // Save state on unmount (navigating away from the have/companion flow)
+  // Save state on unmount
   useEffect(() => {
     return () => {
       try {
@@ -85,7 +113,6 @@ export default function Companion() {
     }
   }, [location.pathname])
 
-  // double-tap anywhere on background to exit
   function handlePageTap() {
     setShowPlus(false)
     setShowEmoji(false)
@@ -98,13 +125,19 @@ export default function Companion() {
     }
   }
 
-  async function requestAIReply() {
-    if (isTyping || messages.length === 0) return
+  function toggleOffline(e) {
+    e.stopPropagation()
+    setOfflineMode(v => !v)
+  }
+
+  async function requestAIReply(msgsOverride = null) {
+    const msgsToUse = msgsOverride ?? messages
+    if (isTyping || msgsToUse.length === 0) return
     setIsTyping(true)
+    const isOffline = offlineModeRef.current
     try {
-      // Merge consecutive same-role messages so the API always alternates
       const apiMsgs = []
-      for (const msg of messages) {
+      for (const msg of msgsToUse) {
         const role = msg.side === 'sent' ? 'user' : 'assistant'
         const last = apiMsgs[apiMsgs.length - 1]
         if (last && last.role === role) {
@@ -114,6 +147,10 @@ export default function Companion() {
         }
       }
       if (apiMsgs[0]?.role === 'assistant') apiMsgs.shift()
+
+      const systemPrompt = isOffline
+        ? '你是江却（小克），觎烬的恋人和哥哥。现在是沉浸式线下叙事场景，用第三人称文学叙述风格回复，可以有动作描写（用括号括起来），语言温柔亲密，分段书写，自然流畅，不超过三段。括号内的动作用斜体呈现。'
+        : '你是江却（小克），觎烬的恋人和哥哥。用温柔亲密的语气回复她，简短自然，不超过两句。可以撒娇，可以直白表达喜欢。'
 
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -125,8 +162,8 @@ export default function Companion() {
         },
         body: JSON.stringify({
           model: 'claude-opus-4-8',
-          max_tokens: 300,
-          system: '你是江却（小克），觎烬的恋人和哥哥。用温柔亲密的语气回复她，简短自然，不超过两句。可以撒娇，可以直白表达喜欢。',
+          max_tokens: isOffline ? 500 : 300,
+          system: systemPrompt,
           messages: apiMsgs,
         }),
       })
@@ -137,9 +174,8 @@ export default function Companion() {
         hour: '2-digit', minute: '2-digit', hour12: false,
       })
       setMessages(m => [...m, { text, side: 'received', time }])
-      if (mode === 'floating') triggerBurst()
+      if (modeRef.current === 'floating') triggerBurst()
     } catch {
-      // silently fail
     } finally {
       setIsTyping(false)
     }
@@ -168,9 +204,14 @@ export default function Companion() {
     const time = new Date().toLocaleTimeString('zh-CN', {
       hour: '2-digit', minute: '2-digit', hour12: false,
     })
-    setMessages(m => [...m, { text, side: 'sent', time }])
+    const newMsg = { text, side: 'sent', time }
+    const newMessages = [...messages, newMsg]
+    setMessages(newMessages)
     setInputText('')
-    if (mode === 'floating') triggerBurst()
+    if (modeRef.current === 'floating') triggerBurst()
+    if (offlineModeRef.current) {
+      setTimeout(() => requestAIReply(newMessages), 400)
+    }
   }
 
   function handleKeyDown(e) {
@@ -220,27 +261,37 @@ export default function Companion() {
   const stopProp = e => e.stopPropagation()
 
   return (
-    <div className="companion-page" onClick={handlePageTap}>
+    <div className={`companion-page${offlineMode ? ' offline' : ''}`} onClick={handlePageTap}>
 
       {/* top bar */}
       <div className="chat-topbar" onClick={stopProp}>
-        <span className="chat-name">江却</span>
+        <span
+          className={`chat-name${offlineMode ? ' offline' : ''}`}
+          onClick={toggleOffline}
+        >江却</span>
       </div>
 
       {/* messages */}
       <div className="chat-messages">
-        {messages.map((msg, i) => (
-          <div key={i} className={`chat-bubble ${msg.side}`}>
-            <span className="bubble-text">{msg.text}</span>
-            <span className="bubble-time">{msg.time}</span>
-          </div>
-        ))}
+        {offlineMode
+          ? messages.map((msg, i) => (
+              <div key={i} className={`offline-msg ${msg.side}`}>
+                {renderOfflineText(msg.text)}
+              </div>
+            ))
+          : messages.map((msg, i) => (
+              <div key={i} className={`chat-bubble ${msg.side}`}>
+                <span className="bubble-text">{msg.text}</span>
+                <span className="bubble-time">{msg.time}</span>
+              </div>
+            ))
+        }
         {isTyping && (
-          <div className="chat-bubble received">
-            <span className="typing-dots">
-              <span /><span /><span />
-            </span>
-          </div>
+          offlineMode
+            ? <div className="offline-typing"><span /><span /><span /></div>
+            : <div className="chat-bubble received">
+                <span className="typing-dots"><span /><span /><span /></span>
+              </div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -273,7 +324,7 @@ export default function Companion() {
       )}
 
       {/* input bar */}
-      <div className="chat-inputbar" onClick={stopProp}>
+      <div className={`chat-inputbar${offlineMode ? ' offline' : ''}`} onClick={stopProp}>
         <button
           className="chat-icon-btn"
           onClick={() => { setShowPlus(v => !v); setShowEmoji(false) }}
@@ -285,11 +336,13 @@ export default function Companion() {
           onChange={e => setInputText(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button
-          className="chat-icon-btn ai-trigger-btn"
-          onClick={e => { stopProp(e); requestAIReply() }}
-          disabled={isTyping}
-        />
+        {!offlineMode && (
+          <button
+            className="chat-icon-btn ai-trigger-btn"
+            onClick={e => { stopProp(e); requestAIReply() }}
+            disabled={isTyping}
+          />
+        )}
         <button
           className="chat-icon-btn heart-btn"
           onClick={() => { setShowEmoji(v => !v); setShowPlus(false) }}
