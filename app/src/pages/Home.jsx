@@ -1,7 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import WeekBar from '../components/WeekBar'
+import AnnivPrism from '../components/AnnivPrism'
 import DiaryBook from '../components/DiaryBook'
 import Memo from '../components/Memo'
+import MusicCard from '../components/MusicCard'
+import LyricWidget from '../components/LyricWidget'
 import NavBar from '../components/NavBar'
 import '../styles/Home.css'
 
@@ -13,13 +17,27 @@ function daysSince() {
 }
 
 export default function Home() {
+  const navigate = useNavigate()
   return (
     <div className="home-page">
       <Header />
       <WeekBar />
+      <AnnivPrism />
       <div className="home-body">
         <DiaryBook />
         <Memo />
+      </div>
+      <div className="home-lower">
+        <LyricWidget />
+        <div className="home-lower-right" />
+      </div>
+      <div className="home-gap">
+        <img
+          src="/black-cat.png"
+          className="listen-entry"
+          alt=""
+          onClick={() => navigate('/listen')}
+        />
       </div>
       <NavBar active="home" />
     </div>
