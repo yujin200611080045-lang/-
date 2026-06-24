@@ -118,7 +118,7 @@ export default function Companion() {
     setShowEmoji(false)
     const now = Date.now()
     if (now - lastTap.current < 500) {
-      navigate(-1)
+      navigate('/have')
       lastTap.current = 0
     } else {
       lastTap.current = now
@@ -260,7 +260,13 @@ export default function Companion() {
     setDragging(false)
     const dx = e.clientX - tapStartRef.current.x
     const dy = e.clientY - tapStartRef.current.y
-    if (Math.hypot(dx, dy) < 6) triggerBurst(true)
+    if (Math.hypot(dx, dy) < 6) {
+      if (offlineModeRef.current) {
+        setOfflineMode(false)
+      } else {
+        triggerBurst(true)
+      }
+    }
   }
 
   const stopProp = e => e.stopPropagation()
