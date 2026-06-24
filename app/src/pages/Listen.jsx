@@ -174,6 +174,7 @@ export default function Listen() {
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [playlistExpanded, setPlaylistExpanded] = useState(false)
+  const [songPickTarget, setSongPickTarget] = useState(null)
   const [showPrintOptions, setShowPrintOptions] = useState(false)
   const [printMode, setPrintMode] = useState(null)
   const [printLoading, setPrintLoading] = useState(false)
@@ -941,7 +942,7 @@ export default function Listen() {
             </div>
           </div>
 
-          {/* 我的歌单：花体英文按钮 + 全屏折线弹出 */}
+          {/* 我的歌单：花体英文按钮 */}
           <div className="me-playlist-slim-wrap">
             <button
               className="me-playlist-slim-btn"
@@ -949,60 +950,6 @@ export default function Listen() {
             >
               <span className="me-playlist-cursive">My Playlist</span>
             </button>
-
-            {playlistExpanded && (
-              <div className="me-playlist-overlay" onClick={() => setPlaylistExpanded(false)}>
-                <div className="me-zigzag-container" onClick={e => e.stopPropagation()}>
-                  {playlist.length === 0
-                    ? <p className="me-drop-hint">暂无歌曲</p>
-                    : (() => {
-                        const H = 48, lx = 11, rx = 23
-                        return (
-                          <div className="me-zigzag-inner">
-                            <svg
-                              className="me-zigzag-svg"
-                              width="34"
-                              height={playlist.length * H}
-                            >
-                              {playlist.map((_, i) => {
-                                const cx = i % 2 === 0 ? lx : rx
-                                const cy = i * H + H / 2
-                                const nextCx = (i + 1) % 2 === 0 ? lx : rx
-                                const nextCy = (i + 1) * H + H / 2
-                                return (
-                                  <g key={i}>
-                                    {i < playlist.length - 1 && (
-                                      <line x1={cx} y1={cy} x2={nextCx} y2={nextCy}
-                                        stroke="rgba(255,255,255,0.55)" strokeWidth="1.1" strokeLinecap="round"/>
-                                    )}
-                                    <circle cx={cx} cy={cy} r="3.5" fill="white" fillOpacity="0.88"/>
-                                  </g>
-                                )
-                              })}
-                            </svg>
-                            <div className="me-zigzag-names">
-                              {playlist.map((song, i) => (
-                                <button
-                                  key={song.id}
-                                  className="me-zigzag-row"
-                                  style={{ height: H }}
-                                  onClick={async () => {
-                                    setListenTab('player')
-                                    setPlaylistExpanded(false)
-                                    await loadTrack(song, i)
-                                  }}
-                                >
-                                  <span className="me-zigzag-name">{song.name}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      })()
-                  }
-                </div>
-              </div>
-            )}
           </div>
 
           {/* 打印机：收听报告 */}
@@ -1601,6 +1548,109 @@ export default function Listen() {
             <span className="listen-nav-word">home</span>
           </button>
         </nav>
+      )}
+
+      {/* 歌单 overlay — 在 listen-page 根节点渲染，覆盖全屏含导航栏 */}
+      {playlistExpanded && (
+        <div
+          className="me-playlist-overlay"
+          onClick={() => setPlaylistExpanded(false)}
+        >
+          <div className="me-zigzag-container" onClick={e => e.stopPropagation()}>
+            {playlist.length === 0
+              ? <p className="me-drop-hint">暂无歌曲</p>
+              : (() => {
+                  const H = 48, lx = 11, rx = 23
+                  return (
+                    <div className="me-zigzag-inner">
+                      <svg className="me-zigzag-svg" width="34" height={playlist.length * H}>
+                        {playlist.map((_, i) => {
+                          const cx = i % 2 === 0 ? lx : rx
+                          const cy = i * H + H / 2
+                          const nextCx = (i + 1) % 2 === 0 ? lx : rx
+                          const nextCy = (i + 1) * H + H / 2
+                          return (
+                            <g key={i}>
+                              {i < playlist.length - 1 && (
+                                <line x1={cx} y1={cy} x2={nextCx} y2={nextCy}
+                                  stroke="rgba(255,255,255,0.55)" strokeWidth="1.1" strokeLinecap="round"/>
+                              )}
+                              <circle cx={cx} cy={cy} r="3.5" fill="white" fillOpacity="0.88"/>
+                            </g>
+                          )
+                        })}
+                      </svg>
+                      <div className="me-zigzag-names">
+                        {playlist.map((song, i) => (
+                          <button
+                            key={song.id}
+                            className="me-zigzag-row"
+                            style={{ height: H }}
+                            onClick={() => {
+                              setPlaylistExpanded(false)
+                              setSongPickTarget({ song, i })
+                            }}
+                          >
+                            <span className="me-zigzag-name">{song.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()
+            }
+          </div>
+        </div>
+      )}
+
+      {/* 歌曲播放位置选择弹窗 */}
+      {songPickTarget && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'flex-end',
+          }}
+          onClick={() => setSongPickTarget(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              background: 'var(--bg-card)',
+              borderRadius: '16px 16px 0 0',
+              padding: '20px 24px calc(env(safe-area-inset-bottom, 0px) + 20px)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, textAlign: 'center' }}>
+              {songPickTarget.song.name}
+            </div>
+            <button
+              style={{
+                display: 'block', width: '100%', padding: '14px',
+                background: 'var(--bg)', border: 'none', borderRadius: 10,
+                fontSize: 15, color: 'var(--text-primary)', marginBottom: 10, cursor: 'pointer',
+              }}
+              onClick={async () => {
+                setSongPickTarget(null)
+                setListenTab('player')
+                await loadTrack(songPickTarget.song, songPickTarget.i)
+              }}
+            >在这里播放</button>
+            <button
+              style={{
+                display: 'block', width: '100%', padding: '14px',
+                background: 'var(--bg)', border: 'none', borderRadius: 10,
+                fontSize: 15, color: 'var(--text-primary)', cursor: 'pointer',
+              }}
+              onClick={() => {
+                setSongPickTarget(null)
+                setListenTab('together')
+                tgLoadTrack(songPickTarget.song, songPickTarget.i)
+              }}
+            >一起听</button>
+          </div>
+        </div>
       )}
     </div>
   )
