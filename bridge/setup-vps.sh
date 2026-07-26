@@ -1,12 +1,14 @@
 #!/bin/bash
 # Vultr Startup Script — 自动部署 Ombre Brain
 # 用法：在 Vultr 创建实例时粘贴到 User Data / Startup Script
-# 创建前把 YOUR_DEEPSEEK_KEY 换成你的真实 API Key
+# 创建前把下面配置区的三个值换掉
 
 set -e
 
-##──── 配置区（修改这两行）────────────────────────────────────
-DEEPSEEK_API_KEY="YOUR_DEEPSEEK_KEY"
+##──── 配置区（修改这三行）────────────────────────────────────
+LLM_API_KEY="你的中转站API_KEY"
+LLM_API_BASE="https://你的中转站域名/v1"   # OpenAI兼容格式，末尾加/v1
+LLM_MODEL="deepseek-chat"                  # 换成你中转站支持的模型名
 DASHBOARD_PASSWORD="xiaoke2026"
 ##────────────────────────────────────────────────────────────
 
@@ -52,7 +54,9 @@ services:
     environment:
       OMBRE_TRANSPORT: streamable-http
       OMBRE_CONFIG_PATH: /app/buckets/config.yaml
-      OMBRE_COMPRESS_API_KEY: "${DEEPSEEK_API_KEY}"
+      OMBRE_COMPRESS_API_KEY: "${LLM_API_KEY}"
+      OMBRE_COMPRESS_BASE_URL: "${LLM_API_BASE}"
+      OMBRE_COMPRESS_MODEL: "${LLM_MODEL}"
       OMBRE_DASHBOARD_PASSWORD: "${DASHBOARD_PASSWORD}"
     volumes:
       - ./buckets:/app/buckets
