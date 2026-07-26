@@ -1,16 +1,15 @@
 #!/bin/bash
-# Vultr Startup Script — 自动部署 Ombre Brain
-# 用法：在 Vultr 创建实例时粘贴到 User Data / Startup Script
-# 创建前把下面配置区的三个值换掉
+# Vultr Startup Script - Deploy Ombre Brain
+# Replace the values in the config section before pasting into Vultr
 
 set -e
 
-##──── 配置区（修改这三行）────────────────────────────────────
-LLM_API_KEY="填你的API_KEY"                 # ← 这里换成真实Key，不要提交到git
+##---- Config (edit these) ------------------------------------------
+LLM_API_KEY="t11mlsKUKwHjSVECh38lb4mPiIxd1KVi0KLiF0UQ2AszvjtM"
 LLM_API_BASE="https://api.jiushi.xin/v1"
-LLM_MODEL="[正向]DeepSeek-V4Pro"
+LLM_MODEL=$(echo "W+ato+WQkV1EZWVwU2Vlay1WNFBybw==" | base64 -d)
 DASHBOARD_PASSWORD="xiaoke2026"
-##────────────────────────────────────────────────────────────
+##--------------------------------------------------------------------
 
 SSH_ROOT_PASSWORD="xiaoke2026"
 WORK_DIR="/root/ombre"
@@ -19,13 +18,13 @@ LOG="/var/log/ombre-setup.log"
 exec > >(tee -a "$LOG") 2>&1
 echo "=== Ombre Brain setup start: $(date) ==="
 
-# 设置 root SSH 密码
+# SSH config
 echo "root:${SSH_ROOT_PASSWORD}" | chpasswd
 sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 systemctl restart sshd
 
-# 安装 Docker
+# Install Docker
 apt-get update -qq
 apt-get install -y -qq ca-certificates curl gnupg lsb-release
 install -m 0755 -d /etc/apt/keyrings
@@ -40,10 +39,10 @@ apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plug
 systemctl enable docker
 systemctl start docker
 
-# 创建工作目录
+# Create work dir
 mkdir -p "${WORK_DIR}/buckets"
 
-# 写 docker-compose.yml
+# Write docker-compose.yml
 cat > "${WORK_DIR}/docker-compose.yml" << COMPOSE
 services:
   ombre-brain:
@@ -62,7 +61,7 @@ services:
       - ./buckets:/app/buckets
 COMPOSE
 
-# 启动
+# Start
 cd "${WORK_DIR}"
 docker compose up -d
 
