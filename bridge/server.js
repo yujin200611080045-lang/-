@@ -108,20 +108,23 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     console.log('[bridge] calling API, prompt bytes:', Buffer.byteLength(fullPrompt))
-    const stream = anthropic.messages.stream({
+    const stream = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 4096,
       messages: [{ role: 'user', content: fullPrompt }],
+      stream: true,
     })
 
     for await (const event of stream) {
       if (closed) break
+      console.log('[stream]', event.type, event.delta?.type ?? '')
       if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
         const text = event.delta.text
         responseText += text
         send({ text, sessionId })
       }
     }
+    console.log('[stream done] response length:', responseText.length)
   } catch (err) {
     console.error('[anthropic error]', err.message)
     send({ error: err.message })
