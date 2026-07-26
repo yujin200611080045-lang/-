@@ -72,14 +72,10 @@ app.post('/api/chat', async (req, res) => {
 
   console.log('[bridge] spawning claude, prompt length:', fullPrompt.length)
 
-  const claudeProc = spawn(CLAUDE_BIN, ['--print'], {
+  const claudeProc = spawn(CLAUDE_BIN, ['--print', fullPrompt], {
     cwd: REPO_PATH,
     env: { ...process.env },
-    stdio: ['pipe', 'pipe', 'pipe'],
   })
-
-  claudeProc.stdin.write(fullPrompt, 'utf8')
-  claudeProc.stdin.end()
 
   let responseText = ''
 
