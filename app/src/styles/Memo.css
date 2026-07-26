@@ -1,73 +1,318 @@
 .memo-wrap {
   flex: 1;
+  min-width: 0;
+  height: 200px;
+  position: relative;
+  overflow: visible;
+}
+
+/* ── Chibi chain attachment dot ── */
+.memo-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1.5px solid #4a5156;
+  z-index: 4;
+}
+
+/* ── Main index card ── */
+.memo-card {
+  position: absolute;
+  top: 14px; bottom: 0; left: 0; right: 0;
+  z-index: 3;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  min-height: 0;
+  background: #F7F6F3;
+  border-radius: 5px;
   overflow: hidden;
+  box-shadow:
+    3px 5px 14px rgba(0, 0, 0, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 
-.memo-label {
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-  text-transform: uppercase;
+/* ── Ruled sections ── */
+.memo-upper {
+  flex: 1;
+  padding: 0 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  background-color: #F7F6F3;
+  background-image: repeating-linear-gradient(
+    transparent, transparent 20px,
+    rgba(100, 130, 180, 0.18) 20px,
+    rgba(100, 130, 180, 0.18) 21px
+  );
+  background-attachment: local;
 }
 
-.memo-spacer {
-  height: 22px;
+.memo-center-line {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.18);
   flex-shrink: 0;
 }
 
-.memo-section {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.memo-lower {
+  flex: 1;
+  padding: 0 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  background-color: #F7F6F3;
+  background-image: repeating-linear-gradient(
+    transparent, transparent 20px,
+    rgba(100, 130, 180, 0.18) 20px,
+    rgba(100, 130, 180, 0.18) 21px
+  );
+  background-attachment: local;
 }
 
+/* ── Name labels in Pinyon Script ── */
 .memo-who {
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: var(--accent);
-  font-style: italic;
-  margin-bottom: 2px;
+  display: block;
+  font-family: 'Pinyon Script', cursive;
+  font-size: 15px;
+  color: #A89F94;
+  line-height: 21px;
 }
 
+/* ── Checklist items — each sits on one ruled line ── */
 .memo-item {
   display: flex;
-  align-items: flex-start;
-  gap: 7px;
+  align-items: baseline;
+  gap: 5px;
+  line-height: 21px;
   cursor: pointer;
 }
 
 .memo-dot {
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
-  background: var(--border);
+  background: #C0B8B0;
   flex-shrink: 0;
-  margin-top: 5px;
-  transition: background 0.2s;
+  position: relative;
+  top: -1px;
 }
 
 .memo-item.done .memo-dot { background: var(--accent); }
 
 .memo-text {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-family: 'Georgia', serif;
+  font-size: 10px;
+  color: #4a4540;
   font-weight: 300;
-  line-height: 1.5;
+  line-height: 21px;
 }
 
 .memo-item.done .memo-text {
-  color: var(--text-muted);
   text-decoration: line-through;
+  color: #C0B8B0;
 }
 
-.memo-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 6px 0;
-  flex-shrink: 0;
+/* ── Binder clip ── */
+.memo-clip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  cursor: pointer;
 }
+
+.memo-clip:active { opacity: 0.65; }
+
+/* ── Chibi ── */
+.memo-chibi-anchor {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 5;
+}
+
+.chibi-bubble {
+  position: absolute;
+  bottom: -72px;
+  left: 10px;
+  background: #fff;
+  border: 2px solid #24292e;
+  border-radius: 14px 14px 4px 14px;
+  padding: 7px 13px;
+  font-size: 13px;
+  color: #24292e;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+  box-shadow: 2px 2px 0 #24292e;
+  animation: bubble-pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.chibi-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 16px;
+  border: 7px solid transparent;
+  border-top-color: #24292e;
+}
+
+.chibi-bubble::before {
+  content: '';
+  position: absolute;
+  top: calc(100% - 2px);
+  right: 18px;
+  border: 6px solid transparent;
+  border-top-color: #fff;
+  z-index: 1;
+}
+
+@keyframes bubble-pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.memo-chibi-swing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: top center;
+  animation: chibi-swing 3s ease-in-out infinite;
+}
+
+.memo-chain { display: block; flex-shrink: 0; }
+
+.memo-chibi {
+  width: 130px;
+  height: auto;
+  display: block;
+  margin-top: -50px;
+}
+
+@keyframes chibi-swing {
+  0%   { transform: rotate(-11deg); }
+  50%  { transform: rotate(11deg);  }
+  100% { transform: rotate(-11deg); }
+}
+
+/* ── Modal ── */
+.memo-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+
+.memo-modal {
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  padding: 0 24px calc(24px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.memo-modal-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 12px auto 6px;
+  opacity: 0.4;
+}
+
+.memo-choose-title {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: -4px;
+}
+
+.memo-choose-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.memo-choose-btn {
+  flex: 1;
+  padding: 18px 0;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Pinyon Script', cursive;
+  font-size: 26px;
+  color: var(--text-secondary);
+  transition: border-color 0.15s, color 0.15s;
+  line-height: 1;
+}
+
+.memo-choose-btn:active {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+/* ── Step 2: name prefix + input on same row ── */
+.memo-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--bg);
+}
+
+.memo-input-who {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 22px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.memo-modal-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  padding: 0;
+  font-family: inherit;
+}
+
+.memo-modal-input::placeholder { color: var(--text-muted); }
+
+.memo-modal-submit {
+  padding: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  background: var(--text-primary);
+  color: var(--bg);
+  font-size: 14px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+
+.memo-modal-submit:active { opacity: 0.8; }

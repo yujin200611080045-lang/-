@@ -1,0 +1,371 @@
+.companion-page {
+  width: 100%;
+  height: 100dvh;
+  background: var(--bg-main, #fafaf9);
+  position: relative;
+  transition: background 0.45s ease;
+}
+
+.companion-page.offline {
+  background: #000;
+}
+
+/* ── top bar — sits below system status bar via safe-area-inset-top ── */
+.chat-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(54px + env(safe-area-inset-top, 44px));
+  padding-top: env(safe-area-inset-top, 44px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10px;
+  background: var(--bg-main, #fafaf9);
+  z-index: 30;
+  transition: background 0.45s ease;
+}
+
+.offline .chat-topbar {
+  background: #000;
+}
+
+.chat-name {
+  background: #111;
+  color: #fff;
+  padding: 4px 18px;
+  border-radius: 5px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.45s ease, color 0.45s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chat-name.offline {
+  background: #fff;
+  color: #111;
+}
+
+/* ── messages — between top bar and input bar ── */
+.chat-messages {
+  position: absolute;
+  top: calc(54px + env(safe-area-inset-top, 44px));
+  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-bubble {
+  background: #111;
+  color: #fff;
+  border-radius: 18px;
+  padding: 10px 14px;
+  max-width: 72%;
+  font-size: 15px;
+  word-break: break-word;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bubble-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.bubble-time {
+  font-size: 10px;
+  opacity: 0.5;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-bottom: 1px;
+}
+
+.chat-bubble.sent {
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.received {
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+/* ── input bar — flush at bottom, env() only fills safe area color ── */
+.chat-inputbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 1px 14px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--bg-main, #fafaf9);
+  z-index: 30;
+  transition: background 0.45s ease;
+}
+
+.chat-inputbar.offline {
+  background: #000;
+}
+
+.chat-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  padding: 6px 0;
+  font-family: inherit;
+  color: var(--text-primary, #111);
+  transition: color 0.45s ease;
+}
+
+.offline .chat-input {
+  color: #fff;
+}
+
+.chat-input::placeholder {
+  color: var(--text-muted, #bbb);
+  font-style: italic;
+}
+
+.offline .chat-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.chat-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--text-primary, #111);
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.45s ease;
+}
+
+.offline .chat-icon-btn {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.heart-btn {
+  color: #e03060;
+  font-size: 20px;
+}
+
+.offline .heart-btn {
+  color: #e03060;
+}
+
+.ai-trigger-btn {
+  opacity: 0;
+  pointer-events: auto;
+}
+
+/* ── typing indicator inside received bubble ── */
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+  animation: typing-bounce 1.1s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.18s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0);    opacity: 0.35; }
+  30%            { transform: translateY(-5px); opacity: 1;    }
+}
+
+/* ── panels slide up from above input bar ── */
+.chat-plus-panel {
+  position: fixed;
+  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  background: var(--bg-card, #fff);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 18px 16px;
+  z-index: 35;
+}
+
+.plus-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 20px;
+  border: none;
+  background: rgba(0,0,0,0.04);
+  cursor: pointer;
+  border-radius: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.plus-opt-icon { font-size: 26px; }
+.plus-opt-label { font-size: 11px; color: var(--text-muted, #888); }
+
+.chat-emoji-panel {
+  position: fixed;
+  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  background: var(--bg-card, #fff);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  padding: 10px 8px;
+  gap: 2px;
+  z-index: 35;
+}
+
+.emoji-btn {
+  border: none;
+  background: none;
+  font-size: 24px;
+  padding: 8px 2px;
+  cursor: pointer;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+  Puddle overlay: position matches Have page layout.
+  Have page centers scene with margin-bottom:100px → scene top = 50% - 150px.
+*/
+.puddle-overlay {
+  position: fixed;
+  left: 50%;
+  top: calc(50% - 150px);
+  transform: translateX(-50%);
+  z-index: 50;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── floating draggable character ── */
+.chibi-float {
+  position: fixed;
+  width: 80px;
+  z-index: 100;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
+}
+
+.chibi-float.grabbing {
+  cursor: grabbing;
+}
+
+/* ── emotion burst from floating chibi ── */
+.chibi-burst {
+  position: fixed;
+  pointer-events: none;
+  z-index: 102;
+}
+
+.burst-symbol {
+  position: absolute;
+  line-height: 1;
+  opacity: 0;
+  animation: burst-float 1.9s ease-out var(--delay, 0s) forwards;
+  color: #e03060;
+}
+
+@keyframes burst-float {
+  0%   { opacity: 0;    transform: translate(0, 0) scale(0.35); }
+  16%  { opacity: 0.92; transform: translate(calc(var(--tx) * 0.12), -9px) scale(1.05); }
+  55%  { opacity: 0.7;  transform: translate(calc(var(--tx) * 0.6), calc(var(--ty) * 0.55)) scale(0.9); }
+  100% { opacity: 0;    transform: translate(var(--tx), var(--ty)) scale(0.65); }
+}
+
+/* ── offline (线下) narrative mode ── */
+.offline .chat-messages {
+  gap: 20px;
+  padding: 20px 24px;
+}
+
+.offline-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.offline-msg.sent .offline-para {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.offline-msg.received .offline-para {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.offline-para {
+  margin: 0;
+  text-indent: 2em;
+  line-height: 1.85;
+  font-size: 15px;
+  word-break: break-word;
+}
+
+.offline-para + .offline-para {
+  margin-top: 0.6em;
+}
+
+.offline-para em {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* bare typing dots in offline mode */
+.offline-typing {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 0 4px 2em;
+}
+
+.offline-typing span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  animation: typing-bounce 1.1s ease-in-out infinite;
+}
+
+.offline-typing span:nth-child(2) { animation-delay: 0.18s; }
+.offline-typing span:nth-child(3) { animation-delay: 0.36s; }

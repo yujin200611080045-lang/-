@@ -1,0 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Pinyon+Script&display=swap');
+
+.lw-wrap {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0 4px 4px;
+  cursor: default;
+  user-select: none;
+}
+
+.lw-done {
+  cursor: pointer;
+}
+
+.lw-flourish {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 15px;
+  color: #808a92;
+  display: block;
+  margin-bottom: 6px;
+  opacity: 0.75;
+  letter-spacing: 0.3px;
+}
+
+.lw-text {
+  margin: 0;
+  line-height: 2.2;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.lw-line1 { padding-left: 3.5em; padding-top: 16px; }
+.lw-line2 { padding-left: 0.8em; margin-top: 6px; }
+
+.lw-main {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 12px;
+  color: #4a5156;
+}
+
+.lw-hi {
+  font-family: 'Liu Jian Mao Cao', cursive;
+  font-size: 26px;
+  color: #24292e;
+  letter-spacing: 1px;
+  vertical-align: -6px;
+}
+
+.lw-cursor {
+  display: inline-block;
+  width: 1.5px;
+  height: 14px;
+  background: #808a92;
+  margin-left: 1px;
+  vertical-align: middle;
+  animation: lw-blink 0.8s step-end infinite;
+}
+
+@keyframes lw-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── book panel ── */
+
+.lw-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.lw-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 13, 14, 0.32);
+  cursor: pointer;
+}
+
+.lw-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-height: 82vh;
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border);
+  padding: 16px 24px calc(28px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  animation: lw-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes lw-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.lw-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  opacity: 0.2;
+  margin: 0 auto 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-height: 4px;
+}
+
+.lw-panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.lw-panel-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.lw-panel-sub {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 15px;
+  color: #808a92;
+}
+
+.lw-books {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  padding: 2px 0 8px;
+}
+
+.lw-book {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(15, 13, 14, 0.07);
+}
+
+.lw-book:last-child {
+  border-bottom: none;
+}
+
+.lw-book-mark {
+  font-size: 20px;
+  color: #bdc7ce;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.lw-book-name {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 15px;
+  color: var(--text-secondary);
+  transition: opacity 0.2s;
+}
+
+.lw-book-done {
+  text-decoration: line-through;
+  opacity: 0.35;
+}
+
+.lw-book-add {
+  cursor: text;
+}
+
+.lw-add-inline {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 15px;
+  color: var(--text-secondary);
+  padding: 0;
+  font-size: 16px;
+}
+
+.lw-add-inline::placeholder {
+  color: var(--border);
+  font-family: inherit;
+  font-size: 14px;
+}

@@ -4,7 +4,7 @@ import '../styles/NavBar.css'
 const TABS = [
   { word: 'If',    path: '/' },
   { word: 'we',    path: '/chat' },
-  { word: 'have',  path: '/diary' },
+  { word: 'have',  path: '/have' },
   { word: 'each',  path: '/each' },
   { word: 'other', path: '/settings' },
 ]
