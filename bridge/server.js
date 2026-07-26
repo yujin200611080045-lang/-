@@ -4,6 +4,15 @@ import { spawn } from 'child_process'
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// claude binary installed via npm optional deps
+const CLAUDE_BIN = [
+  path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64/claude'),
+  path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64-musl/claude'),
+  path.join(__dirname, 'node_modules/.bin/claude'),
+].find(p => fs.existsSync(p)) || 'claude'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -62,7 +71,7 @@ app.post('/api/chat', async (req, res) => {
 
   let responseText = ''
 
-  const claudeProc = spawn('claude', [
+  const claudeProc = spawn(CLAUDE_BIN, [
     '--print',
     '--dangerously-skip-permissions',
   ], {
