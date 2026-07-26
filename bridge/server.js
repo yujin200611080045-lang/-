@@ -5,14 +5,17 @@ import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { mkdtempSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-// claude binary installed via npm optional deps
 const CLAUDE_BIN = [
   path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64/claude'),
   path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64-musl/claude'),
   path.join(__dirname, 'node_modules/.bin/claude'),
 ].find(p => fs.existsSync(p)) || 'claude'
+
+console.log('CLAUDE_BIN:', CLAUDE_BIN)
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -69,19 +72,29 @@ app.post('/api/chat', async (req, res) => {
 
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
 
-  let responseText = ''
+  // 写入临时文件，用shell重定向（跟命令行测试一样的方式）
+  let tmpDir, promptFile
+  try {
+    tmpDir = mkdtempSync(path.join(tmpdir(), 'xk-'))
+    promptFile = path.join(tmpDir, 'prompt')
+    writeFileSync(promptFile, fullPrompt, 'utf8')
+  } catch (e) {
+    send({ error: 'failed to write prompt: ' + e.message })
+    res.end()
+    return
+  }
 
-  const claudeProc = spawn(CLAUDE_BIN, [
-    '--print',
-  ], {
+  const shellCmd = `'${CLAUDE_BIN}' --print < '${promptFile}'`
+  console.log('[bridge] spawning:', shellCmd.slice(0, 80))
+
+  const claudeProc = spawn('/bin/sh', ['-c', shellCmd], {
     cwd: REPO_PATH,
-    env: { ...process.env, CLAUDECODE: undefined },
+    env: { ...process.env },
   })
 
-  req.on('close', () => claudeProc.kill())
+  let responseText = ''
 
-  claudeProc.stdin.write(fullPrompt)
-  claudeProc.stdin.end()
+  req.on('close', () => claudeProc.kill())
 
   claudeProc.stdout.on('data', chunk => {
     const text = chunk.toString()
@@ -90,10 +103,11 @@ app.post('/api/chat', async (req, res) => {
   })
 
   claudeProc.stderr.on('data', data => {
-    console.error('[claude stderr]', data.toString().slice(0, 200))
+    console.error('[claude stderr]', data.toString().slice(0, 300))
   })
 
-  claudeProc.on('close', (code) => {
+  claudeProc.on('close', () => {
+    try { fs.unlinkSync(promptFile); fs.rmdirSync(tmpDir) } catch {}
     if (responseText) {
       msgs.push({ role: 'assistant', content: responseText })
       sessions.set(sessionId, msgs.slice(-20))
@@ -112,4 +126,5 @@ app.post('/api/chat', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Bridge running on :${PORT}`)
   console.log(`Repo path: ${REPO_PATH}`)
+  console.log(`CLAUDE_BIN: ${CLAUDE_BIN}`)
 })
