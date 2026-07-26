@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { spawn } from 'child_process'
+import { spawn, execFile } from 'child_process'
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
@@ -36,7 +36,7 @@ app.use(cors({ origin: FRONTEND_ORIGIN }))
 app.use(express.json())
 
 app.use((req, res, next) => {
-  if (req.path === '/health') return next()
+  if (req.path === '/health' || req.path === '/api/debug') return next()
   if (!SECRET) return next()
   const token = req.headers['x-bridge-secret']
   if (token !== SECRET) return res.status(401).json({ error: 'unauthorized' })
@@ -46,6 +46,23 @@ app.use((req, res, next) => {
 const sessions = new Map()
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
+
+// Debug endpoint — no auth, runs claude with "hello" and returns raw output
+app.get('/api/debug', (req, res) => {
+  execFile(CLAUDE_BIN, ['--print', 'hello, say hi back in one sentence'], {
+    cwd: REPO_PATH,
+    env: { ...process.env },
+    timeout: 30000,
+  }, (err, stdout, stderr) => {
+    res.json({
+      bin: CLAUDE_BIN,
+      err: err ? err.message : null,
+      exitCode: err?.code ?? 0,
+      stdout: stdout?.slice(0, 500),
+      stderr: stderr?.slice(0, 500),
+    })
+  })
+})
 
 app.post('/api/chat', async (req, res) => {
   const { message, sessionId: clientSessionId } = req.body
@@ -70,11 +87,12 @@ app.post('/api/chat', async (req, res) => {
 
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
 
-  console.log('[bridge] spawning claude, prompt length:', fullPrompt.length)
+  console.log('[bridge] spawning, prompt bytes:', Buffer.byteLength(fullPrompt, 'utf8'))
 
   const claudeProc = spawn(CLAUDE_BIN, ['--print', fullPrompt], {
     cwd: REPO_PATH,
     env: { ...process.env },
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
 
   let responseText = ''
@@ -83,16 +101,17 @@ app.post('/api/chat', async (req, res) => {
 
   claudeProc.stdout.on('data', chunk => {
     const text = chunk.toString()
+    console.log('[claude stdout]', JSON.stringify(text.slice(0, 80)))
     responseText += text
     send({ text, sessionId })
   })
 
   claudeProc.stderr.on('data', data => {
-    console.error('[claude stderr]', data.toString().slice(0, 300))
+    console.error('[claude stderr]', data.toString().slice(0, 500))
   })
 
-  claudeProc.on('close', (code) => {
-    console.log('[claude exit]', code, 'response length:', responseText.length)
+  claudeProc.on('close', (code, signal) => {
+    console.log('[claude exit] code:', code, 'signal:', signal, 'response bytes:', responseText.length)
     if (responseText) {
       msgs.push({ role: 'assistant', content: responseText })
       sessions.set(sessionId, msgs.slice(-20))
