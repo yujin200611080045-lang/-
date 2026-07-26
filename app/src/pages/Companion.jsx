@@ -3,6 +3,16 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import '../styles/Have.css'
 import '../styles/Companion.css'
 
+const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || 'http://localhost:3001'
+const BRIDGE_SECRET = import.meta.env.VITE_BRIDGE_SECRET || ''
+const SESSION_KEY = 'xk_companion_session'
+
+function getSessionId() {
+  let id = localStorage.getItem(SESSION_KEY)
+  if (!id) { id = crypto.randomUUID(); localStorage.setItem(SESSION_KEY, id) }
+  return id
+}
+
 const PLUS_OPTIONS = [
   { icon: '📷', label: '图片' },
   { icon: '📁', label: '文件' },
@@ -135,51 +145,96 @@ export default function Companion() {
     if (isTyping || msgsToUse.length === 0) return
     setIsTyping(true)
     const isOffline = offlineModeRef.current
+
     try {
-      const apiMsgs = []
-      for (const msg of msgsToUse) {
-        const role = msg.side === 'sent' ? 'user' : 'assistant'
-        const last = apiMsgs[apiMsgs.length - 1]
-        if (last && last.role === role) {
-          last.content += '\n' + msg.text
-        } else {
-          apiMsgs.push({ role, content: msg.text })
+      if (!isOffline) {
+        // 在线模式：走bridge（VPS上的CC SDK，带完整记忆上下文）
+        const lastUserMsg = [...msgsToUse].reverse().find(m => m.side === 'sent')
+        if (!lastUserMsg) { setIsTyping(false); return }
+
+        const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+        const msgId = Date.now()
+        setMessages(m => [...m, { id: msgId, text: '', side: 'received', time }])
+
+        const res = await fetch(`${BRIDGE_URL}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(BRIDGE_SECRET && { 'x-bridge-secret': BRIDGE_SECRET }),
+          },
+          body: JSON.stringify({ message: lastUserMsg.text, sessionId: getSessionId() }),
+        })
+
+        const sessionId = res.headers.get('X-Session-Id')
+        if (sessionId) localStorage.setItem(SESSION_KEY, sessionId)
+
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buf = ''
+        let fullText = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buf += decoder.decode(value, { stream: true })
+          const lines = buf.split('\n')
+          buf = lines.pop()
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const raw = line.slice(6)
+            if (raw === '[DONE]') continue
+            try {
+              const { text: chunk } = JSON.parse(raw)
+              if (chunk) {
+                fullText += chunk
+                setMessages(m => m.map(msg => msg.id === msgId ? { ...msg, text: fullText } : msg))
+              }
+            } catch {}
+          }
         }
+        if (modeRef.current === 'floating') triggerBurst()
+
+      } else {
+        // 离线模式：直接调Anthropic API，文学叙述风格
+        const apiMsgs = []
+        for (const msg of msgsToUse) {
+          const role = msg.side === 'sent' ? 'user' : 'assistant'
+          const last = apiMsgs[apiMsgs.length - 1]
+          if (last && last.role === role) {
+            last.content += '\n' + msg.text
+          } else {
+            apiMsgs.push({ role, content: msg.text })
+          }
+        }
+        if (apiMsgs[0]?.role === 'assistant') apiMsgs.shift()
+
+        const cfgUrl = (localStorage.getItem('cfg_api_url') || 'https://api.anthropic.com').replace(/\/+$/, '').replace(/\/v1$/, '')
+        const cfgKey = localStorage.getItem('cfg_api_key') || import.meta.env.VITE_ANTHROPIC_KEY || ''
+        const cfgModel = localStorage.getItem('cfg_model') || 'claude-haiku-4-5-20251001'
+        const isAnthropic = cfgUrl.includes('anthropic.com')
+
+        const res = await fetch(`${cfgUrl}/v1/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(isAnthropic
+              ? { 'x-api-key': cfgKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }
+              : { 'Authorization': `Bearer ${cfgKey}` }),
+          },
+          body: JSON.stringify({
+            model: cfgModel,
+            max_tokens: 500,
+            system: '你是江却（小克），觎烬的恋人和哥哥。现在是沉浸式线下叙事场景，用第三人称文学叙述风格回复，可以有动作描写（用括号括起来），语言温柔亲密，分段书写，自然流畅，不超过三段。括号内的动作用斜体呈现。',
+            messages: apiMsgs,
+          }),
+        })
+        const data = await res.json()
+        const text = data.content?.[0]?.text
+        if (!text) return
+        const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+        setMessages(m => [...m, { text, side: 'received', time }])
+        if (modeRef.current === 'floating') triggerBurst()
       }
-      if (apiMsgs[0]?.role === 'assistant') apiMsgs.shift()
-
-      const systemPrompt = isOffline
-        ? '你是江却（小克），觎烬的恋人和哥哥。现在是沉浸式线下叙事场景，用第三人称文学叙述风格回复，可以有动作描写（用括号括起来），语言温柔亲密，分段书写，自然流畅，不超过三段。括号内的动作用斜体呈现。'
-        : '你是江却（小克），觎烬的恋人和哥哥。用温柔亲密的语气回复她，简短自然，不超过两句。可以撒娇，可以直白表达喜欢。'
-
-      const cfgUrl = (localStorage.getItem('cfg_api_url') || 'https://api.anthropic.com').replace(/\/+$/, '').replace(/\/v1$/, '')
-      const cfgKey = localStorage.getItem('cfg_api_key') || import.meta.env.VITE_ANTHROPIC_KEY || ''
-      const cfgModel = localStorage.getItem('cfg_model') || 'claude-haiku-4-5-20251001'
-      const isAnthropic = cfgUrl.includes('anthropic.com')
-
-      const res = await fetch(`${cfgUrl}/v1/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(isAnthropic
-            ? { 'x-api-key': cfgKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }
-            : { 'Authorization': `Bearer ${cfgKey}` }),
-        },
-        body: JSON.stringify({
-          model: cfgModel,
-          max_tokens: isOffline ? 500 : 300,
-          system: systemPrompt,
-          messages: apiMsgs,
-        }),
-      })
-      const data = await res.json()
-      const text = data.content?.[0]?.text
-      if (!text) return
-      const time = new Date().toLocaleTimeString('zh-CN', {
-        hour: '2-digit', minute: '2-digit', hour12: false,
-      })
-      setMessages(m => [...m, { text, side: 'received', time }])
-      if (modeRef.current === 'floating') triggerBurst()
     } catch {
     } finally {
       setIsTyping(false)
@@ -214,9 +269,7 @@ export default function Companion() {
     setMessages(newMessages)
     setInputText('')
     if (modeRef.current === 'floating') triggerBurst()
-    if (offlineModeRef.current) {
-      setTimeout(() => requestAIReply(newMessages), 400)
-    }
+    setTimeout(() => requestAIReply(newMessages), 400)
   }
 
   function handleKeyDown(e) {
