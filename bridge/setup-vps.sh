@@ -6,9 +6,9 @@
 set -e
 
 ##──── 配置区（修改这三行）────────────────────────────────────
-LLM_API_KEY="你的中转站API_KEY"
-LLM_API_BASE="https://你的中转站域名/v1"   # OpenAI兼容格式，末尾加/v1
-LLM_MODEL="deepseek-chat"                  # 换成你中转站支持的模型名
+LLM_API_KEY="填你的API_KEY"                 # ← 这里换成真实Key，不要提交到git
+LLM_API_BASE="https://api.jiushi.xin/v1"
+LLM_MODEL="[正向]DeepSeek-V4Pro"
 DASHBOARD_PASSWORD="xiaoke2026"
 ##────────────────────────────────────────────────────────────
 
