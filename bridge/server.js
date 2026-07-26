@@ -73,7 +73,6 @@ app.post('/api/chat', async (req, res) => {
 
   const claudeProc = spawn(CLAUDE_BIN, [
     '--print',
-    '--dangerously-skip-permissions',
   ], {
     cwd: REPO_PATH,
     env: { ...process.env, CLAUDECODE: undefined },
