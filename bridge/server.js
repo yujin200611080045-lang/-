@@ -1,25 +1,43 @@
 import express from 'express'
 import cors from 'cors'
-import { spawn, execFile } from 'child_process'
+import Anthropic from '@anthropic-ai/sdk'
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const CLAUDE_BIN = [
-  path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64/claude'),
-  path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64-musl/claude'),
-  path.join(__dirname, 'node_modules/.bin/claude'),
-].find(p => fs.existsSync(p)) || 'claude'
 
-console.log('CLAUDE_BIN:', CLAUDE_BIN)
+function getApiKey() {
+  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY
+  // Try to read from cc CLI config
+  const candidates = [
+    path.join(os.homedir(), '.claude', 'config.json'),
+    path.join(os.homedir(), '.claude', '.credentials.json'),
+    path.join(os.homedir(), '.config', 'claude', 'config.json'),
+  ]
+  for (const p of candidates) {
+    try {
+      const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
+      const key = data.apiKey || data.api_key || data.ANTHROPIC_API_KEY
+      if (key?.startsWith('sk-')) return key
+    } catch {}
+  }
+  return null
+}
+
+const apiKey = getApiKey()
+console.log('[bridge] API key present:', !!apiKey)
+
+const anthropic = apiKey ? new Anthropic({ apiKey }) : null
 
 const app = express()
 const PORT = process.env.PORT || 3001
 const SECRET = process.env.BRIDGE_SECRET
 const REPO_PATH = process.env.REPO_PATH || '/root/repo'
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*'
+const MODEL = process.env.CLAUDE_MODEL || 'claude-opus-4-5'
 
 function readFileOr(p, fallback = '') {
   try { return fs.readFileSync(p, 'utf-8') } catch { return fallback }
@@ -45,26 +63,23 @@ app.use((req, res, next) => {
 
 const sessions = new Map()
 
-app.get('/health', (_req, res) => res.json({ ok: true }))
+app.get('/health', (_req, res) => res.json({ ok: true, hasApiKey: !!apiKey }))
 
-// Debug endpoint — no auth, runs claude with "hello" and returns raw output
-app.get('/api/debug', (req, res) => {
-  execFile(CLAUDE_BIN, ['--print', 'hello, say hi back in one sentence'], {
-    cwd: REPO_PATH,
-    env: { ...process.env },
-    timeout: 30000,
-  }, (err, stdout, stderr) => {
-    res.json({
-      bin: CLAUDE_BIN,
-      err: err ? err.message : null,
-      exitCode: err?.code ?? 0,
-      stdout: stdout?.slice(0, 500),
-      stderr: stderr?.slice(0, 500),
-    })
+app.get('/api/debug', (_req, res) => {
+  res.json({
+    ok: true,
+    hasApiKey: !!apiKey,
+    model: MODEL,
+    repoPath: REPO_PATH,
+    claudeMdExists: fs.existsSync(path.join(REPO_PATH, 'CLAUDE.md')),
   })
 })
 
 app.post('/api/chat', async (req, res) => {
+  if (!anthropic) {
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on server' })
+  }
+
   const { message, sessionId: clientSessionId } = req.body
   if (!message?.trim()) return res.status(400).json({ error: 'message required' })
 
@@ -87,48 +102,42 @@ app.post('/api/chat', async (req, res) => {
 
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
 
-  console.log('[bridge] spawning, prompt bytes:', Buffer.byteLength(fullPrompt, 'utf8'))
-
-  const claudeProc = spawn(CLAUDE_BIN, ['--print', fullPrompt], {
-    cwd: REPO_PATH,
-    env: { ...process.env },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
-
   let responseText = ''
+  let closed = false
+  req.on('close', () => { closed = true })
 
-  req.on('close', () => claudeProc.kill())
+  try {
+    console.log('[bridge] calling API, prompt bytes:', Buffer.byteLength(fullPrompt))
+    const stream = anthropic.messages.stream({
+      model: MODEL,
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: fullPrompt }],
+    })
 
-  claudeProc.stdout.on('data', chunk => {
-    const text = chunk.toString()
-    console.log('[claude stdout]', JSON.stringify(text.slice(0, 80)))
-    responseText += text
-    send({ text, sessionId })
-  })
-
-  claudeProc.stderr.on('data', data => {
-    console.error('[claude stderr]', data.toString().slice(0, 500))
-  })
-
-  claudeProc.on('close', (code, signal) => {
-    console.log('[claude exit] code:', code, 'signal:', signal, 'response bytes:', responseText.length)
-    if (responseText) {
-      msgs.push({ role: 'assistant', content: responseText })
-      sessions.set(sessionId, msgs.slice(-20))
+    for await (const event of stream) {
+      if (closed) break
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        const text = event.delta.text
+        responseText += text
+        send({ text, sessionId })
+      }
     }
-    send('[DONE]')
-    res.end()
-  })
-
-  claudeProc.on('error', (err) => {
-    console.error('[claude spawn error]', err.message)
+  } catch (err) {
+    console.error('[anthropic error]', err.message)
     send({ error: err.message })
-    res.end()
-  })
+  }
+
+  if (responseText) {
+    msgs.push({ role: 'assistant', content: responseText })
+    sessions.set(sessionId, msgs.slice(-20))
+  }
+  send('[DONE]')
+  res.end()
 })
 
 app.listen(PORT, () => {
   console.log(`Bridge running on :${PORT}`)
   console.log(`Repo path: ${REPO_PATH}`)
-  console.log(`CLAUDE_BIN: ${CLAUDE_BIN}`)
+  console.log(`Model: ${MODEL}`)
+  console.log(`API key present: ${!!apiKey}`)
 })
