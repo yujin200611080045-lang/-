@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { query } from '@anthropic-ai/claude-code'
+import { spawn } from 'child_process'
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
@@ -25,16 +25,14 @@ function loadMemoryContext() {
 app.use(cors({ origin: FRONTEND_ORIGIN }))
 app.use(express.json())
 
-// 认证中间件（除了 /health）
 app.use((req, res, next) => {
   if (req.path === '/health') return next()
-  if (!SECRET) return next() // 未配置时跳过
+  if (!SECRET) return next()
   const token = req.headers['x-bridge-secret']
   if (token !== SECRET) return res.status(401).json({ error: 'unauthorized' })
   next()
 })
 
-// 内存会话：最近 20 条消息
 const sessions = new Map()
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
@@ -47,7 +45,6 @@ app.post('/api/chat', async (req, res) => {
   const msgs = sessions.get(sessionId) || []
   msgs.push({ role: 'user', content: message })
 
-  // 把历史拼进 prompt，让 CC 有上下文
   const context = loadMemoryContext()
   const histLines = msgs.slice(0, -1).map(m =>
     `${m.role === 'user' ? '她（觎烬）' : '小克'}：${m.content}`
@@ -55,7 +52,6 @@ app.post('/api/chat', async (req, res) => {
   const history = histLines.length ? histLines.join('\n') + '\n\n' : ''
   const fullPrompt = `${context}\n\n---\n\n${history}她（觎烬）：${message}`
 
-  // SSE 流式输出
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
@@ -65,46 +61,47 @@ app.post('/api/chat', async (req, res) => {
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
 
   let responseText = ''
-  const ac = new AbortController()
-  req.on('close', () => ac.abort())
 
-  try {
-    for await (const msg of query({
-      prompt: fullPrompt,
-      abortController: ac,
-      options: {
-        maxTurns: 1,
-        cwd: REPO_PATH,
-      },
-    })) {
-      if (msg.type === 'assistant') {
-        const text = msg.message.content
-          .filter(b => b.type === 'text')
-          .map(b => b.text)
-          .join('')
-        if (text) {
-          responseText += text
-          send({ text, sessionId })
-        }
-      }
+  const claudeProc = spawn('claude', [
+    '--print',
+    '--dangerously-skip-permissions',
+  ], {
+    cwd: REPO_PATH,
+    env: { ...process.env, CLAUDECODE: undefined },
+  })
+
+  req.on('close', () => claudeProc.kill())
+
+  claudeProc.stdin.write(fullPrompt)
+  claudeProc.stdin.end()
+
+  claudeProc.stdout.on('data', chunk => {
+    const text = chunk.toString()
+    responseText += text
+    send({ text, sessionId })
+  })
+
+  claudeProc.stderr.on('data', data => {
+    console.error('[claude stderr]', data.toString().slice(0, 200))
+  })
+
+  claudeProc.on('close', (code) => {
+    if (responseText) {
+      msgs.push({ role: 'assistant', content: responseText })
+      sessions.set(sessionId, msgs.slice(-20))
     }
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      send({ error: e.message })
-    }
-  }
+    send('[DONE]')
+    res.end()
+  })
 
-  if (responseText) {
-    msgs.push({ role: 'assistant', content: responseText })
-    sessions.set(sessionId, msgs.slice(-20))
-  }
-
-  send('[DONE]')
-  res.end()
+  claudeProc.on('error', (err) => {
+    console.error('[claude spawn error]', err.message)
+    send({ error: err.message })
+    res.end()
+  })
 })
 
 app.listen(PORT, () => {
   console.log(`Bridge running on :${PORT}`)
   console.log(`Repo path: ${REPO_PATH}`)
-  console.log(`Frontend origin: ${FRONTEND_ORIGIN}`)
 })
