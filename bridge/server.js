@@ -5,8 +5,6 @@ import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { mkdtempSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CLAUDE_BIN = [
@@ -72,25 +70,16 @@ app.post('/api/chat', async (req, res) => {
 
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
 
-  // 写入临时文件，用shell重定向（跟命令行测试一样的方式）
-  let tmpDir, promptFile
-  try {
-    tmpDir = mkdtempSync(path.join(tmpdir(), 'xk-'))
-    promptFile = path.join(tmpDir, 'prompt')
-    writeFileSync(promptFile, fullPrompt, 'utf8')
-  } catch (e) {
-    send({ error: 'failed to write prompt: ' + e.message })
-    res.end()
-    return
-  }
+  console.log('[bridge] spawning claude, prompt length:', fullPrompt.length)
 
-  const shellCmd = `'${CLAUDE_BIN}' --print < '${promptFile}'`
-  console.log('[bridge] spawning:', shellCmd.slice(0, 80))
-
-  const claudeProc = spawn('/bin/sh', ['-c', shellCmd], {
+  const claudeProc = spawn(CLAUDE_BIN, ['--print'], {
     cwd: REPO_PATH,
     env: { ...process.env },
+    stdio: ['pipe', 'pipe', 'pipe'],
   })
+
+  claudeProc.stdin.write(fullPrompt, 'utf8')
+  claudeProc.stdin.end()
 
   let responseText = ''
 
@@ -106,8 +95,8 @@ app.post('/api/chat', async (req, res) => {
     console.error('[claude stderr]', data.toString().slice(0, 300))
   })
 
-  claudeProc.on('close', () => {
-    try { fs.unlinkSync(promptFile); fs.rmdirSync(tmpDir) } catch {}
+  claudeProc.on('close', (code) => {
+    console.log('[claude exit]', code, 'response length:', responseText.length)
     if (responseText) {
       msgs.push({ role: 'assistant', content: responseText })
       sessions.set(sessionId, msgs.slice(-20))
