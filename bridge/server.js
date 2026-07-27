@@ -144,8 +144,9 @@ async function textToSpeech(text) {
       headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: text.slice(0, 4000),
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+        model_id: 'eleven_flash_v2_5',
+        language_code: 'zh',
+        voice_settings: { stability: 0.7, similarity_boost: 0.8 },
       }),
       signal: AbortSignal.timeout(30000),
     })
