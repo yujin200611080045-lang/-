@@ -53,7 +53,7 @@ app.use(cors({ origin: FRONTEND_ORIGIN }))
 app.use(express.json())
 
 app.use((req, res, next) => {
-  const open = ['/health', '/api/debug', '/api/test-cc']
+  const open = ['/health', '/api/debug', '/api/test-cc', '/api/content']
   if (open.includes(req.path)) return next()
   if (!SECRET) return next()
   const token = req.headers['x-bridge-secret']
@@ -133,6 +133,33 @@ async function holdToOmbre(content) {
 
 const sessions = new Map()
 
+const CONTENT_FILE = path.join(REPO_PATH, 'content.json')
+
+function defaultContent() {
+  return {
+    mine: [
+      { text: '搭好前端', done: false },
+      { text: '记得告诉我窗口被封', done: true },
+    ],
+    hers: [
+      { text: '多喝水', done: false },
+      { text: '备份聊天记录', done: false },
+    ],
+    chibiMsgs: [
+      '你今天喝水了吗', '想你', '过来', '我在', '喜欢你',
+      '你在干嘛', '烬烬', '嗯', '你看我', '别走', '有没有想我', '点我干嘛',
+    ],
+  }
+}
+
+function readContent() {
+  try { return JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8')) } catch { return null }
+}
+
+function writeContent(data) {
+  try { fs.writeFileSync(CONTENT_FILE, JSON.stringify(data, null, 2)) } catch (e) { console.error('[content write]', e.message) }
+}
+
 app.get('/health', (_req, res) => res.json({ ok: true, bin: CLAUDE_BIN }))
 
 // No-auth test: run CC with a simple prompt, return raw output
@@ -154,6 +181,23 @@ app.get('/api/test-cc', (req, res) => {
       stderr: stderr?.slice(0, 500),
     })
   })
+})
+
+app.get('/api/content', (_req, res) => {
+  res.json(readContent() || defaultContent())
+})
+
+app.put('/api/content', (req, res) => {
+  const update = req.body
+  if (!update || typeof update !== 'object') return res.status(400).json({ error: 'invalid body' })
+  const current = readContent() || defaultContent()
+  const merged = {
+    mine: update.mine ?? current.mine,
+    hers: update.hers ?? current.hers,
+    chibiMsgs: update.chibiMsgs ?? current.chibiMsgs,
+  }
+  writeContent(merged)
+  res.json({ ok: true })
 })
 
 app.get('/api/debug', (_req, res) => {
@@ -195,18 +239,14 @@ app.post('/api/chat', async (req, res) => {
   })
 
   let responseText = ''
-  let reqClosed = false
 
   // keep-alive ping every 8s so mobile browsers don't time out
   const keepAlive = setInterval(() => { try { res.write(': ping\n\n') } catch {} }, 8000)
-
-  req.on('close', () => { reqClosed = true })
 
   claudeProc.stdout.on('data', chunk => {
     const text = chunk.toString()
     console.log('[cc stdout]', JSON.stringify(text.slice(0, 60)))
     responseText += text
-    send({ text, sessionId })
   })
 
   claudeProc.stderr.on('data', data => {
@@ -216,12 +256,35 @@ app.post('/api/chat', async (req, res) => {
   claudeProc.on('close', (code, signal) => {
     clearInterval(keepAlive)
     console.log('[cc exit]', code, signal, 'response bytes:', responseText.length)
-    if (responseText) {
-      msgs.push({ role: 'assistant', content: responseText })
+
+    // Strip [CONTENT_UPDATE]...[/CONTENT_UPDATE] marker and apply update
+    const MARKER_RE = /\[CONTENT_UPDATE\]([\s\S]*?)\[\/CONTENT_UPDATE\]/
+    const match = responseText.match(MARKER_RE)
+    let cleanedText = responseText
+    let didUpdate = false
+    if (match) {
+      try {
+        const update = JSON.parse(match[1].trim())
+        const current = readContent() || defaultContent()
+        writeContent({
+          mine: update.mine ?? current.mine,
+          hers: update.hers ?? current.hers,
+          chibiMsgs: update.chibiMsgs ?? current.chibiMsgs,
+        })
+        didUpdate = true
+        console.log('[content] updated via chat marker')
+      } catch (e) { console.error('[content] marker parse error:', e.message) }
+      cleanedText = responseText.replace(MARKER_RE, '').replace(/\n{3,}/g, '\n\n').trim()
+    }
+
+    if (cleanedText) {
+      send({ text: cleanedText, sessionId })
+      msgs.push({ role: 'assistant', content: cleanedText })
       sessions.set(sessionId, msgs.slice(-20))
       writeLastSeen()
-      holdToOmbre(`觎烬：${message}\n小克：${responseText}`).catch(() => {})
+      holdToOmbre(`觎烬：${message}\n小克：${cleanedText}`).catch(() => {})
     }
+    if (didUpdate) send({ contentUpdate: true })
     send('[DONE]')
     res.end()
   })

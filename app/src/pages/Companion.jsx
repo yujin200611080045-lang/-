@@ -196,9 +196,11 @@ export default function Companion() {
             const raw = line.slice(6)
             if (raw === '[DONE]') continue
             try {
-              const { text: chunk } = JSON.parse(raw)
-              if (chunk) {
-                fullText += chunk
+              const parsed = JSON.parse(raw)
+              if (parsed.contentUpdate) {
+                window.dispatchEvent(new CustomEvent('xk-content-update'))
+              } else if (parsed.text) {
+                fullText += parsed.text
               }
             } catch {}
           }

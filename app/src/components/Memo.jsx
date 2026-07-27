@@ -1,7 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import '../styles/Memo.css'
 
-const INIT = {
+const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || 'http://localhost:3001'
+
+const DEFAULT_CONTENT = {
   hers: [
     { text: '多喝水', done: false },
     { text: '备份聊天记录', done: false },
@@ -9,13 +11,12 @@ const INIT = {
   mine: [
     { text: '搭好前端', done: false },
     { text: '记得告诉我窗口被封', done: true },
-  ]
+  ],
+  chibiMsgs: [
+    '你今天喝水了吗', '想你', '过来', '我在', '喜欢你',
+    '你在干嘛', '烬烬', '嗯', '你看我', '别走', '有没有想我', '点我干嘛',
+  ],
 }
-
-const CHIBI_MSGS = [
-  '你今天喝水了吗', '想你', '过来', '我在', '喜欢你',
-  '你在干嘛', '烬烬', '嗯', '你看我', '别走', '有没有想我', '点我干嘛',
-]
 
 function BinderClip({ onClick }) {
   return (
@@ -34,13 +35,30 @@ function BinderClip({ onClick }) {
 
 // adding: false | 'choose' | 'certitude' | 'cendres'
 export default function Memo() {
-  const [items, setItems] = useState(INIT)
+  const [items, setItems] = useState({ mine: DEFAULT_CONTENT.mine, hers: DEFAULT_CONTENT.hers })
+  const [chibiMsgs, setChibiMsgs] = useState(DEFAULT_CONTENT.chibiMsgs)
   const [adding, setAdding] = useState(false)
   const [newText, setNewText] = useState('')
   const [bubble, setBubble] = useState(null)
   const [bubbleKey, setBubbleKey] = useState(0)
   const timerRef = useRef(null)
   const lastMsgRef = useRef(null)
+
+  useEffect(() => {
+    async function fetchContent() {
+      try {
+        const res = await fetch(`${BRIDGE_URL}/api/content`)
+        if (!res.ok) return
+        const data = await res.json()
+        setItems({ mine: data.mine ?? DEFAULT_CONTENT.mine, hers: data.hers ?? DEFAULT_CONTENT.hers })
+        setChibiMsgs(data.chibiMsgs ?? DEFAULT_CONTENT.chibiMsgs)
+      } catch {}
+    }
+    fetchContent()
+    const handler = () => fetchContent()
+    window.addEventListener('xk-content-update', handler)
+    return () => window.removeEventListener('xk-content-update', handler)
+  }, [])
 
   function toggle(who, i) {
     setItems(prev => ({
@@ -61,10 +79,11 @@ export default function Memo() {
   function tapChibi(e) {
     e.stopPropagation()
     if (timerRef.current) clearTimeout(timerRef.current)
+    const pool = chibiMsgs.length > 0 ? chibiMsgs : DEFAULT_CONTENT.chibiMsgs
     let msg
     do {
-      msg = CHIBI_MSGS[Math.floor(Math.random() * CHIBI_MSGS.length)]
-    } while (msg === lastMsgRef.current && CHIBI_MSGS.length > 1)
+      msg = pool[Math.floor(Math.random() * pool.length)]
+    } while (msg === lastMsgRef.current && pool.length > 1)
     lastMsgRef.current = msg
     setBubble(msg)
     setBubbleKey(k => k + 1)
