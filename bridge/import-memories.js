@@ -18,7 +18,7 @@ async function holdChunk(content) {
     body: JSON.stringify({
       jsonrpc: '2.0',
       method: 'tools/call',
-      params: { name: 'hold', arguments: { content } },
+      params: { name: 'grow', arguments: { content } },
       id: Date.now(),
     }),
     signal: AbortSignal.timeout(15000),
