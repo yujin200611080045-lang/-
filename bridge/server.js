@@ -288,7 +288,7 @@ app.post('/api/chat', async (req, res) => {
     console.error('[cc stderr]', data.toString().slice(0, 300))
   })
 
-  claudeProc.on('close', (code, signal) => {
+  claudeProc.on('close', async (code, signal) => {
     clearInterval(keepAlive)
     console.log('[cc exit]', code, signal, 'response bytes:', responseText.length)
 
