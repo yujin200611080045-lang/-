@@ -223,7 +223,14 @@ export default function Companion() {
             'Content-Type': 'application/json',
             ...(BRIDGE_SECRET && { 'x-bridge-secret': BRIDGE_SECRET }),
           },
-          body: JSON.stringify({ message: lastUserMsg.text, sessionId: getSessionId() }),
+          body: JSON.stringify({
+            message: lastUserMsg.text,
+            sessionId: getSessionId(),
+            history: msgsToUse.slice(-20).map(m => ({
+              role: m.side === 'sent' ? 'user' : 'assistant',
+              content: m.text,
+            })),
+          }),
         })
 
         const sessionId = res.headers.get('X-Session-Id')

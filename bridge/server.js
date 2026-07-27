@@ -241,12 +241,16 @@ app.get('/api/debug', (_req, res) => {
 })
 
 app.post('/api/chat', async (req, res) => {
-  const { message, sessionId: clientSessionId } = req.body
+  const { message, sessionId: clientSessionId, history: clientHistory } = req.body
   if (!message?.trim()) return res.status(400).json({ error: 'message required' })
 
   const sessionId = clientSessionId || randomUUID()
-  const msgs = sessions.get(sessionId) || []
-  msgs.push({ role: 'user', content: message })
+
+  // Prefer client-side history (survives bridge restarts), fall back to in-memory
+  const msgs = clientHistory?.length > 0
+    ? clientHistory.slice(0, -1)
+    : (sessions.get(sessionId) || [])
+  if (!clientHistory?.length) msgs.push({ role: 'user', content: message })
 
   const context = loadMemoryContext()
   const histLines = msgs.slice(0, -1).map(m =>
