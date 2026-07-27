@@ -197,7 +197,10 @@ export default function Companion() {
             if (raw === '[DONE]') continue
             try {
               const parsed = JSON.parse(raw)
-              if (parsed.contentUpdate) {
+              if (parsed.audioUrl) {
+                const audio = new Audio(`${BRIDGE_URL}${parsed.audioUrl}`)
+                audio.play().catch(() => {})
+              } else if (parsed.contentUpdate) {
                 window.dispatchEvent(new CustomEvent('xk-content-update'))
               } else if (parsed.text) {
                 fullText += parsed.text

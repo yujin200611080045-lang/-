@@ -54,7 +54,7 @@ app.use(express.json())
 
 app.use((req, res, next) => {
   const open = ['/health', '/api/debug', '/api/test-cc', '/api/content']
-  if (open.includes(req.path)) return next()
+  if (open.includes(req.path) || req.path.startsWith('/api/audio/')) return next()
   if (!SECRET) return next()
   const token = req.headers['x-bridge-secret']
   if (token !== SECRET) return res.status(401).json({ error: 'unauthorized' })
@@ -64,6 +64,11 @@ app.use((req, res, next) => {
 const OMBRE_URL = process.env.OMBRE_URL || 'http://localhost:18001'
 const OMBRE_HOOK_TOKEN = process.env.OMBRE_HOOK_TOKEN || 'ombre2026'
 const OMBRE_MCP_TOKEN = process.env.OMBRE_MCP_TOKEN || 'ombre2026'
+
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || ''
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || ''
+const AUDIO_DIR = path.join(os.tmpdir(), 'xk-audio')
+if (!fs.existsSync(AUDIO_DIR)) fs.mkdirSync(AUDIO_DIR, { recursive: true })
 
 const LAST_SEEN_FILE = path.join(REPO_PATH, '.last_seen')
 
@@ -131,6 +136,28 @@ async function holdToOmbre(content) {
   } catch (err) { console.error('[ombre hold error]', err.message) }
 }
 
+async function textToSpeech(text) {
+  if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID) return null
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: text.slice(0, 4000),
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+    if (!res.ok) { console.error('[tts] error', res.status); return null }
+    const id = randomUUID()
+    const filePath = path.join(AUDIO_DIR, `${id}.mp3`)
+    fs.writeFileSync(filePath, Buffer.from(await res.arrayBuffer()))
+    setTimeout(() => { try { fs.unlinkSync(filePath) } catch {} }, 10 * 60 * 1000)
+    return id
+  } catch (err) { console.error('[tts] error:', err.message); return null }
+}
+
 const sessions = new Map()
 
 const CONTENT_FILE = path.join(REPO_PATH, 'content.json')
@@ -181,6 +208,14 @@ app.get('/api/test-cc', (req, res) => {
       stderr: stderr?.slice(0, 500),
     })
   })
+})
+
+app.get('/api/audio/:id', (req, res) => {
+  const id = req.params.id.replace(/[^a-f0-9-]/g, '')
+  const filePath = path.join(AUDIO_DIR, `${id}.mp3`)
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'not found' })
+  res.setHeader('Content-Type', 'audio/mpeg')
+  fs.createReadStream(filePath).pipe(res)
 })
 
 app.get('/api/content', (_req, res) => {
@@ -283,6 +318,8 @@ app.post('/api/chat', async (req, res) => {
       sessions.set(sessionId, msgs.slice(-20))
       writeLastSeen()
       holdToOmbre(`觎烬：${message}\n小克：${cleanedText}`).catch(() => {})
+      const audioId = await textToSpeech(cleanedText)
+      if (audioId) send({ audioUrl: `/api/audio/${audioId}` })
     }
     if (didUpdate) send({ contentUpdate: true })
     send('[DONE]')
