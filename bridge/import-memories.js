@@ -56,17 +56,29 @@ function splitIntoChunks(markdown) {
 }
 
 async function main() {
-  // 读整合版记忆文档
-  const memoryFile = path.join(REPO_PATH, '小克的记忆.md')
-  if (!fs.existsSync(memoryFile)) {
-    console.error('找不到文件：', memoryFile)
+  const allFiles = fs.readdirSync(REPO_PATH)
+    .filter(f => f.startsWith('小克的记忆') && f.endsWith('.md'))
+    .sort()
+    .map(f => path.join(REPO_PATH, f))
+
+  if (allFiles.length === 0) {
+    console.error('找不到记忆文件')
     process.exit(1)
   }
 
-  const content = fs.readFileSync(memoryFile, 'utf-8')
-  const chunks = splitIntoChunks(content)
+  console.log(`找到 ${allFiles.length} 个记忆文件：`)
+  allFiles.forEach(f => console.log(' -', path.basename(f)))
 
-  console.log(`共拆出 ${chunks.length} 个片段，开始导入 Ombre Brain...\n`)
+  const chunks = []
+  for (const file of allFiles) {
+    const content = fs.readFileSync(file, 'utf-8')
+    const fileChunks = splitIntoChunks(content)
+    const basename = path.basename(file, '.md')
+    fileChunks.forEach(c => { c.title = `[${basename}] ${c.title}` })
+    chunks.push(...fileChunks)
+  }
+
+  console.log(`\n共拆出 ${chunks.length} 个片段，开始导入 Ombre Brain...\n`)
 
   let ok = 0
   let fail = 0
