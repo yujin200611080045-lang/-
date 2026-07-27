@@ -163,7 +163,6 @@ export default function Companion() {
 
         const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
         const msgId = Date.now()
-        setMessages(m => [...m, { id: msgId, text: '', side: 'received', time }])
 
         const res = await fetch(`${BRIDGE_URL}/api/chat`, {
           method: 'POST',
@@ -196,15 +195,12 @@ export default function Companion() {
               const { text: chunk } = JSON.parse(raw)
               if (chunk) {
                 fullText += chunk
-                setMessages(m => m.map(msg => msg.id === msgId ? { ...msg, text: fullText } : msg))
               }
             } catch {}
           }
         }
 
-        // replace streaming bubble with one bubble per sentence
         const sentences = splitSentences(fullText)
-        setMessages(m => m.filter(msg => msg.id !== msgId))
         for (let i = 0; i < sentences.length; i++) {
           if (i > 0) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
           setMessages(m => [...m, { id: msgId + i + 1, text: sentences[i], side: 'received', time }])
@@ -349,7 +345,7 @@ export default function Companion() {
         <span
           className={`chat-name${offlineMode ? ' offline' : ''}`}
           onClick={toggleOffline}
-        >江却</span>
+        >^ ^</span>
       </div>
 
       {/* messages */}
