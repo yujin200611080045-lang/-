@@ -65,6 +65,43 @@ const OMBRE_URL = process.env.OMBRE_URL || 'http://localhost:18001'
 const OMBRE_HOOK_TOKEN = process.env.OMBRE_HOOK_TOKEN || 'ombre2026'
 const OMBRE_MCP_TOKEN = process.env.OMBRE_MCP_TOKEN || 'ombre2026'
 
+const LAST_SEEN_FILE = path.join(REPO_PATH, '.last_seen')
+
+function getBeijingTime() {
+  return new Date().toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+}
+
+function formatGap(ms) {
+  const minutes = Math.floor(ms / 60000)
+  if (minutes < 2) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  if (hours < 24) return mins > 0 ? `${hours}小时${mins}分钟前` : `${hours}小时前`
+  const days = Math.floor(hours / 24)
+  const hrs = hours % 24
+  return hrs > 0 ? `${days}天${hrs}小时前` : `${days}天前`
+}
+
+function readLastSeen() {
+  try { return JSON.parse(fs.readFileSync(LAST_SEEN_FILE, 'utf-8')).timestamp } catch { return null }
+}
+
+function writeLastSeen() {
+  try { fs.writeFileSync(LAST_SEEN_FILE, JSON.stringify({ timestamp: new Date().toISOString() })) } catch {}
+}
+
+function buildTimeContext() {
+  const now = getBeijingTime()
+  const last = readLastSeen()
+  const gap = last ? formatGap(Date.now() - new Date(last).getTime()) : null
+  return gap ? `当前时间：${now}\n距上次对话：${gap}` : `当前时间：${now}`
+}
+
 async function queryOmbre(query) {
   try {
     const res = await fetch(`${OMBRE_URL}/mcp`, {
@@ -138,7 +175,8 @@ app.post('/api/chat', async (req, res) => {
   const history = histLines.length ? histLines.join('\n') + '\n\n' : ''
   const ombreMemory = await queryOmbre(message)
   const ombreSection = ombreMemory ? `\n\n---\n\n## 记忆库相关片段\n${ombreMemory}\n` : ''
-  const fullPrompt = `${context}${ombreSection}\n\n---\n\n${history}她（觎烬）：${message}`
+  const timeContext = `\n\n---\n\n${buildTimeContext()}`
+  const fullPrompt = `${context}${ombreSection}${timeContext}\n\n---\n\n${history}她（觎烬）：${message}`
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -181,6 +219,7 @@ app.post('/api/chat', async (req, res) => {
     if (responseText) {
       msgs.push({ role: 'assistant', content: responseText })
       sessions.set(sessionId, msgs.slice(-20))
+      writeLastSeen()
       holdToOmbre(`觎烬：${message}\n小克：${responseText}`).catch(() => {})
     }
     send('[DONE]')
