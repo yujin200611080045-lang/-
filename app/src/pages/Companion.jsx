@@ -65,6 +65,55 @@ function renderOfflineText(text) {
   })
 }
 
+const WAVE_HEIGHTS = [5, 9, 13, 7, 11, 5, 13, 9, 7, 11, 5, 9, 13, 7, 11, 5]
+
+function VoiceBar({ audioUrl, text, time }) {
+  const [expanded, setExpanded] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useRef(null)
+
+  function handleTap(e) {
+    e.stopPropagation()
+    if (!expanded) {
+      setExpanded(true)
+      if (audioUrl) {
+        const audio = new Audio(`${BRIDGE_URL}${audioUrl}`)
+        audioRef.current = audio
+        audio.play().catch(() => {})
+        setPlaying(true)
+        audio.onended = () => setPlaying(false)
+      }
+    } else if (playing) {
+      audioRef.current?.pause()
+      if (audioRef.current) audioRef.current.currentTime = 0
+      setPlaying(false)
+    } else {
+      if (audioUrl) {
+        const audio = new Audio(`${BRIDGE_URL}${audioUrl}`)
+        audioRef.current = audio
+        audio.play().catch(() => {})
+        setPlaying(true)
+        audio.onended = () => setPlaying(false)
+      }
+    }
+  }
+
+  return (
+    <div className="voice-message" onClick={handleTap}>
+      <div className={`voice-bar-pill${playing ? ' playing' : ''}`}>
+        <div className="voice-play-icon">{playing ? '⏸' : '▶'}</div>
+        <div className="voice-wave">
+          {WAVE_HEIGHTS.map((h, i) => (
+            <div key={i} className="wv-bar" style={{ '--h': `${h}px`, '--i': i }} />
+          ))}
+        </div>
+        <span className="bubble-time">{time}</span>
+      </div>
+      {expanded && <div className="voice-text-reveal">{text}</div>}
+    </div>
+  )
+}
+
 export default function Companion() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -184,6 +233,7 @@ export default function Companion() {
         const decoder = new TextDecoder()
         let buf = ''
         let fullText = ''
+        let audioUrl = null
 
         while (true) {
           const { done, value } = await reader.read()
@@ -198,8 +248,7 @@ export default function Companion() {
             try {
               const parsed = JSON.parse(raw)
               if (parsed.audioUrl) {
-                const audio = new Audio(`${BRIDGE_URL}${parsed.audioUrl}`)
-                audio.play().catch(() => {})
+                audioUrl = parsed.audioUrl
               } else if (parsed.contentUpdate) {
                 window.dispatchEvent(new CustomEvent('xk-content-update'))
               } else if (parsed.text) {
@@ -209,10 +258,14 @@ export default function Companion() {
           }
         }
 
-        const sentences = splitSentences(fullText)
-        for (let i = 0; i < sentences.length; i++) {
-          if (i > 0) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
-          setMessages(m => [...m, { id: msgId + i + 1, text: sentences[i], side: 'received', time }])
+        if (audioUrl) {
+          setMessages(m => [...m, { id: msgId + 1, text: fullText, side: 'received', time, audioUrl, type: 'voice' }])
+        } else {
+          const sentences = splitSentences(fullText)
+          for (let i = 0; i < sentences.length; i++) {
+            if (i > 0) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
+            setMessages(m => [...m, { id: msgId + i + 1, text: sentences[i], side: 'received', time }])
+          }
         }
         if (modeRef.current === 'floating') triggerBurst()
 
@@ -366,10 +419,12 @@ export default function Companion() {
               </div>
             ))
           : messages.map((msg, i) => (
-              <div key={i} className={`chat-bubble ${msg.side}`}>
-                <span className="bubble-text">{msg.text}</span>
-                <span className="bubble-time">{msg.time}</span>
-              </div>
+              msg.type === 'voice'
+                ? <VoiceBar key={i} audioUrl={msg.audioUrl} text={msg.text} time={msg.time} />
+                : <div key={i} className={`chat-bubble ${msg.side}`}>
+                    <span className="bubble-text">{msg.text}</span>
+                    <span className="bubble-time">{msg.time}</span>
+                  </div>
             ))
         }
         {isTyping && (

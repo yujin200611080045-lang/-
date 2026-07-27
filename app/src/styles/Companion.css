@@ -312,6 +312,75 @@
   100% { opacity: 0;    transform: translate(var(--tx), var(--ty)) scale(0.65); }
 }
 
+/* ── voice message bar ── */
+.voice-message {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 72%;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.voice-bar-pill {
+  background: #111;
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+}
+
+.voice-play-icon {
+  font-size: 12px;
+  color: #fff;
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  line-height: 1;
+}
+
+.voice-wave {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  flex: 1;
+  height: 18px;
+}
+
+.wv-bar {
+  width: 3px;
+  height: var(--h, 8px);
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 2px;
+  flex-shrink: 0;
+  transform-origin: center;
+}
+
+.voice-bar-pill.playing .wv-bar {
+  animation: wv-bounce 0.75s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.048s);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+@keyframes wv-bounce {
+  0%, 100% { transform: scaleY(0.35); }
+  50%       { transform: scaleY(1); }
+}
+
+.voice-text-reveal {
+  background: #111;
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
 /* ── offline (线下) narrative mode ── */
 .offline .chat-messages {
   gap: 20px;
