@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { spawn, execFile } from 'child_process'
+import { spawn, execFile, execSync } from 'child_process'
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
@@ -8,11 +8,24 @@ import os from 'os'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const CLAUDE_BIN = [
-  path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64/claude'),
-  path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64-musl/claude'),
-  path.join(__dirname, 'node_modules/.bin/claude'),
-].find(p => fs.existsSync(p)) || 'claude'
+
+function findClaudeBin() {
+  const candidates = [
+    '/root/.npm/_npx/97540b0888a2deac/node_modules/@anthropic-ai/claude-code-linux-x64/claude',
+    path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64/claude'),
+    path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64-musl/claude'),
+    path.join(__dirname, 'node_modules/.bin/claude'),
+  ]
+  const found = candidates.find(p => fs.existsSync(p))
+  if (found) return found
+  try {
+    const discovered = execSync('find /root/.npm -name claude -type f 2>/dev/null | head -1', { encoding: 'utf8' }).trim()
+    if (discovered) return discovered
+  } catch {}
+  return 'claude'
+}
+
+const CLAUDE_BIN = findClaudeBin()
 
 console.log('CLAUDE_BIN:', CLAUDE_BIN)
 
