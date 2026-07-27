@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import { spawn, execFile, execSync } from 'child_process'
-import { randomUUID } from 'crypto'
+import { randomUUID, createHash } from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -341,16 +341,26 @@ app.listen(PORT, () => {
   console.log(`CLAUDE_BIN: ${CLAUDE_BIN}`)
   console.log(`Repo: ${REPO_PATH}`)
 
-  // Auto-import memory file into Ombre Brain on every startup
+  // Auto-import memory file only when content has changed
   setTimeout(() => {
-    const imp = spawn('node', [path.join(__dirname, 'import-memories.js')], {
-      cwd: REPO_PATH,
-      env: process.env,
-      stdio: 'pipe',
-    })
-    let out = ''
-    imp.stdout.on('data', d => { out += d.toString() })
-    imp.stderr.on('data', d => { out += d.toString() })
-    imp.on('close', code => console.log('[memory] reimport done:', out.slice(-120).trim()))
+    const memFile = path.join(REPO_PATH, '小克的记忆.md')
+    const hashFile = path.join(REPO_PATH, '.memory_hash')
+    try {
+      const content = fs.readFileSync(memFile, 'utf-8')
+      const hash = createHash('md5').update(content).digest('hex')
+      const lastHash = readFileOr(hashFile).trim()
+      if (hash === lastHash) { console.log('[memory] no changes, skip reimport'); return }
+      console.log('[memory] file changed, reimporting...')
+      const imp = spawn('node', [path.join(__dirname, 'import-memories.js')], {
+        cwd: REPO_PATH, env: process.env, stdio: 'pipe',
+      })
+      let out = ''
+      imp.stdout.on('data', d => { out += d.toString() })
+      imp.stderr.on('data', d => { out += d.toString() })
+      imp.on('close', code => {
+        console.log('[memory] reimport done:', out.slice(-120).trim())
+        if (code === 0) try { fs.writeFileSync(hashFile, hash) } catch {}
+      })
+    } catch (e) { console.error('[memory] hash check error:', e.message) }
   }, 5000)
 })
