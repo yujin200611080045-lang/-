@@ -67,16 +67,18 @@ const OMBRE_MCP_TOKEN = process.env.OMBRE_MCP_TOKEN || 'ombre2026'
 
 async function queryOmbre(query) {
   try {
-    const url = `${OMBRE_URL}/breath-hook?query=${encodeURIComponent(query)}&max_results=5`
-    const res = await fetch(url, {
-      headers: { 'X-Ombre-Hook-Token': OMBRE_HOOK_TOKEN },
-      signal: AbortSignal.timeout(5000),
+    const res = await fetch(`${OMBRE_URL}/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OMBRE_MCP_TOKEN}` },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/call', params: { name: 'breath', arguments: { query, max_results: 5 } }, id: Date.now() }),
+      signal: AbortSignal.timeout(15000),
     })
-    if (!res.ok) { console.log('[ombre] breath-hook', res.status); return '' }
-    const text = await res.text()
-    console.log('[ombre] got', text.length, 'bytes from breath-hook')
+    if (!res.ok) { console.log('[ombre] breath', res.status); return '' }
+    const data = await res.json()
+    const text = data?.result?.content?.[0]?.text || ''
+    console.log('[ombre] got', text.length, 'bytes from breath')
     return text
-  } catch (err) { console.error('[ombre] breath-hook error:', err.message); return '' }
+  } catch (err) { console.error('[ombre] breath error:', err.message); return '' }
 }
 
 async function holdToOmbre(content) {
