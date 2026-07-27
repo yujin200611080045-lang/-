@@ -114,7 +114,7 @@ app.post('/api/chat', async (req, res) => {
   res.setHeader('X-Session-Id', sessionId)
   res.flushHeaders()
 
-  const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
+  const send = (obj) => { try { res.write(`data: ${JSON.stringify(obj)}\n\n`) } catch {} }
 
   console.log('[chat] spawning cc, prompt bytes:', Buffer.byteLength(fullPrompt))
 
@@ -125,8 +125,12 @@ app.post('/api/chat', async (req, res) => {
   })
 
   let responseText = ''
+  let reqClosed = false
 
-  req.on('close', () => claudeProc.kill())
+  // keep-alive ping every 8s so mobile browsers don't time out
+  const keepAlive = setInterval(() => { try { res.write(': ping\n\n') } catch {} }, 8000)
+
+  req.on('close', () => { reqClosed = true })
 
   claudeProc.stdout.on('data', chunk => {
     const text = chunk.toString()
@@ -139,8 +143,9 @@ app.post('/api/chat', async (req, res) => {
     console.error('[cc stderr]', data.toString().slice(0, 300))
   })
 
-  claudeProc.on('close', (code) => {
-    console.log('[cc exit]', code, 'response bytes:', responseText.length)
+  claudeProc.on('close', (code, signal) => {
+    clearInterval(keepAlive)
+    console.log('[cc exit]', code, signal, 'response bytes:', responseText.length)
     if (responseText) {
       msgs.push({ role: 'assistant', content: responseText })
       sessions.set(sessionId, msgs.slice(-20))
@@ -150,6 +155,7 @@ app.post('/api/chat', async (req, res) => {
   })
 
   claudeProc.on('error', err => {
+    clearInterval(keepAlive)
     console.error('[cc spawn error]', err.message)
     send({ error: err.message })
     res.end()
