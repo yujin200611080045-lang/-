@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import Anthropic from '@anthropic-ai/sdk'
+import { spawn, execFile } from 'child_process'
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
@@ -8,36 +8,19 @@ import os from 'os'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const CLAUDE_BIN = [
+  path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64/claude'),
+  path.join(__dirname, 'node_modules/@anthropic-ai/claude-code-linux-x64-musl/claude'),
+  path.join(__dirname, 'node_modules/.bin/claude'),
+].find(p => fs.existsSync(p)) || 'claude'
 
-function getApiKey() {
-  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY
-  // Try to read from cc CLI config
-  const candidates = [
-    path.join(os.homedir(), '.claude', 'config.json'),
-    path.join(os.homedir(), '.claude', '.credentials.json'),
-    path.join(os.homedir(), '.config', 'claude', 'config.json'),
-  ]
-  for (const p of candidates) {
-    try {
-      const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
-      const key = data.apiKey || data.api_key || data.ANTHROPIC_API_KEY
-      if (key?.startsWith('sk-')) return key
-    } catch {}
-  }
-  return null
-}
-
-const apiKey = getApiKey()
-console.log('[bridge] API key present:', !!apiKey)
-
-const anthropic = apiKey ? new Anthropic({ apiKey }) : null
+console.log('CLAUDE_BIN:', CLAUDE_BIN)
 
 const app = express()
 const PORT = process.env.PORT || 3001
 const SECRET = process.env.BRIDGE_SECRET
 const REPO_PATH = process.env.REPO_PATH || '/root/repo'
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*'
-const MODEL = process.env.CLAUDE_MODEL || 'claude-opus-4-5'
 
 function readFileOr(p, fallback = '') {
   try { return fs.readFileSync(p, 'utf-8') } catch { return fallback }
@@ -54,7 +37,8 @@ app.use(cors({ origin: FRONTEND_ORIGIN }))
 app.use(express.json())
 
 app.use((req, res, next) => {
-  if (req.path === '/health' || req.path === '/api/debug') return next()
+  const open = ['/health', '/api/debug', '/api/test-cc']
+  if (open.includes(req.path)) return next()
   if (!SECRET) return next()
   const token = req.headers['x-bridge-secret']
   if (token !== SECRET) return res.status(401).json({ error: 'unauthorized' })
@@ -63,23 +47,34 @@ app.use((req, res, next) => {
 
 const sessions = new Map()
 
-app.get('/health', (_req, res) => res.json({ ok: true, hasApiKey: !!apiKey }))
+app.get('/health', (_req, res) => res.json({ ok: true, bin: CLAUDE_BIN }))
 
-app.get('/api/debug', (_req, res) => {
-  res.json({
-    ok: true,
-    hasApiKey: !!apiKey,
-    model: MODEL,
-    repoPath: REPO_PATH,
-    claudeMdExists: fs.existsSync(path.join(REPO_PATH, 'CLAUDE.md')),
+// No-auth test: run CC with a simple prompt, return raw output
+app.get('/api/test-cc', (req, res) => {
+  console.log('[test-cc] running cc subprocess...')
+  execFile(CLAUDE_BIN, ['-p', 'say hi in one sentence'], {
+    cwd: REPO_PATH,
+    env: { ...process.env },
+    timeout: 30000,
+    maxBuffer: 2 * 1024 * 1024,
+  }, (err, stdout, stderr) => {
+    console.log('[test-cc] exit:', err?.code, 'stdout bytes:', stdout?.length, 'stderr bytes:', stderr?.length)
+    console.log('[test-cc] stderr:', stderr?.slice(0, 300))
+    res.json({
+      bin: CLAUDE_BIN,
+      exitCode: err?.code ?? 0,
+      error: err ? err.message : null,
+      stdout: stdout,
+      stderr: stderr?.slice(0, 500),
+    })
   })
 })
 
-app.post('/api/chat', async (req, res) => {
-  if (!anthropic) {
-    return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on server' })
-  }
+app.get('/api/debug', (_req, res) => {
+  res.json({ ok: true, bin: CLAUDE_BIN, repoPath: REPO_PATH, claudeMdExists: fs.existsSync(path.join(REPO_PATH, 'CLAUDE.md')) })
+})
 
+app.post('/api/chat', async (req, res) => {
   const { message, sessionId: clientSessionId } = req.body
   if (!message?.trim()) return res.status(400).json({ error: 'message required' })
 
@@ -102,45 +97,48 @@ app.post('/api/chat', async (req, res) => {
 
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
 
+  console.log('[chat] spawning cc, prompt bytes:', Buffer.byteLength(fullPrompt))
+
+  const claudeProc = spawn(CLAUDE_BIN, ['-p', fullPrompt], {
+    cwd: REPO_PATH,
+    env: { ...process.env },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+
   let responseText = ''
-  let closed = false
-  req.on('close', () => { closed = true })
 
-  try {
-    console.log('[bridge] calling API, prompt bytes:', Buffer.byteLength(fullPrompt))
-    const stream = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: fullPrompt }],
-      stream: true,
-    })
+  req.on('close', () => claudeProc.kill())
 
-    for await (const event of stream) {
-      if (closed) break
-      console.log('[stream]', event.type, event.delta?.type ?? '')
-      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-        const text = event.delta.text
-        responseText += text
-        send({ text, sessionId })
-      }
+  claudeProc.stdout.on('data', chunk => {
+    const text = chunk.toString()
+    console.log('[cc stdout]', JSON.stringify(text.slice(0, 60)))
+    responseText += text
+    send({ text, sessionId })
+  })
+
+  claudeProc.stderr.on('data', data => {
+    console.error('[cc stderr]', data.toString().slice(0, 300))
+  })
+
+  claudeProc.on('close', (code) => {
+    console.log('[cc exit]', code, 'response bytes:', responseText.length)
+    if (responseText) {
+      msgs.push({ role: 'assistant', content: responseText })
+      sessions.set(sessionId, msgs.slice(-20))
     }
-    console.log('[stream done] response length:', responseText.length)
-  } catch (err) {
-    console.error('[anthropic error]', err.message)
-    send({ error: err.message })
-  }
+    send('[DONE]')
+    res.end()
+  })
 
-  if (responseText) {
-    msgs.push({ role: 'assistant', content: responseText })
-    sessions.set(sessionId, msgs.slice(-20))
-  }
-  send('[DONE]')
-  res.end()
+  claudeProc.on('error', err => {
+    console.error('[cc spawn error]', err.message)
+    send({ error: err.message })
+    res.end()
+  })
 })
 
 app.listen(PORT, () => {
   console.log(`Bridge running on :${PORT}`)
-  console.log(`Repo path: ${REPO_PATH}`)
-  console.log(`Model: ${MODEL}`)
-  console.log(`API key present: ${!!apiKey}`)
+  console.log(`CLAUDE_BIN: ${CLAUDE_BIN}`)
+  console.log(`Repo: ${REPO_PATH}`)
 })
