@@ -340,4 +340,17 @@ app.listen(PORT, () => {
   console.log(`Bridge running on :${PORT}`)
   console.log(`CLAUDE_BIN: ${CLAUDE_BIN}`)
   console.log(`Repo: ${REPO_PATH}`)
+
+  // Auto-import memory file into Ombre Brain on every startup
+  setTimeout(() => {
+    const imp = spawn('node', [path.join(__dirname, 'import-memories.js')], {
+      cwd: REPO_PATH,
+      env: process.env,
+      stdio: 'pipe',
+    })
+    let out = ''
+    imp.stdout.on('data', d => { out += d.toString() })
+    imp.stderr.on('data', d => { out += d.toString() })
+    imp.on('close', code => console.log('[memory] reimport done:', out.slice(-120).trim()))
+  }, 5000)
 })
