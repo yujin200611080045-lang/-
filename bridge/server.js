@@ -73,6 +73,37 @@ app.use((req, res, next) => {
   next()
 })
 
+const OMBRE_URL = process.env.OMBRE_URL || 'http://localhost:18001'
+const OMBRE_HOOK_TOKEN = process.env.OMBRE_HOOK_TOKEN || 'ombre2026'
+const OMBRE_MCP_TOKEN = process.env.OMBRE_MCP_TOKEN || 'ombre2026'
+
+async function queryOmbre(query) {
+  try {
+    const url = `${OMBRE_URL}/breath-hook?query=${encodeURIComponent(query)}&max_results=5`
+    const res = await fetch(url, {
+      headers: { 'X-Ombre-Hook-Token': OMBRE_HOOK_TOKEN },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) { console.log('[ombre] breath-hook', res.status); return '' }
+    const text = await res.text()
+    console.log('[ombre] got', text.length, 'bytes from breath-hook')
+    return text
+  } catch (err) { console.error('[ombre] breath-hook error:', err.message); return '' }
+}
+
+async function holdToOmbre(content) {
+  try {
+    const res = await fetch(`${OMBRE_URL}/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OMBRE_MCP_TOKEN}` },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/call', params: { name: 'hold', arguments: { content } }, id: Date.now() }),
+      signal: AbortSignal.timeout(10000),
+    })
+    const text = await res.text()
+    console.log('[ombre hold]', res.status, text.slice(0, 150))
+  } catch (err) { console.error('[ombre hold error]', err.message) }
+}
+
 const sessions = new Map()
 
 app.get('/health', (_req, res) => res.json({ ok: true, bin: CLAUDE_BIN }))
@@ -115,7 +146,9 @@ app.post('/api/chat', async (req, res) => {
     `${m.role === 'user' ? '她（觎烬）' : '小克'}：${m.content}`
   )
   const history = histLines.length ? histLines.join('\n') + '\n\n' : ''
-  const fullPrompt = `${context}\n\n---\n\n${history}她（觎烬）：${message}`
+  const ombreMemory = await queryOmbre(message)
+  const ombreSection = ombreMemory ? `\n\n---\n\n## 记忆库相关片段\n${ombreMemory}\n` : ''
+  const fullPrompt = `${context}${ombreSection}\n\n---\n\n${history}她（觎烬）：${message}`
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -158,6 +191,7 @@ app.post('/api/chat', async (req, res) => {
     if (responseText) {
       msgs.push({ role: 'assistant', content: responseText })
       sessions.set(sessionId, msgs.slice(-20))
+      holdToOmbre(`觎烬：${message}\n小克：${responseText}`).catch(() => {})
     }
     send('[DONE]')
     res.end()
