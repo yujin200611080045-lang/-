@@ -35,6 +35,12 @@ const SECRET = process.env.BRIDGE_SECRET
 const REPO_PATH = process.env.REPO_PATH || '/root/repo'
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*'
 
+function claudeEnv() {
+  const env = { ...process.env }
+  delete env.ANTHROPIC_API_KEY
+  return env
+}
+
 function readFileOr(p, fallback = '') {
   try { return fs.readFileSync(p, 'utf-8') } catch { return fallback }
 }
@@ -67,7 +73,7 @@ app.get('/api/test-cc', (req, res) => {
   console.log('[test-cc] running cc subprocess...')
   execFile(CLAUDE_BIN, ['-p', 'say hi in one sentence'], {
     cwd: REPO_PATH,
-    env: { ...process.env },
+    env: claudeEnv(),
     timeout: 30000,
     maxBuffer: 2 * 1024 * 1024,
   }, (err, stdout, stderr) => {
@@ -114,7 +120,7 @@ app.post('/api/chat', async (req, res) => {
 
   const claudeProc = spawn(CLAUDE_BIN, ['-p', fullPrompt], {
     cwd: REPO_PATH,
-    env: { ...process.env },
+    env: claudeEnv(),
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
