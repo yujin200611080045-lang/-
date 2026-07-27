@@ -6,6 +6,7 @@ import '../styles/Companion.css'
 const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || 'http://localhost:3001'
 const BRIDGE_SECRET = import.meta.env.VITE_BRIDGE_SECRET || ''
 const SESSION_KEY = 'xk_companion_session'
+const MESSAGES_KEY = 'xk_companion_messages'
 
 function getSessionId() {
   let id = localStorage.getItem(SESSION_KEY)
@@ -68,7 +69,9 @@ export default function Companion() {
   const navigate = useNavigate()
   const location = useLocation()
   const [mode, setMode] = useState('docked')
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]') } catch { return [] }
+  })
   const [inputText, setInputText] = useState('')
   const [showPlus, setShowPlus] = useState(false)
   const [showEmoji, setShowEmoji] = useState(false)
@@ -91,6 +94,7 @@ export default function Companion() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    try { localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages.slice(-200))) } catch {}
   }, [messages])
 
   useEffect(() => { modeRef.current = mode }, [mode])
