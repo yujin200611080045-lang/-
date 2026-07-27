@@ -46,19 +46,7 @@ function readFileOr(p, fallback = '') {
 }
 
 function loadMemoryContext() {
-  const claudeMd = readFileOr(path.join(REPO_PATH, 'CLAUDE.md'))
-  let memoryParts = []
-  try {
-    const files = fs.readdirSync(REPO_PATH)
-      .filter(f => f.startsWith('小克的记忆') && f.endsWith('.md'))
-      .sort()
-    for (const f of files) {
-      const content = readFileOr(path.join(REPO_PATH, f))
-      if (content) memoryParts.push(content)
-    }
-  } catch {}
-  const memory = memoryParts.join('\n\n---\n\n')
-  return claudeMd + (memory ? '\n\n---\n\n' + memory : '')
+  return readFileOr(path.join(REPO_PATH, 'CLAUDE.md'))
 }
 
 app.use(cors({ origin: FRONTEND_ORIGIN }))
