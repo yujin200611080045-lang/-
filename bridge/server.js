@@ -146,7 +146,7 @@ async function textToSpeech(text) {
         text: text.slice(0, 4000),
         model_id: 'eleven_v3',
         language_code: 'zh',
-        voice_settings: { stability: 0.85, similarity_boost: 0.9, style: 0.15 },
+        voice_settings: { stability: 0.4, similarity_boost: 0.9 },
       }),
       signal: AbortSignal.timeout(30000),
     })
