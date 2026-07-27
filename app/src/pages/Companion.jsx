@@ -29,6 +29,15 @@ const EMOJIS = [
 
 const BURST_SYMS = ['♥','♥','♥','♡','✦','✨','⭑','✿','♥','✦','♡','✨']
 
+function splitSentences(text) {
+  return text
+    .replace(/([。！？…～~]+)/g, '$1\n')
+    .replace(/([.!?]+)\s+/g, '$1\n')
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+}
+
 function renderOfflineText(text) {
   const paras = text.split(/\n+/).filter(p => p.trim())
   return paras.map((para, pi) => {
@@ -191,6 +200,14 @@ export default function Companion() {
               }
             } catch {}
           }
+        }
+
+        // replace streaming bubble with one bubble per sentence
+        const sentences = splitSentences(fullText)
+        setMessages(m => m.filter(msg => msg.id !== msgId))
+        for (let i = 0; i < sentences.length; i++) {
+          if (i > 0) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
+          setMessages(m => [...m, { id: msgId + i + 1, text: sentences[i], side: 'received', time }])
         }
         if (modeRef.current === 'floating') triggerBurst()
 
