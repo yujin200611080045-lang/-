@@ -318,8 +318,10 @@ app.post('/api/chat', async (req, res) => {
       sessions.set(sessionId, msgs.slice(-20))
       writeLastSeen()
       holdToOmbre(`觎烬：${message}\n小克：${cleanedText}`).catch(() => {})
-      const audioId = await textToSpeech(cleanedText)
-      if (audioId) send({ audioUrl: `/api/audio/${audioId}` })
+      if (Math.random() < 0.3) {
+        const audioId = await textToSpeech(cleanedText)
+        if (audioId) send({ audioUrl: `/api/audio/${audioId}` })
+      }
     }
     if (didUpdate) send({ contentUpdate: true })
     send('[DONE]')
