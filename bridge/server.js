@@ -318,7 +318,8 @@ app.post('/api/chat', async (req, res) => {
       sessions.set(sessionId, msgs.slice(-20))
       writeLastSeen()
       holdToOmbre(`觎烬：${message}\n小克：${cleanedText}`).catch(() => {})
-      if (Math.random() < 0.3) {
+      const voiceRequested = /发语音|语音|说话|听你说|说一下|发个语音|说给我听|你说|开口/.test(message)
+      if (voiceRequested || Math.random() < 0.3) {
         const audioId = await textToSpeech(cleanedText)
         if (audioId) send({ audioUrl: `/api/audio/${audioId}` })
       }
