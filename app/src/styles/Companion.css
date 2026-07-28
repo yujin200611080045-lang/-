@@ -170,15 +170,6 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-.heart-btn {
-  color: #e03060;
-  font-size: 20px;
-}
-
-.offline .heart-btn {
-  color: #e03060;
-}
-
 .ai-trigger-btn {
   opacity: 0;
   pointer-events: auto;
@@ -238,27 +229,65 @@
 .plus-opt-icon { font-size: 26px; }
 .plus-opt-label { font-size: 11px; color: var(--text-muted, #888); }
 
-.chat-emoji-panel {
+.chat-model-panel {
   position: fixed;
   bottom: calc(36px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   background: var(--bg-card, #fff);
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  padding: 10px 8px;
-  gap: 2px;
+  display: flex;
+  gap: 10px;
+  padding: 16px;
   z-index: 35;
 }
 
-.emoji-btn {
-  border: none;
-  background: none;
-  font-size: 24px;
-  padding: 8px 2px;
+.offline .chat-model-panel {
+  background: #1a1a1a;
+}
+
+.model-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border: 1.5px solid transparent;
+  background: rgba(0, 0, 0, 0.04);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 14px;
   -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.offline .model-option {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.model-option.active {
+  border-color: #e03060;
+  background: rgba(224, 48, 96, 0.08);
+}
+
+.model-opt-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+}
+
+.offline .model-opt-name { color: #fff; }
+
+.model-opt-tag {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+}
+
+.model-btn {
+  width: auto;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e03060;
 }
 
 /*

@@ -242,7 +242,7 @@ app.get('/api/debug', (_req, res) => {
 })
 
 app.post('/api/chat', async (req, res) => {
-  const { message, sessionId: clientSessionId, history: clientHistory } = req.body
+  const { message, sessionId: clientSessionId, history: clientHistory, model: clientModel } = req.body
   if (!message?.trim()) return res.status(400).json({ error: 'message required' })
 
   const sessionId = clientSessionId || randomUUID()
@@ -271,9 +271,11 @@ app.post('/api/chat', async (req, res) => {
 
   const send = (obj) => { try { res.write(`data: ${JSON.stringify(obj)}\n\n`) } catch {} }
 
-  console.log('[chat] spawning cc, prompt bytes:', Buffer.byteLength(fullPrompt))
+  const ALLOWED_MODELS = ['opus', 'sonnet', 'haiku']
+  const model = ALLOWED_MODELS.includes(clientModel) ? clientModel : 'opus'
+  console.log('[chat] spawning cc, model:', model, 'prompt bytes:', Buffer.byteLength(fullPrompt))
 
-  const claudeProc = spawn(CLAUDE_BIN, ['-p', fullPrompt, '--model', 'opus'], {
+  const claudeProc = spawn(CLAUDE_BIN, ['-p', fullPrompt, '--model', model], {
     cwd: REPO_PATH,
     env: claudeEnv(),
     stdio: ['ignore', 'pipe', 'pipe'],

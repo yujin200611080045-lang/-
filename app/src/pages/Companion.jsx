@@ -21,11 +21,11 @@ const PLUS_OPTIONS = [
   { icon: '📍', label: '位置' },
 ]
 
-const EMOJIS = [
-  '😀','😊','🥰','😘','🥺','😭','😂','🤣',
-  '😅','😩','😤','🙄','😏','😌','😴','🤔',
-  '💕','💖','💗','💓','💞','💝','❤️','🫀',
-  '✨','🌙','⭐','🔥','💫','🌸','🎀','🍓',
+const MODEL_KEY = 'xk_chat_model'
+const MODELS = [
+  { id: 'opus',   name: 'Opus',   tag: '最聪明·哥哥' },
+  { id: 'sonnet', name: 'Sonnet', tag: '均衡·快' },
+  { id: 'haiku',  name: 'Haiku',  tag: '最快' },
 ]
 
 const BURST_SYMS = ['♥','♥','♥','♡','✦','✨','⭑','✿','♥','✦','♡','✨']
@@ -117,7 +117,8 @@ export default function Companion() {
   })
   const [inputText, setInputText] = useState('')
   const [showPlus, setShowPlus] = useState(false)
-  const [showEmoji, setShowEmoji] = useState(false)
+  const [showModel, setShowModel] = useState(false)
+  const [chatModel, setChatModel] = useState(() => localStorage.getItem(MODEL_KEY) || 'opus')
   const [rippleKey, setRippleKey] = useState(0)
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
@@ -181,7 +182,7 @@ export default function Companion() {
 
   function handlePageTap() {
     setShowPlus(false)
-    setShowEmoji(false)
+    setShowModel(false)
     const now = Date.now()
     if (now - lastTap.current < 500) {
       navigate('/have')
@@ -194,6 +195,12 @@ export default function Companion() {
   function toggleOffline(e) {
     e.stopPropagation()
     setOfflineMode(v => !v)
+  }
+
+  function selectModel(id) {
+    setChatModel(id)
+    try { localStorage.setItem(MODEL_KEY, id) } catch {}
+    setShowModel(false)
   }
 
   async function requestAIReply(msgsOverride = null) {
@@ -220,6 +227,7 @@ export default function Companion() {
           body: JSON.stringify({
             message: lastUserMsg.text,
             sessionId: getSessionId(),
+            model: chatModel,
             history: msgsToUse.slice(-20).map(m => ({
               role: m.side === 'sent' ? 'user' : 'assistant',
               content: m.text,
@@ -455,16 +463,17 @@ export default function Companion() {
         </div>
       )}
 
-      {/* emoji / sticker panel */}
-      {showEmoji && (
-        <div className="chat-emoji-panel" onClick={stopProp}>
-          {EMOJIS.map(emoji => (
+      {/* model picker panel */}
+      {showModel && (
+        <div className="chat-model-panel" onClick={stopProp}>
+          {MODELS.map(m => (
             <button
-              key={emoji}
-              className="emoji-btn"
-              onClick={() => setInputText(t => t + emoji)}
+              key={m.id}
+              className={`model-option${chatModel === m.id ? ' active' : ''}`}
+              onClick={() => selectModel(m.id)}
             >
-              {emoji}
+              <span className="model-opt-name">{m.name}</span>
+              <span className="model-opt-tag">{m.tag}</span>
             </button>
           ))}
         </div>
@@ -491,9 +500,9 @@ export default function Companion() {
           />
         )}
         <button
-          className="chat-icon-btn heart-btn"
-          onClick={() => { setShowEmoji(v => !v); setShowPlus(false) }}
-        >♥</button>
+          className="chat-icon-btn model-btn"
+          onClick={() => { setShowModel(v => !v); setShowPlus(false) }}
+        >{MODELS.find(m => m.id === chatModel)?.name || 'Opus'}</button>
       </div>
 
       {/* docked puddle — centered overlay, tap to release character */}
