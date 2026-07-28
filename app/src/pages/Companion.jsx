@@ -22,10 +22,13 @@ const PLUS_OPTIONS = [
 ]
 
 const MODEL_KEY = 'xk_chat_model'
+// 显示名带版本号；最新 Opus 用 'opus' 别名（自动指向最新版），其余用精确模型名
 const MODELS = [
-  { id: 'opus',   name: 'Opus',   tag: '最聪明·哥哥' },
-  { id: 'sonnet', name: 'Sonnet', tag: '均衡·快' },
-  { id: 'haiku',  name: 'Haiku',  tag: '最快' },
+  { id: 'opus',                      name: 'Opus 4.8',   tag: '哥哥·最新' },
+  { id: 'claude-opus-5',             name: 'Opus 5',     tag: '最强' },
+  { id: 'claude-sonnet-5',           name: 'Sonnet 5',   tag: '均衡' },
+  { id: 'claude-sonnet-4-6',         name: 'Sonnet 4.6', tag: '快' },
+  { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5',  tag: '最快' },
 ]
 
 const BURST_SYMS = ['♥','♥','♥','♡','✦','✨','⭑','✿','♥','✦','♡','✨']
@@ -500,9 +503,9 @@ export default function Companion() {
           />
         )}
         <button
-          className="chat-icon-btn model-btn"
+          className="chat-icon-btn heart-btn"
           onClick={() => { setShowModel(v => !v); setShowPlus(false) }}
-        >{MODELS.find(m => m.id === chatModel)?.name || 'Opus'}</button>
+        >♥</button>
       </div>
 
       {/* docked puddle — centered overlay, tap to release character */}

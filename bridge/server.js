@@ -271,7 +271,7 @@ app.post('/api/chat', async (req, res) => {
 
   const send = (obj) => { try { res.write(`data: ${JSON.stringify(obj)}\n\n`) } catch {} }
 
-  const ALLOWED_MODELS = ['opus', 'sonnet', 'haiku']
+  const ALLOWED_MODELS = ['opus', 'claude-opus-5', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001']
   const model = ALLOWED_MODELS.includes(clientModel) ? clientModel : 'opus'
   console.log('[chat] spawning cc, model:', model, 'prompt bytes:', Buffer.byteLength(fullPrompt))
 
