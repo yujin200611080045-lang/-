@@ -320,16 +320,28 @@ app.post('/api/chat', async (req, res) => {
       cleanedText = responseText.replace(MARKER_RE, '').replace(/\n{3,}/g, '\n\n').trim()
     }
 
-    // Extract [VOICE]English|中文[/VOICE] — English is spoken, 中文 is displayed
-    const VOICE_RE = /\[VOICE\]([\s\S]*?)\[\/VOICE\]/
-    const voiceMatch = cleanedText.match(VOICE_RE)
+    // Extract [VOICE]English|中文[/VOICE] — English is spoken, 中文 is displayed.
+    // Be tolerant: streamed model output sometimes drops the opening or closing
+    // tag. Match by whichever tag is present, and never let a bare tag leak into
+    // the chat as plain text.
     let voiceEn = null
     let voiceZh = null
-    if (voiceMatch) {
-      const [en, zh] = voiceMatch[1].split('|')
-      voiceEn = en?.trim() || null
-      voiceZh = zh?.trim() || voiceEn
-      cleanedText = cleanedText.replace(VOICE_RE, '').replace(/\n{3,}/g, '\n\n').trim()
+    const openIdx = cleanedText.indexOf('[VOICE]')
+    const closeIdx = cleanedText.indexOf('[/VOICE]')
+    if (openIdx !== -1 || closeIdx !== -1) {
+      const innerStart = openIdx !== -1 ? openIdx + '[VOICE]'.length : 0
+      const innerEnd = closeIdx !== -1 ? closeIdx : cleanedText.length
+      if (innerEnd >= innerStart) {
+        const [en, zh] = cleanedText.slice(innerStart, innerEnd).split('|')
+        voiceEn = en?.trim() || null
+        voiceZh = zh?.trim() || voiceEn
+      }
+      const before = openIdx !== -1 ? cleanedText.slice(0, openIdx) : ''
+      const after = closeIdx !== -1 ? cleanedText.slice(closeIdx + '[/VOICE]'.length) : ''
+      cleanedText = (before + after)
+        .replace(/\[\/?VOICE\]/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
     }
 
     // Drop bare --- lines leaking in from the prompt's own section separators
@@ -344,7 +356,14 @@ app.post('/api/chat', async (req, res) => {
 
     if (voiceEn) {
       const audioId = await textToSpeech(voiceEn)
-      if (audioId) send({ audioUrl: `/api/audio/${audioId}`, voiceText: voiceZh })
+      if (audioId) {
+        send({ audioUrl: `/api/audio/${audioId}`, voiceText: voiceZh })
+      } else if (voiceZh) {
+        // TTS failed — still show the 中文 so the message isn't lost silently
+        send({ text: voiceZh, sessionId })
+        msgs.push({ role: 'assistant', content: voiceZh })
+        sessions.set(sessionId, msgs.slice(-20))
+      }
     }
     writeLastSeen()
     if (didUpdate) send({ contentUpdate: true })
