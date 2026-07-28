@@ -330,6 +330,9 @@ app.post('/api/chat', async (req, res) => {
       cleanedText = cleanedText.replace(VOICE_RE, '').replace(/\n{3,}/g, '\n\n').trim()
     }
 
+    // Drop bare --- lines leaking in from the prompt's own section separators
+    cleanedText = cleanedText.replace(/^\s*-{3,}\s*$/gm, '').replace(/\n{3,}/g, '\n\n').trim()
+
     if (cleanedText) {
       send({ text: cleanedText, sessionId })
       msgs.push({ role: 'assistant', content: cleanedText })
