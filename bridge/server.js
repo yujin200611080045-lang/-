@@ -273,7 +273,7 @@ app.post('/api/chat', async (req, res) => {
 
   console.log('[chat] spawning cc, prompt bytes:', Buffer.byteLength(fullPrompt))
 
-  const claudeProc = spawn(CLAUDE_BIN, ['-p', fullPrompt, '--model', 'claude-sonnet-4-6'], {
+  const claudeProc = spawn(CLAUDE_BIN, ['-p', fullPrompt, '--model', 'opus'], {
     cwd: REPO_PATH,
     env: claudeEnv(),
     stdio: ['ignore', 'pipe', 'pipe'],
