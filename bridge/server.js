@@ -142,11 +142,12 @@ async function textToSpeech(text) {
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
       method: 'POST',
       headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
+      // No voice_settings — let the voice use the defaults it was saved with,
+      // which is what the ElevenLabs web preview uses.
       body: JSON.stringify({
         text: text.slice(0, 4000),
         model_id: 'eleven_v3',
         language_code: 'zh',
-        voice_settings: { stability: 0.5, similarity_boost: 0.9 },
       }),
       signal: AbortSignal.timeout(30000),
     })
