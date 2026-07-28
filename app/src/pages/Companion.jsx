@@ -244,9 +244,16 @@ export default function Companion() {
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let buf = ''
-        let fullText = ''
-        let audioUrl = null
-        let voiceText = ''
+        let seq = 0
+        let firstBubble = true
+
+        // Render each segment as it arrives, so text bubbles and voice bars keep
+        // the order the model wrote them in (multiple voice bars supported).
+        const addBubble = async (extra) => {
+          if (!firstBubble) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
+          firstBubble = false
+          setMessages(m => [...m, { id: msgId + (++seq), side: 'received', time, ...extra }])
+        }
 
         while (true) {
           const { done, value } = await reader.read()
@@ -261,28 +268,16 @@ export default function Companion() {
             try {
               const parsed = JSON.parse(raw)
               if (parsed.audioUrl) {
-                audioUrl = parsed.audioUrl
-                voiceText = parsed.voiceText || ''
+                await addBubble({ text: parsed.voiceText || '', audioUrl: parsed.audioUrl, type: 'voice' })
               } else if (parsed.contentUpdate) {
                 window.dispatchEvent(new CustomEvent('xk-content-update'))
               } else if (parsed.text) {
-                fullText += parsed.text
+                for (const s of splitSentences(parsed.text)) {
+                  await addBubble({ text: s })
+                }
               }
             } catch {}
           }
-        }
-
-        const sentences = splitSentences(fullText)
-        for (let i = 0; i < sentences.length; i++) {
-          if (i > 0) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
-          setMessages(m => [...m, { id: msgId + i + 1, text: sentences[i], side: 'received', time }])
-        }
-        if (audioUrl) {
-          if (sentences.length) await new Promise(r => setTimeout(r, 400))
-          setMessages(m => [...m, {
-            id: msgId + sentences.length + 1,
-            text: voiceText, side: 'received', time, audioUrl, type: 'voice',
-          }])
         }
         if (modeRef.current === 'floating') triggerBurst()
 

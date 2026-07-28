@@ -324,47 +324,58 @@ app.post('/api/chat', async (req, res) => {
     // Be tolerant: streamed model output sometimes drops the opening or closing
     // tag. Match by whichever tag is present, and never let a bare tag leak into
     // the chat as plain text.
-    let voiceEn = null
-    let voiceZh = null
-    const openIdx = cleanedText.indexOf('[VOICE]')
-    const closeIdx = cleanedText.indexOf('[/VOICE]')
-    if (openIdx !== -1 || closeIdx !== -1) {
-      const innerStart = openIdx !== -1 ? openIdx + '[VOICE]'.length : 0
-      const innerEnd = closeIdx !== -1 ? closeIdx : cleanedText.length
-      if (innerEnd >= innerStart) {
-        const [en, zh] = cleanedText.slice(innerStart, innerEnd).split('|')
-        voiceEn = en?.trim() || null
-        voiceZh = zh?.trim() || voiceEn
-      }
-      const before = openIdx !== -1 ? cleanedText.slice(0, openIdx) : ''
-      const after = closeIdx !== -1 ? cleanedText.slice(closeIdx + '[/VOICE]'.length) : ''
-      cleanedText = (before + after)
-        .replace(/\[\/?VOICE\]/g, '')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim()
-    }
-
-    // Drop bare --- lines leaking in from the prompt's own section separators
+    // Strip bare --- lines leaking in from the prompt's own section separators.
     cleanedText = cleanedText.replace(/^\s*-{3,}\s*$/gm, '').replace(/\n{3,}/g, '\n\n').trim()
 
-    if (cleanedText) {
-      send({ text: cleanedText, sessionId })
-      msgs.push({ role: 'assistant', content: cleanedText })
-      sessions.set(sessionId, msgs.slice(-20))
-      holdToOmbre(`觎烬：${message}\n小克：${cleanedText}`).catch(() => {})
+    // Split the reply into ordered segments. A reply can hold multiple
+    // [VOICE]English|中文[/VOICE] blocks interleaved with text; each voice block
+    // becomes its own spoken message and everything streams in original order,
+    // so no voice block is dropped and no bare tag leaks as plain text.
+    const VOICE_G = /\[VOICE\]([\s\S]*?)\[\/VOICE\]/g
+    const segments = []
+    let lastIdx = 0
+    let vm
+    while ((vm = VOICE_G.exec(cleanedText)) !== null) {
+      const before = cleanedText.slice(lastIdx, vm.index)
+      if (before.trim()) segments.push({ type: 'text', text: before })
+      const [en, zh] = vm[1].split('|')
+      const spoken = (en || '').trim()
+      segments.push({ type: 'voice', en: spoken, zh: (zh || '').trim() || spoken })
+      lastIdx = vm.index + vm[0].length
     }
+    const tail = cleanedText.slice(lastIdx)
+    if (tail.trim()) segments.push({ type: 'text', text: tail })
 
-    if (voiceEn) {
-      const audioId = await textToSpeech(voiceEn)
-      if (audioId) {
-        send({ audioUrl: `/api/audio/${audioId}`, voiceText: voiceZh })
-      } else if (voiceZh) {
-        // TTS failed — still show the 中文 so the message isn't lost silently
-        send({ text: voiceZh, sessionId })
-        msgs.push({ role: 'assistant', content: voiceZh })
-        sessions.set(sessionId, msgs.slice(-20))
+    // Clean text segments: drop any stray/unpaired VOICE tags so they never
+    // reach the chat as plain text.
+    for (const seg of segments) {
+      if (seg.type === 'text') {
+        seg.text = seg.text.replace(/\[\/?VOICE\]/g, '').replace(/\n{3,}/g, '\n\n').trim()
       }
     }
+
+    // Stream segments in original order.
+    for (const seg of segments) {
+      if (seg.type === 'text') {
+        if (!seg.text) continue
+        send({ text: seg.text, sessionId })
+        msgs.push({ role: 'assistant', content: seg.text })
+      } else {
+        const audioId = seg.en ? await textToSpeech(seg.en) : null
+        if (audioId) {
+          send({ audioUrl: `/api/audio/${audioId}`, voiceText: seg.zh })
+        } else if (seg.zh) {
+          // TTS failed — still show the 中文 so the message isn't lost silently
+          send({ text: seg.zh, sessionId })
+        }
+        msgs.push({ role: 'assistant', content: seg.zh || seg.en })
+      }
+    }
+    sessions.set(sessionId, msgs.slice(-20))
+    const transcript = segments
+      .map(s => (s.type === 'text' ? s.text : (s.zh || s.en)))
+      .filter(Boolean).join('\n')
+    if (transcript) holdToOmbre(`觎烬：${message}\n小克：${transcript}`).catch(() => {})
     writeLastSeen()
     if (didUpdate) send({ contentUpdate: true })
     send('[DONE]')
