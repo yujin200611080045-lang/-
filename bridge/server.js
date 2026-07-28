@@ -147,7 +147,7 @@ async function textToSpeech(text) {
       body: JSON.stringify({
         text: text.slice(0, 4000),
         model_id: 'eleven_v3',
-        language_code: 'zh',
+        language_code: 'en',
       }),
       signal: AbortSignal.timeout(30000),
     })
@@ -318,21 +318,30 @@ app.post('/api/chat', async (req, res) => {
       cleanedText = responseText.replace(MARKER_RE, '').replace(/\n{3,}/g, '\n\n').trim()
     }
 
-    // Strip [VOICE] marker before sending
-    const wantsVoice = /\[VOICE\]/.test(cleanedText)
-    cleanedText = cleanedText.replace(/\[VOICE\]/g, '').replace(/\n{3,}/g, '\n\n').trim()
+    // Extract [VOICE]English|中文[/VOICE] — English is spoken, 中文 is displayed
+    const VOICE_RE = /\[VOICE\]([\s\S]*?)\[\/VOICE\]/
+    const voiceMatch = cleanedText.match(VOICE_RE)
+    let voiceEn = null
+    let voiceZh = null
+    if (voiceMatch) {
+      const [en, zh] = voiceMatch[1].split('|')
+      voiceEn = en?.trim() || null
+      voiceZh = zh?.trim() || voiceEn
+      cleanedText = cleanedText.replace(VOICE_RE, '').replace(/\n{3,}/g, '\n\n').trim()
+    }
 
     if (cleanedText) {
       send({ text: cleanedText, sessionId })
       msgs.push({ role: 'assistant', content: cleanedText })
       sessions.set(sessionId, msgs.slice(-20))
-      writeLastSeen()
       holdToOmbre(`觎烬：${message}\n小克：${cleanedText}`).catch(() => {})
-      if (wantsVoice) {
-        const audioId = await textToSpeech(cleanedText)
-        if (audioId) send({ audioUrl: `/api/audio/${audioId}` })
-      }
     }
+
+    if (voiceEn) {
+      const audioId = await textToSpeech(voiceEn)
+      if (audioId) send({ audioUrl: `/api/audio/${audioId}`, voiceText: voiceZh })
+    }
+    writeLastSeen()
     if (didUpdate) send({ contentUpdate: true })
     send('[DONE]')
     res.end()

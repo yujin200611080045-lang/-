@@ -72,31 +72,25 @@ function VoiceBar({ audioUrl, text, time }) {
   const [playing, setPlaying] = useState(false)
   const audioRef = useRef(null)
 
+  // Tap toggles: open reveals the translation and plays, tap again hides and stops.
   function handleTap(e) {
     e.stopPropagation()
-    if (!expanded) {
-      setExpanded(true)
-      if (audioUrl) {
-        const audio = new Audio(`${BRIDGE_URL}${audioUrl}`)
-        audioRef.current = audio
-        audio.play().catch(() => {})
-        setPlaying(true)
-        audio.onended = () => setPlaying(false)
-      }
-    } else if (playing) {
+    if (expanded) {
       audioRef.current?.pause()
-      if (audioRef.current) audioRef.current.currentTime = 0
+      audioRef.current = null
       setPlaying(false)
-    } else {
-      if (audioUrl) {
-        const audio = new Audio(`${BRIDGE_URL}${audioUrl}`)
-        audioRef.current = audio
-        audio.play().catch(() => {})
-        setPlaying(true)
-        audio.onended = () => setPlaying(false)
-      }
+      setExpanded(false)
+      return
     }
+    setExpanded(true)
+    if (!audioUrl) return
+    const audio = new Audio(`${BRIDGE_URL}${audioUrl}`)
+    audioRef.current = audio
+    audio.onended = () => setPlaying(false)
+    audio.play().then(() => setPlaying(true)).catch(() => {})
   }
+
+  useEffect(() => () => audioRef.current?.pause(), [])
 
   return (
     <div className="voice-message" onClick={handleTap}>
@@ -241,6 +235,7 @@ export default function Companion() {
         let buf = ''
         let fullText = ''
         let audioUrl = null
+        let voiceText = ''
 
         while (true) {
           const { done, value } = await reader.read()
@@ -256,6 +251,7 @@ export default function Companion() {
               const parsed = JSON.parse(raw)
               if (parsed.audioUrl) {
                 audioUrl = parsed.audioUrl
+                voiceText = parsed.voiceText || ''
               } else if (parsed.contentUpdate) {
                 window.dispatchEvent(new CustomEvent('xk-content-update'))
               } else if (parsed.text) {
@@ -265,14 +261,17 @@ export default function Companion() {
           }
         }
 
+        const sentences = splitSentences(fullText)
+        for (let i = 0; i < sentences.length; i++) {
+          if (i > 0) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
+          setMessages(m => [...m, { id: msgId + i + 1, text: sentences[i], side: 'received', time }])
+        }
         if (audioUrl) {
-          setMessages(m => [...m, { id: msgId + 1, text: fullText, side: 'received', time, audioUrl, type: 'voice' }])
-        } else {
-          const sentences = splitSentences(fullText)
-          for (let i = 0; i < sentences.length; i++) {
-            if (i > 0) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
-            setMessages(m => [...m, { id: msgId + i + 1, text: sentences[i], side: 'received', time }])
-          }
+          if (sentences.length) await new Promise(r => setTimeout(r, 400))
+          setMessages(m => [...m, {
+            id: msgId + sentences.length + 1,
+            text: voiceText, side: 'received', time, audioUrl, type: 'voice',
+          }])
         }
         if (modeRef.current === 'floating') triggerBurst()
 
