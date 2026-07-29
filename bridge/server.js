@@ -136,6 +136,53 @@ async function holdToOmbre(content) {
   } catch (err) { console.error('[ombre hold error]', err.message) }
 }
 
+async function growToOmbre(content) {
+  try {
+    const res = await fetch(`${OMBRE_URL}/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OMBRE_MCP_TOKEN}` },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/call', params: { name: 'grow', arguments: { content } }, id: Date.now() }),
+      signal: AbortSignal.timeout(30000),
+    })
+    const text = await res.text()
+    console.log('[ombre grow]', res.status, text.slice(0, 150))
+  } catch (err) { console.error('[ombre grow error]', err.message) }
+}
+
+// ── Memory digest buffer ──
+// Instead of hold()-ing every single turn (which floods Ombre with tiny,
+// low-value fragments), accumulate turns per session and grow() them in
+// batches. grow() lets Ombre's LLM digest a chunk into 2–6 meaningful memory
+// points and naturally skips the throwaway chatter.
+const DIGEST_THRESHOLD = 6            // grow after this many turns
+const DIGEST_IDLE_MS = 8 * 60 * 1000 // ...or after this much silence
+const pendingDigest = new Map()      // sessionId -> { lines: [], lastAt }
+
+function flushDigest(sessionId) {
+  const entry = pendingDigest.get(sessionId)
+  if (!entry || !entry.lines.length) return
+  const content = entry.lines.join('\n\n')
+  pendingDigest.delete(sessionId)
+  growToOmbre(content).catch(() => {})
+}
+
+function queueDigest(sessionId, turn) {
+  const entry = pendingDigest.get(sessionId) || { lines: [], lastAt: 0 }
+  entry.lines.push(turn)
+  entry.lastAt = Date.now()
+  pendingDigest.set(sessionId, entry)
+  if (entry.lines.length >= DIGEST_THRESHOLD) flushDigest(sessionId)
+}
+
+// Flush buffers that have gone quiet, so a short chat that ends before hitting
+// the turn threshold still gets digested.
+setInterval(() => {
+  const now = Date.now()
+  for (const [sid, entry] of pendingDigest) {
+    if (entry.lines.length && now - entry.lastAt > DIGEST_IDLE_MS) flushDigest(sid)
+  }
+}, 2 * 60 * 1000)
+
 async function textToSpeech(text) {
   if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID) return null
   try {
@@ -375,7 +422,7 @@ app.post('/api/chat', async (req, res) => {
     const transcript = segments
       .map(s => (s.type === 'text' ? s.text : (s.zh || s.en)))
       .filter(Boolean).join('\n')
-    if (transcript) holdToOmbre(`觎烬：${message}\n小克：${transcript}`).catch(() => {})
+    if (transcript) queueDigest(sessionId, `觎烬：${message}\n小克：${transcript}`)
     writeLastSeen()
     if (didUpdate) send({ contentUpdate: true })
     send('[DONE]')
