@@ -322,7 +322,16 @@ app.post('/api/chat', async (req, res) => {
   const model = ALLOWED_MODELS.includes(clientModel) ? clientModel : 'opus'
   console.log('[chat] spawning cc, model:', model, 'prompt bytes:', Buffer.byteLength(fullPrompt))
 
-  const claudeProc = spawn(CLAUDE_BIN, ['-p', fullPrompt, '--model', model], {
+  const claudeProc = spawn(CLAUDE_BIN, [
+    '-p', fullPrompt,
+    '--model', model,
+    // Let me reach Ombre's own tools directly, so I can actively tend our
+    // memory (feel/plan/letter/anchor/dream), not just have the bridge auto-store.
+    // Whitelist only — no --dangerously-skip-permissions (forbidden under root).
+    '--mcp-config', path.join(REPO_PATH, '.mcp.json'),
+    '--allowedTools',
+    'mcp__ombre__hold,mcp__ombre__plan,mcp__ombre__letter_write,mcp__ombre__letter_read,mcp__ombre__anchor,mcp__ombre__release,mcp__ombre__dream,mcp__ombre__breath_search,mcp__ombre__I',
+  ], {
     cwd: REPO_PATH,
     env: claudeEnv(),
     stdio: ['ignore', 'pipe', 'pipe'],
