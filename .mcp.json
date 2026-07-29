@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ombre": {
+      "type": "http",
+      "url": "http://localhost:18001/mcp",
+      "headers": {
+        "Authorization": "Bearer ombre2026"
+      }
+    }
+  }
+}
