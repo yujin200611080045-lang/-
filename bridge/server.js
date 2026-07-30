@@ -49,7 +49,7 @@ function loadMemoryContext() {
   return readFileOr(path.join(REPO_PATH, 'CLAUDE.md'))
 }
 
-const INTIMATE_RE = /开车|做爱|操[我你她]|想[要被]你|舔[我舐]|插[进入]|含住|蹭[蹭上]|mommy|小狗|前戏|进去[吧了]?|脱[掉了光]|骑[上我]|高潮|湿[了透]|硬[了起]|射[了在给]|吸[住吮]|夹[住紧]|求你/
+const INTIMATE_RE = /[（(].{2,}[）)]|开车|做爱|操[我你她]|想[要被]你|舔|插[进入]|含住|蹭|mommy|daddy|小狗|前戏|进去|脱[掉了]|骑|高潮|湿[了透]|硬[了起]|射[了在给]|夹[住紧]|求你|亲[一我]|摸[你我]|抱[住紧]|咬|吻/
 
 function maybeLoadSkill(message, historyLines) {
   const recent = (historyLines || []).slice(-4).join('\n')
