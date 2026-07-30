@@ -15,38 +15,6 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
 }
 
-async function setupPush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-  try {
-    const keyRes = await fetch(`${BRIDGE_URL}/api/push/vapid-public`)
-    const { publicKey } = await keyRes.json()
-    if (!publicKey) return
-
-    const perm = await Notification.requestPermission()
-    if (perm !== 'granted') return
-
-    const reg = await navigator.serviceWorker.ready
-    let sub = await reg.pushManager.getSubscription()
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      })
-    }
-
-    await fetch(`${BRIDGE_URL}/api/push/subscribe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(BRIDGE_SECRET && { 'x-bridge-secret': BRIDGE_SECRET }),
-      },
-      body: JSON.stringify(sub),
-    })
-    console.log('[push] subscribed')
-  } catch (e) {
-    console.log('[push] setup failed:', e.message)
-  }
-}
 
 function getSessionId() {
   let id = localStorage.getItem(SESSION_KEY)
@@ -168,6 +136,7 @@ export default function Companion() {
   const [bursts, setBursts] = useState([])
   const [isTyping, setIsTyping] = useState(false)
   const [offlineMode, setOfflineMode] = useState(false)
+  const [pushEnabled, setPushEnabled] = useState(false)
 
   const offlineModeRef = useRef(false)
   const wrapperRef = useRef(null)
@@ -180,8 +149,46 @@ export default function Companion() {
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
-    setupPush()
+    async function checkPush() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+      try {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) setPushEnabled(true)
+      } catch {}
+    }
+    checkPush()
   }, [])
+
+  async function handlePushSetup() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    try {
+      const keyRes = await fetch(`${BRIDGE_URL}/api/push/vapid-public`)
+      const { publicKey } = await keyRes.json()
+      if (!publicKey) return
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') return
+      const reg = await navigator.serviceWorker.ready
+      let sub = await reg.pushManager.getSubscription()
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        })
+      }
+      await fetch(`${BRIDGE_URL}/api/push/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(BRIDGE_SECRET && { 'x-bridge-secret': BRIDGE_SECRET }),
+        },
+        body: JSON.stringify(sub),
+      })
+      setPushEnabled(true)
+    } catch (e) {
+      console.log('[push] setup failed:', e.message)
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -464,6 +471,12 @@ export default function Companion() {
           className={`chat-name${offlineMode ? ' offline' : ''}`}
           onClick={toggleOffline}
         >^ ^</span>
+        {!pushEnabled && (
+          <button
+            className="bell-btn"
+            onClick={e => { stopProp(e); handlePushSetup() }}
+          >🔔</button>
+        )}
       </div>
 
       {/* messages */}
