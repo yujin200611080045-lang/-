@@ -190,6 +190,33 @@ export default function Companion() {
     }
   }
 
+  // App was closed when notification arrived — message passed as URL param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const raw = params.get('push')
+    if (!raw) return
+    try {
+      const { body } = JSON.parse(decodeURIComponent(raw))
+      if (body) {
+        const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+        setMessages(m => [...m, { text: body, side: 'received', time }])
+        window.history.replaceState({}, '', '/companion')
+      }
+    } catch {}
+  }, [])
+
+  // App was open when notification arrived — message passed via postMessage
+  useEffect(() => {
+    if (!navigator.serviceWorker) return
+    const handler = e => {
+      if (e.data?.type !== 'xk-push' || !e.data.body) return
+      const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+      setMessages(m => [...m, { text: e.data.body, side: 'received', time }])
+    }
+    navigator.serviceWorker.addEventListener('message', handler)
+    return () => navigator.serviceWorker.removeEventListener('message', handler)
+  }, [])
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     try { localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages.slice(-200))) } catch {}
