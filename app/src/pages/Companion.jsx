@@ -76,6 +76,19 @@ function renderOfflineText(text) {
   })
 }
 
+const GAP_MS = 30 * 60 * 1000
+
+function withDividers(msgs) {
+  const out = []
+  for (let i = 0; i < msgs.length; i++) {
+    if (i > 0 && msgs[i].ts && msgs[i - 1].ts && msgs[i].ts - msgs[i - 1].ts > GAP_MS) {
+      out.push({ _divider: true, time: msgs[i].time, key: `div-${i}` })
+    }
+    out.push(msgs[i])
+  }
+  return out
+}
+
 const WAVE_HEIGHTS = [5, 9, 13, 7, 11, 5, 13, 9, 7, 11, 5, 9, 13, 7, 11, 5]
 
 function VoiceBar({ audioUrl, text, time }) {
@@ -190,19 +203,23 @@ export default function Companion() {
     }
   }
 
-  // App was closed when notification arrived — message passed as URL param
+  // App was closed when notification arrived — read from Cache API (reliable on iOS)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const raw = params.get('push')
-    if (!raw) return
-    try {
-      const { body } = JSON.parse(decodeURIComponent(raw))
-      if (body) {
-        const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
-        setMessages(m => [...m, { text: body, side: 'received', time }])
-        window.history.replaceState({}, '', '/companion')
-      }
-    } catch {}
+    async function drainPushCache() {
+      if (!('caches' in window)) return
+      try {
+        const cache = await caches.open('xk-push')
+        const res = await cache.match('/pending')
+        if (!res) return
+        const { body } = await res.json()
+        if (body) {
+          const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+          setMessages(m => [...m, { text: body, side: 'received', time, ts: Date.now() }])
+        }
+        await cache.delete('/pending')
+      } catch {}
+    }
+    drainPushCache()
   }, [])
 
   // App was open when notification arrived — message passed via postMessage
@@ -211,7 +228,7 @@ export default function Companion() {
     const handler = e => {
       if (e.data?.type !== 'xk-push' || !e.data.body) return
       const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
-      setMessages(m => [...m, { text: e.data.body, side: 'received', time }])
+      setMessages(m => [...m, { text: e.data.body, side: 'received', time, ts: Date.now() }])
     }
     navigator.serviceWorker.addEventListener('message', handler)
     return () => navigator.serviceWorker.removeEventListener('message', handler)
@@ -330,7 +347,7 @@ export default function Companion() {
         const addBubble = async (extra) => {
           if (!firstBubble) await new Promise(r => setTimeout(r, 400 + Math.random() * 400))
           firstBubble = false
-          setMessages(m => [...m, { id: msgId + (++seq), side: 'received', time, ...extra }])
+          setMessages(m => [...m, { id: msgId + (++seq), side: 'received', time, ts: Date.now(), ...extra }])
         }
 
         while (true) {
@@ -429,7 +446,7 @@ export default function Companion() {
     const time = new Date().toLocaleTimeString('zh-CN', {
       hour: '2-digit', minute: '2-digit', hour12: false,
     })
-    const newMsg = { text, side: 'sent', time }
+    const newMsg = { text, side: 'sent', time, ts: Date.now() }
     const newMessages = [...messages, newMsg]
     setMessages(newMessages)
     setInputText('')
@@ -514,14 +531,16 @@ export default function Companion() {
                 {renderOfflineText(msg.text)}
               </div>
             ))
-          : messages.map((msg, i) => (
-              msg.type === 'voice'
-                ? <VoiceBar key={i} audioUrl={msg.audioUrl} text={msg.text} time={msg.time} />
-                : <div key={i} className={`chat-bubble ${msg.side}`}>
-                    <span className="bubble-text">{msg.text}</span>
-                    <span className="bubble-time">{msg.time}</span>
-                  </div>
-            ))
+          : withDividers(messages).map((item, i) =>
+              item._divider
+                ? <div key={item.key} className="time-divider">{item.time}</div>
+                : item.type === 'voice'
+                  ? <VoiceBar key={item.id ?? i} audioUrl={item.audioUrl} text={item.text} time={item.time} />
+                  : <div key={item.id ?? i} className={`chat-bubble ${item.side}`}>
+                      <span className="bubble-text">{item.text}</span>
+                      <span className="bubble-time">{item.time}</span>
+                    </div>
+            )
         }
         {isTyping && (
           offlineMode

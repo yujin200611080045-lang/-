@@ -434,6 +434,14 @@
   padding: 20px 24px;
 }
 
+.time-divider {
+  text-align: center;
+  font-size: 11px;
+  color: #bbb;
+  margin: 20px 0 8px;
+  letter-spacing: 0.5px;
+}
+
 .offline-msg {
   display: flex;
   flex-direction: column;
