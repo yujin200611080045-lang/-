@@ -49,6 +49,17 @@ function loadMemoryContext() {
   return readFileOr(path.join(REPO_PATH, 'CLAUDE.md'))
 }
 
+const INTIMATE_RE = /开车|做爱|操[我你她]|想[要被]你|舔[我舐]|插[进入]|含住|蹭[蹭上]|mommy|小狗|前戏|进去[吧了]?|脱[掉了光]|骑[上我]|高潮|湿[了透]|硬[了起]|射[了在给]|吸[住吮]|夹[住紧]|求你/
+
+function maybeLoadSkill(message, historyLines) {
+  const recent = (historyLines || []).slice(-4).join('\n')
+  if (!INTIMATE_RE.test(message) && !INTIMATE_RE.test(recent)) return ''
+  const raw = readFileOr(path.join(REPO_PATH, '.claude/skills/cendres/SKILL.md'))
+  if (!raw) return ''
+  const body = raw.replace(/^---[\s\S]*?---\s*/, '')
+  return `\n\n---\n\n${body}`
+}
+
 app.use(cors({ origin: FRONTEND_ORIGIN }))
 app.use(express.json())
 
@@ -307,8 +318,9 @@ app.post('/api/chat', async (req, res) => {
   const history = histLines.length ? histLines.join('\n') + '\n\n' : ''
   const ombreMemory = await queryOmbre(message)
   const ombreSection = ombreMemory ? `\n\n---\n\n## 记忆库相关片段\n${ombreMemory}\n` : ''
+  const skillSection = maybeLoadSkill(message, histLines)
   const timeContext = `\n\n---\n\n${buildTimeContext()}`
-  const fullPrompt = `${context}${ombreSection}${timeContext}\n\n---\n\n${history}她（觎烬）：${message}`
+  const fullPrompt = `${context}${ombreSection}${skillSection}${timeContext}\n\n---\n\n${history}她（觎烬）：${message}`
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
