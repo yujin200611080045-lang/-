@@ -6,10 +6,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
-      workbox: {
-        skipWaiting: true,
-        clientsClaim: true
+      injectManifest: {
+        swSrc: 'src/sw.js',
+        swDest: 'dist/sw.js',
       },
       manifest: {
         name: 'Home',

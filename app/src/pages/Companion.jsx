@@ -8,6 +8,46 @@ const BRIDGE_SECRET = import.meta.env.VITE_BRIDGE_SECRET || ''
 const SESSION_KEY = 'xk_companion_session'
 const MESSAGES_KEY = 'xk_companion_messages'
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(base64)
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+}
+
+async function setupPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+  try {
+    const keyRes = await fetch(`${BRIDGE_URL}/api/push/vapid-public`)
+    const { publicKey } = await keyRes.json()
+    if (!publicKey) return
+
+    const perm = await Notification.requestPermission()
+    if (perm !== 'granted') return
+
+    const reg = await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      })
+    }
+
+    await fetch(`${BRIDGE_URL}/api/push/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(BRIDGE_SECRET && { 'x-bridge-secret': BRIDGE_SECRET }),
+      },
+      body: JSON.stringify(sub),
+    })
+    console.log('[push] subscribed')
+  } catch (e) {
+    console.log('[push] setup failed:', e.message)
+  }
+}
+
 function getSessionId() {
   let id = localStorage.getItem(SESSION_KEY)
   if (!id) { id = crypto.randomUUID(); localStorage.setItem(SESSION_KEY, id) }
@@ -138,6 +178,10 @@ export default function Companion() {
   const tapStartRef = useRef({ x: 0, y: 0 })
   const lastTap = useRef(0)
   const messagesEndRef = useRef(null)
+
+  useEffect(() => {
+    setupPush()
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
