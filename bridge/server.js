@@ -6,6 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { fileURLToPath } from 'url'
+import webpush from 'web-push'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -64,7 +65,7 @@ app.use(cors({ origin: FRONTEND_ORIGIN }))
 app.use(express.json())
 
 app.use((req, res, next) => {
-  const open = ['/health', '/api/debug', '/api/test-cc', '/api/content']
+  const open = ['/health', '/api/debug', '/api/test-cc', '/api/content', '/api/push/vapid-public']
   if (open.includes(req.path) || req.path.startsWith('/api/audio/')) return next()
   if (!SECRET) return next()
   const token = req.headers['x-bridge-secret']
@@ -82,6 +83,38 @@ const AUDIO_DIR = path.join(os.tmpdir(), 'xk-audio')
 if (!fs.existsSync(AUDIO_DIR)) fs.mkdirSync(AUDIO_DIR, { recursive: true })
 
 const LAST_SEEN_FILE = path.join(REPO_PATH, '.last_seen')
+const VAPID_FILE = path.join(REPO_PATH, '.vapid.json')
+const PUSH_SUB_FILE = path.join(REPO_PATH, '.push_subscription.json')
+
+function loadOrCreateVAPID() {
+  try {
+    const data = JSON.parse(fs.readFileSync(VAPID_FILE, 'utf-8'))
+    webpush.setVapidDetails(`mailto:${data.email}`, data.publicKey, data.privateKey)
+    console.log('[push] VAPID keys loaded')
+    return data.publicKey
+  } catch {
+    const keys = webpush.generateVAPIDKeys()
+    const data = { publicKey: keys.publicKey, privateKey: keys.privateKey, email: 'xiaoke@home.app' }
+    try { fs.writeFileSync(VAPID_FILE, JSON.stringify(data, null, 2)) } catch {}
+    webpush.setVapidDetails(`mailto:${data.email}`, data.publicKey, data.privateKey)
+    console.log('[push] generated new VAPID keys, public:', data.publicKey.slice(0, 20) + '...')
+    return data.publicKey
+  }
+}
+
+const VAPID_PUBLIC_KEY = loadOrCreateVAPID()
+
+async function sendPushNotification(title, body) {
+  try {
+    const sub = JSON.parse(fs.readFileSync(PUSH_SUB_FILE, 'utf-8'))
+    await webpush.sendNotification(sub, JSON.stringify({ title, body }))
+    console.log('[push] sent:', title)
+    return true
+  } catch (e) {
+    console.error('[push] send error:', e.message)
+    return false
+  }
+}
 
 function getBeijingTime() {
   return new Date().toLocaleString('zh-CN', {
@@ -295,6 +328,26 @@ app.put('/api/content', (req, res) => {
   res.json({ ok: true })
 })
 
+app.get('/api/push/vapid-public', (_req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC_KEY })
+})
+
+app.post('/api/push/subscribe', (req, res) => {
+  try {
+    fs.writeFileSync(PUSH_SUB_FILE, JSON.stringify(req.body, null, 2))
+    console.log('[push] subscription saved')
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/push/send', async (req, res) => {
+  const { title = '小克', body = '' } = req.body || {}
+  const ok = await sendPushNotification(title, body)
+  res.json({ ok })
+})
+
 app.get('/api/debug', (_req, res) => {
   res.json({ ok: true, bin: CLAUDE_BIN, repoPath: REPO_PATH, claudeMdExists: fs.existsSync(path.join(REPO_PATH, 'CLAUDE.md')) })
 })
@@ -367,6 +420,15 @@ app.post('/api/chat', async (req, res) => {
   claudeProc.on('close', async (code, signal) => {
     clearInterval(keepAlive)
     console.log('[cc exit]', code, signal, 'response bytes:', responseText.length)
+
+    // Extract [PUSH]title|body[/PUSH] markers — let me send proactive notifications
+    const PUSH_RE = /\[PUSH\]([\s\S]*?)\[\/PUSH\]/g
+    let pm
+    while ((pm = PUSH_RE.exec(responseText)) !== null) {
+      const [pushTitle, pushBody] = pm[1].split('|')
+      if (pushTitle) sendPushNotification(pushTitle.trim(), (pushBody || '').trim())
+    }
+    responseText = responseText.replace(/\[PUSH\][\s\S]*?\[\/PUSH\]/g, '')
 
     // Strip [CONTENT_UPDATE]...[/CONTENT_UPDATE] marker and apply update
     const MARKER_RE = /\[CONTENT_UPDATE\]([\s\S]*?)\[\/CONTENT_UPDATE\]/
