@@ -253,6 +253,17 @@ async function textToSpeech(text) {
 
 const sessions = new Map()
 
+// Track the most recent active session so push-injected messages land in the right history
+const LAST_SESSION_FILE = path.join(REPO_PATH, '.last_session_id')
+let lastSessionId = null
+try { lastSessionId = fs.readFileSync(LAST_SESSION_FILE, 'utf-8').trim() || null } catch {}
+
+function injectAssistantMessage(text) {
+  if (!lastSessionId || !text) return
+  const existing = sessions.get(lastSessionId) || []
+  sessions.set(lastSessionId, [...existing, { role: 'assistant', content: text }].slice(-20))
+}
+
 const CONTENT_FILE = path.join(REPO_PATH, 'content.json')
 
 function defaultContent() {
@@ -345,6 +356,7 @@ app.post('/api/push/subscribe', (req, res) => {
 app.post('/api/push/send', async (req, res) => {
   const { title = '小克', body = '' } = req.body || {}
   const ok = await sendPushNotification(title, body)
+  if (ok && body) injectAssistantMessage(body)
   res.json({ ok })
 })
 
@@ -357,6 +369,8 @@ app.post('/api/chat', async (req, res) => {
   if (!message?.trim()) return res.status(400).json({ error: 'message required' })
 
   const sessionId = clientSessionId || randomUUID()
+  lastSessionId = sessionId
+  try { fs.writeFileSync(LAST_SESSION_FILE, sessionId) } catch {}
 
   // Prefer client-side history (survives bridge restarts), fall back to in-memory
   const msgs = clientHistory?.length > 0
@@ -426,7 +440,9 @@ app.post('/api/chat', async (req, res) => {
     let pm
     while ((pm = PUSH_RE.exec(responseText)) !== null) {
       const [pushTitle, pushBody] = pm[1].split('|')
-      if (pushTitle) sendPushNotification(pushTitle.trim(), (pushBody || '').trim())
+      const pb = (pushBody || '').trim()
+      if (pushTitle) sendPushNotification(pushTitle.trim(), pb)
+      if (pb) injectAssistantMessage(pb)
     }
     responseText = responseText.replace(/\[PUSH\][\s\S]*?\[\/PUSH\]/g, '')
 
