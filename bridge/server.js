@@ -477,7 +477,7 @@ app.post('/api/chat', async (req, res) => {
     // [VOICE]English|中文[/VOICE] blocks interleaved with text; each voice block
     // becomes its own spoken message and everything streams in original order,
     // so no voice block is dropped and no bare tag leaks as plain text.
-    const VOICE_G = /\[VOICE\]([\s\S]*?)\[\/VOICE\]/g
+    const VOICE_G = /\[VOICE\]([\s\S]*?)\[\/VOICE\]/gi
     const segments = []
     let lastIdx = 0
     let vm
@@ -496,7 +496,7 @@ app.post('/api/chat', async (req, res) => {
     // reach the chat as plain text.
     for (const seg of segments) {
       if (seg.type === 'text') {
-        seg.text = seg.text.replace(/\[\/?VOICE\]/g, '').replace(/\n{3,}/g, '\n\n').trim()
+        seg.text = seg.text.replace(/\[\/?VOICE\]/gi, '').replace(/\n{3,}/g, '\n\n').trim()
       }
     }
 
