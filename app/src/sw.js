@@ -1,5 +1,8 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 
+self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', e => e.waitUntil(clients.claim()))
+
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
 
