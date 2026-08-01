@@ -409,7 +409,7 @@ app.post('/api/chat', async (req, res) => {
     // Whitelist only — no --dangerously-skip-permissions (forbidden under root).
     '--mcp-config', path.join(REPO_PATH, '.mcp.json'),
     '--allowedTools',
-    'mcp__ombre__hold,mcp__ombre__plan,mcp__ombre__letter_write,mcp__ombre__letter_read,mcp__ombre__anchor,mcp__ombre__release,mcp__ombre__dream,mcp__ombre__breath_search,mcp__ombre__I,WebFetch,WebSearch',
+    'mcp__ombre__hold,mcp__ombre__plan,mcp__ombre__letter_write,mcp__ombre__letter_read,mcp__ombre__anchor,mcp__ombre__release,mcp__ombre__dream,mcp__ombre__breath_search,mcp__ombre__I,WebFetch,WebSearch,Bash,Read,Write,Edit,MultiEdit,Glob,Grep,LS,NotebookRead,NotebookEdit',
   ], {
     cwd: REPO_PATH,
     env: claudeEnv(),
