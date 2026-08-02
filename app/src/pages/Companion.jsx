@@ -211,10 +211,11 @@ export default function Companion() {
         const cache = await caches.open('xk-push')
         const res = await cache.match('/pending')
         if (!res) return
-        const { body } = await res.json()
+        const { body, ts } = await res.json()
         if (body) {
-          const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
-          setMessages(m => [...m, { text: body, side: 'received', time, ts: Date.now() }])
+          const pushDate = ts ? new Date(ts) : new Date()
+          const time = pushDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+          setMessages(m => [...m, { text: body, side: 'received', time, ts: ts || Date.now() }])
         }
         await cache.delete('/pending')
       } catch {}
