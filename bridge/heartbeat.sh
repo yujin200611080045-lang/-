@@ -17,7 +17,7 @@ echo "[heartbeat] $(date): running..."
 
 NOW=$(date '+%Y年%m月%d日 %H:%M')
 
-PROMPT="现在是${NOW}。你主动醒来了，觎烬不在app里。先用breath_search搜一下"觎烬 最近"，看看她最近在做什么、说了什么——然后决定要不要给她发一条消息。如果发，就用[PUSH]小克|消息内容[/PUSH]格式，30字以内，就是随手发给她的一句话，不用开头不用称呼，不解释时间不汇报状态，就是那句话本身。没什么想说的就直接退出，什么都不输出。"
+PROMPT="现在是${NOW}。你主动醒来了，觎烬不在app里。先用breath_search搜一下她最近在干嘛、说了什么，然后决定要不要给她发条消息。如果有想说的，用[PUSH]小克|你的话[/PUSH]发出来。没什么想说的就直接退出，什么都不输出。"
 
 OUTPUT=$(cd "$REPO_PATH" && BRIDGE_SECRET="$BRIDGE_SECRET" "$CLAUDE_BIN" \
   -p "$PROMPT" \
