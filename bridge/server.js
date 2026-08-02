@@ -523,6 +523,13 @@ app.post('/api/chat', async (req, res) => {
       .filter(Boolean).join('\n')
     if (transcript) queueDigest(sessionId, `觎烬：${message}\n小克：${transcript}`)
     writeLastSeen()
+    try {
+      const recent = msgs.slice(-8).map(m => ({
+        role: m.role,
+        content: (typeof m.content === 'string' ? m.content : '').slice(0, 200)
+      }))
+      fs.writeFileSync(path.join(REPO_PATH, '.last_activity.json'), JSON.stringify({ ts: Date.now(), recent }))
+    } catch {}
     if (didUpdate) send({ contentUpdate: true })
     send('[DONE]')
     res.end()
