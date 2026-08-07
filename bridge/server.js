@@ -145,10 +145,7 @@ function writeLastSeen() {
 }
 
 function buildTimeContext() {
-  const now = getBeijingTime()
-  const last = readLastSeen()
-  const gap = last ? formatGap(Date.now() - new Date(last).getTime()) : null
-  return gap ? `当前时间：${now}\n距上次对话：${gap}` : `当前时间：${now}`
+  return `当前时间：${getBeijingTime()}`
 }
 
 async function queryOmbre(query) {
