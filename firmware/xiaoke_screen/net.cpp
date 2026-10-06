@@ -24,6 +24,16 @@ static int state = ST_IDLE;
 static int try_i = 0;
 static uint32_t state_ms = 0;
 static bool time_started = false;
+static bool radio_on = false;
+
+// 射频刚启动时电流很大，USB 供电容易被拉垮（会掉电重启），所以发射功率调低一点
+static void radio_up(wifi_mode_t mode) {
+  WiFi.persistent(false);
+  WiFi.mode(mode);
+  WiFi.setTxPower(WIFI_POWER_11dBm);
+  WiFi.setAutoReconnect(true);
+  radio_on = true;
+}
 
 // ---------- 存取 ----------
 static void load() {
@@ -182,7 +192,8 @@ void net_start_portal() {
     portal_until = millis() + PORTAL_MS;
     return;
   }
-  WiFi.mode(WIFI_AP_STA);
+  if (!radio_on) radio_up(WIFI_AP_STA);
+  else WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(NET_AP_NAME, NET_AP_PASS);
   dns.start(53, "*", WiFi.softAPIP());
   if (!web_started) {
@@ -210,15 +221,19 @@ static void stop_portal() {
 }
 
 void net_init() {
-  WiFi.persistent(false);
-  WiFi.setAutoReconnect(true);
-  WiFi.mode(WIFI_STA);
   load();
   Serial.printf("记住的 WiFi：%d 个\n", net_count);
+}
+
+bool net_radio_on() { return radio_on; }
+
+void net_start_radio() {
+  if (radio_on) return;
   if (net_count == 0) {
     net_start_portal();
     return;
   }
+  radio_up(WIFI_STA);
   state = ST_TRYING;
   try_i = 0;
   state_ms = millis();
@@ -226,6 +241,7 @@ void net_init() {
 }
 
 void net_loop() {
+  if (!radio_on) return;
   uint32_t t = millis();
   if (portal) {
     dns.processNextRequest();

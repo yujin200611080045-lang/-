@@ -22,6 +22,7 @@
 // 串口监视器（115200）每秒会打印一次麦克风音量，方便调灵敏度。
 
 #include <Preferences.h>
+#include "soc/rtc_cntl_reg.h"
 #include "board.h"
 #include "face.h"
 #include "touch.h"
@@ -46,6 +47,10 @@
 #define NIGHT_ASLEEP_MS  60000
 #define DOUBLE_TAP_MS    350
 #define CLOCK_SHOW_MS    3500
+#define WIFI_START_MS    5000    // 开机多久以后才打开 WiFi
+// 如果开 WiFi 时还是反复重启（供电不够触发了"掉电保护"），把下面改成 1 试试。
+// 这会关掉掉电保护，最好还是换个供电更足的口或者接电池。
+#define IGNORE_BROWNOUT  0
 #define LOOK_X           44      // 眼睛左右最多挪多少像素
 #define LOOK_Y           22
 #define FRAME_MS         33      // 约 30 帧
@@ -104,8 +109,11 @@ static void react(Expr e, uint32_t ms) {
 
 static bool reacting() { return millis() < react_until; }
 
+// 打开 WiFi 的那一下很费电，这段时间里不出声
+static uint32_t quiet_until = 0;
+
 static void play(Sound s) {
-  if (has_voice) voice_play(s);
+  if (has_voice && millis() >= quiet_until) voice_play(s);
 }
 
 static void wake(bool startled) {
@@ -325,10 +333,18 @@ static void update(uint32_t t) {
   }
   was_connected = conn;
 
-  // 夜里屏幕暗一点
+  // 开机几秒后、喇叭安静的时候才打开 WiFi；打开的那一下屏幕先调暗，减轻供电压力
   static int bl = -1;
+  if (!net_radio_on() && t > WIFI_START_MS && !(has_voice && voice_speaking())) {
+    quiet_until = t + 1500;
+    backlight(15);
+    bl = 15;
+    net_start_radio();
+  }
+
+  // 夜里屏幕暗一点
   bool night = is_night();
-  int want_bl = night ? 30 : 80;
+  int want_bl = t < quiet_until ? 15 : (night ? 30 : 80);
   if (want_bl != bl) {
     bl = want_bl;
     backlight(bl);
@@ -411,6 +427,9 @@ static void update(uint32_t t) {
 }
 
 void setup() {
+#if IGNORE_BROWNOUT
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+#endif
   Serial.begin(115200);
   delay(300);
   Serial.println("小克醒了");
