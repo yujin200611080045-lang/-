@@ -43,8 +43,8 @@ static void shapes_for(Expr e, EyeShape &l, EyeShape &r) {
       l = {-18, 0, 0, 0, 18, 0, 5};
       r = l;
       return;
-    case EXPR_LISTEN:
-      l = vline(54, 25);
+    case EXPR_LISTEN:     // 圆眼睛，像小猫听到动静时瞳孔放圆
+      l = {0, 0, 0, 0, 0, 0, 42};
       r = l;
       return;
     case EXPR_NORMAL:

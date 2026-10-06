@@ -16,7 +16,7 @@ enum Expr {
   EXPR_SURPRISED,  // 竖线变大变粗
   EXPR_SLEEPY,     // 竖线变短，往下耷拉
   EXPR_CLOSED,     // 一道横线
-  EXPR_LISTEN,     // 竖线稍微大一点，认真听
+  EXPR_LISTEN,     // 圆眼睛，认真听
 };
 
 struct Face {
