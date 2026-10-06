@@ -11,6 +11,8 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_spd2010.h"
 
+typedef uint16_t (*pixel_fn)(int x, int y);
+
 // ---------- 引脚 ----------
 #define PIN_I2C_SDA 8
 #define PIN_I2C_SCL 7
@@ -128,8 +130,6 @@ static inline uint16_t rgb(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 // 逐像素决定颜色，按条带送屏
-typedef uint16_t (*pixel_fn)(int x, int y);
-
 static void draw(pixel_fn fn) {
   for (int y0 = 0; y0 < LCD_H; y0 += STRIP_H) {
     int rows = min(STRIP_H, LCD_H - y0);
