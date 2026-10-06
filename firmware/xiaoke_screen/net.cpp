@@ -26,12 +26,54 @@ static uint32_t state_ms = 0;
 static bool time_started = false;
 static bool radio_on = false;
 
+// 上一次没连上的原因（显示在设置页上）
+static volatile uint8_t fail_reason = 0;
+static String fail_ssid;
+
+static const char *reason_text(uint8_t r) {
+  switch (r) {
+    case 0: return "";
+    case WIFI_REASON_NO_AP_FOUND: return "找不到这个网络：热点没开、离得太远、名字不对，或者它是 5G 的（iPhone 要开「最大兼容性」）";
+    case WIFI_REASON_AUTH_FAIL:
+    case WIFI_REASON_AUTH_EXPIRE:
+    case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
+    case WIFI_REASON_HANDSHAKE_TIMEOUT: return "密码不对（注意大小写）";
+    case WIFI_REASON_ASSOC_FAIL:
+    case WIFI_REASON_ASSOC_EXPIRE: return "对方没让它连进去，可能人满了";
+    default: return "没连上";
+  }
+}
+
+static void on_wifi_event(WiFiEvent_t e, WiFiEventInfo_t info) {
+  if (e == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) fail_reason = info.wifi_sta_disconnected.reason;
+  if (e == ARDUINO_EVENT_WIFI_STA_GOT_IP) fail_reason = 0;
+}
+
+// 开着设置热点时，如果一边还在找别的 WiFi，热点会跟着换信道，电脑和手机就连不上热点。
+// 所以设置热点开着的时候先停下找 WiFi，等保存了新的再去连。
+static void sta_pause() {
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect();
+  state = ST_IDLE;
+}
+
+static void sta_try(int i) {
+  WiFi.setAutoReconnect(true);
+  WiFi.disconnect();
+  try_i = i;
+  state = ST_TRYING;
+  state_ms = millis();
+  fail_ssid = ssids[i];
+  WiFi.begin(ssids[i].c_str(), passes[i].c_str());
+}
+
 // 射频刚启动时电流很大，USB 供电容易被拉垮（会掉电重启），所以发射功率调低一点
 static void radio_up(wifi_mode_t mode) {
   WiFi.persistent(false);
   WiFi.mode(mode);
   WiFi.setTxPower(WIFI_POWER_11dBm);
   WiFi.setAutoReconnect(true);
+  WiFi.onEvent(on_wifi_event);
   radio_on = true;
 }
 
@@ -151,6 +193,8 @@ static void page_root() {
     h += "</div>";
   }
   if (WiFi.status() == WL_CONNECTED) h += "<p>现在连着：" + esc(WiFi.SSID()) + "</p>";
+  else if (fail_reason && fail_ssid.length())
+    h += "<div class='card' style='color:#f99'>上次连「" + esc(fail_ssid) + "」没成功：" + reason_text(fail_reason) + "</div>";
   h += "</body></html>";
   web.send(200, "text/html; charset=utf-8", h);
 }
@@ -167,12 +211,10 @@ static void page_save() {
   String h = FPSTR(HEAD);
   h += "<h1>记住了</h1><p>正在连「" + esc(s) + "」。连上以后它会开心一下，这个热点过一会儿会自己关掉。</p></body></html>";
   web.send(200, "text/html; charset=utf-8", h);
-  // 马上从新加的这个开始试
-  WiFi.disconnect();
-  state = ST_TRYING;
-  try_i = 0;
-  state_ms = millis();
-  WiFi.begin(ssids[0].c_str(), passes[0].c_str());
+  // 马上去连新加的这个（热点会短暂断开一下，正常）
+  fail_reason = 0;
+  delay(300);  // 让页面先发出去
+  sta_try(0);
 }
 
 static void page_del() {
@@ -204,6 +246,7 @@ void net_start_portal() {
     web_started = true;
   }
   web.begin();
+  if (state != ST_UP) sta_pause();  // 没连着网：先别找了，让热点稳定
   WiFi.scanNetworks(true);
   portal = true;
   portal_until = millis() + PORTAL_MS;
@@ -218,6 +261,7 @@ static void stop_portal() {
   WiFi.mode(WIFI_STA);
   portal = false;
   Serial.println("设置热点已关闭");
+  if (state == ST_IDLE && net_count > 0) sta_try(0);
 }
 
 void net_init() {
@@ -234,10 +278,7 @@ void net_start_radio() {
     return;
   }
   radio_up(WIFI_STA);
-  state = ST_TRYING;
-  try_i = 0;
-  state_ms = millis();
-  WiFi.begin(ssids[0].c_str(), passes[0].c_str());
+  sta_try(0);
 }
 
 void net_loop() {
@@ -262,10 +303,12 @@ void net_loop() {
           time_started = true;
         }
       } else if (t - state_ms > TRY_MS) {
-        if (++try_i < net_count) {
-          state_ms = t;
-          WiFi.disconnect();
-          WiFi.begin(ssids[try_i].c_str(), passes[try_i].c_str());
+        Serial.printf("「%s」没连上：%s\n", ssids[try_i].c_str(), reason_text(fail_reason));
+        if (portal) {
+          // 设置热点开着：停下来，让人能回到设置页看原因
+          sta_pause();
+        } else if (try_i + 1 < net_count) {
+          sta_try(try_i + 1);
           Serial.printf("换一个试：%s\n", ssids[try_i].c_str());
         } else {
           state = ST_WAIT;
@@ -285,12 +328,8 @@ void net_loop() {
     case ST_WAIT:
       if (WiFi.status() == WL_CONNECTED) {
         state = ST_UP;
-      } else if (t - state_ms > RETRY_GAP_MS && net_count > 0) {
-        state = ST_TRYING;
-        try_i = 0;
-        state_ms = t;
-        WiFi.disconnect();
-        WiFi.begin(ssids[0].c_str(), passes[0].c_str());
+      } else if (t - state_ms > RETRY_GAP_MS && net_count > 0 && !portal) {
+        sta_try(0);
       }
       break;
   }
