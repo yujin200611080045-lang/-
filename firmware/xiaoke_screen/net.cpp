@@ -17,7 +17,7 @@ static int net_count = 0;
 static WebServer web(80);
 static DNSServer dns;
 static bool portal = false, web_started = false;
-static uint32_t portal_until = 0;
+static uint32_t portal_until = 0, empty_since = 0;
 
 enum { ST_IDLE, ST_TRYING, ST_UP, ST_WAIT };
 static int state = ST_IDLE;
@@ -246,7 +246,8 @@ void net_start_portal() {
     web_started = true;
   }
   web.begin();
-  if (state != ST_UP) sta_pause();  // 没连着网：先别找了，让热点稳定
+  if (state != ST_UP) sta_pause();
+  empty_since = millis() + 90000;  // 刚打开时多给两分钟去连，不算"没人连着"  // 没连着网：先别找了，让热点稳定
   WiFi.scanNetworks(true);
   portal = true;
   portal_until = millis() + PORTAL_MS;
@@ -290,6 +291,9 @@ void net_loop() {
     // 连上了就过一分钟关热点；一直没人设置，十分钟后也关
     if (state == ST_UP && (int32_t)(portal_until - t) > 60000) portal_until = t + 60000;
     if ((int32_t)(t - portal_until) > 0 && net_count > 0) stop_portal();
+    // 已经存了网络、热点上又没人连着（比如你断开去开手机热点了）：半分钟后关掉热点，回去连 WiFi
+    if (WiFi.softAPgetStationNum() > 0 || net_count == 0) empty_since = t;
+    else if ((int32_t)(t - empty_since) > 30000) stop_portal();
   }
 
   switch (state) {
