@@ -34,5 +34,3 @@ Expr face_expr();
 void face_step(float k);           // 往目标表情靠近一步，k 越大越快（0~1）
 Face &face();                      // 直接改视线、眨眼、腮红等
 void face_render();                // 画到屏幕上（只画眼睛所在的横带）
-// 显示时间（眼睛先收起来）。hh 小于 0 表示还不知道时间，显示 --:--
-void face_show_clock(bool on, int hh = -1, int mm = -1);

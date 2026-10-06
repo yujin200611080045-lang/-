@@ -11,7 +11,6 @@
 //   · 有人在说话：眼睛变圆（像小猫），看向正前方认真听
 //   · 一分半钟没人理：犯困，打哈欠；三分钟：睡着，眼睛变成横线慢慢呼吸；摸一下或拍手叫醒
 //   · 喊它一声：眼睛变圆，"嗯？"一声
-//   · 双击屏幕：显示现在几点（要先连上 WiFi）
 //   · 夜里 11 点到早上 7 点：屏幕调暗，更快犯困；早上第一次见面会特别开心
 //   · 板子上的 BOOT 键：按一下开关声音（会记住）；按住 3 秒打开 WiFi 设置热点
 //
@@ -45,8 +44,6 @@
 #define NIGHT_TO         7       // 早上几点结束
 #define NIGHT_SLEEPY_MS  30000   // 夜里多久没人理开始犯困
 #define NIGHT_ASLEEP_MS  60000
-#define DOUBLE_TAP_MS    350
-#define CLOCK_SHOW_MS    3500
 #define WIFI_START_MS    5000    // 开机多久以后才打开 WiFi
 // 如果开 WiFi 时还是反复重启（供电不够触发了"掉电保护"），把下面改成 1 试试。
 // 这会关掉掉电保护，最好还是换个供电更足的口或者接电池。
@@ -95,7 +92,7 @@ static bool key_down = false, key_long_done = false;
 static uint32_t key_change = 0, key_press_at = 0;
 
 // 时间
-static uint32_t last_tap = 0, clock_until = 0;
+
 static int greeted_day = -1;
 static bool was_connected = false;
 
@@ -144,13 +141,6 @@ static bool is_night() {
   return tm.tm_hour >= NIGHT_FROM || tm.tm_hour < NIGHT_TO;
 }
 
-static void show_clock() {
-  struct tm tm;
-  if (net_now(tm)) face_show_clock(true, tm.tm_hour, tm.tm_min);
-  else face_show_clock(true);
-  clock_until = millis() + CLOCK_SHOW_MS;
-}
-
 // 早上第一次见面：特别开心一下
 static void morning_check() {
   struct tm tm;
@@ -163,12 +153,6 @@ static void morning_check() {
 
 static void on_tap() {
   uint32_t t = millis();
-  if (last_tap && t - last_tap < DOUBLE_TAP_MS) {
-    last_tap = 0;
-    show_clock();
-    return;
-  }
-  last_tap = t;
   int n = 0;
   pokes[poke_n++ % 8] = t;
   for (int i = 0; i < 8; i++)
@@ -318,11 +302,6 @@ static void update(uint32_t t) {
   if (sound_off_at && t >= sound_off_at) {
     voice_enable(false);
     sound_off_at = 0;
-  }
-
-  if (clock_until && t >= clock_until) {
-    clock_until = 0;
-    face_show_clock(false);
   }
 
   // 刚连上 WiFi（在设置页里设好的）：开心一下
