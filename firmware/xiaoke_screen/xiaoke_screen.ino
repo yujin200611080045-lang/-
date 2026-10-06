@@ -10,7 +10,13 @@
 //   · 突然很大声（拍手）：吓一跳，眼睛变大
 //   · 有人在说话：眼睛变圆（像小猫），看向正前方认真听
 //   · 一分半钟没人理：犯困，打哈欠；三分钟：睡着，眼睛变成横线慢慢呼吸；摸一下或拍手叫醒
-//   · 板子上的 BOOT 键：开关声音（会记住，下次开机也一样）
+//   · 喊它一声：眼睛变圆，"嗯？"一声
+//   · 双击屏幕：显示现在几点（要先连上 WiFi）
+//   · 夜里 11 点到早上 7 点：屏幕调暗，更快犯困；早上第一次见面会特别开心
+//   · 板子上的 BOOT 键：按一下开关声音（会记住）；按住 3 秒打开 WiFi 设置热点
+//
+// 第一次连 WiFi：手机连「XiaoKe」热点（密码 cendres615），会自动弹出设置页，
+// 没弹的话用浏览器打开 192.168.4.1。家里 WiFi、手机热点都能记，最多 3 个。
 //
 // 某个部件没接好或者没应答时，那个功能会自己跳过，眼睛照样动。
 // 串口监视器（115200）每秒会打印一次麦克风音量，方便调灵敏度。
@@ -20,6 +26,7 @@
 #include "face.h"
 #include "touch.h"
 #include "voice.h"
+#include "net.h"
 
 // ---------- 可以调的数 ----------
 #define VOLUME           60      // 喇叭音量 0~100
@@ -28,10 +35,17 @@
 #define HOLD_MS          700     // 按住多久算"摸摸"
 #define POKES_TO_ANNOY   5       // 几秒内戳几下会生气
 #define POKE_WINDOW_MS   3000
-#define LOUD_RATIO       5.0f    // 比环境声大多少倍算"吓一跳"
-#define LOUD_MIN         1500.0f
-#define TALK_RATIO       2.2f    // 比环境声大多少倍算"有人在说话"
-#define TALK_MIN         350.0f
+#define LOUD_RATIO       6.0f    // 比环境声大多少倍算"吓一跳"
+#define LOUD_MIN         3000.0f
+#define TALK_RATIO       1.8f    // 比环境声大多少倍算"有人在说话"
+#define TALK_MIN         250.0f
+#define TALK_HOLD_MS     200     // 持续多久算在说话
+#define NIGHT_FROM       23      // 夜里几点开始
+#define NIGHT_TO         7       // 早上几点结束
+#define NIGHT_SLEEPY_MS  30000   // 夜里多久没人理开始犯困
+#define NIGHT_ASLEEP_MS  60000
+#define DOUBLE_TAP_MS    350
+#define CLOCK_SHOW_MS    3500
 #define LOOK_X           44      // 眼睛左右最多挪多少像素
 #define LOOK_Y           22
 #define FRAME_MS         33      // 约 30 帧
@@ -72,8 +86,13 @@ static uint32_t talk_ms = 0, listening_until = 0, last_startle = 0;
 static uint32_t sound_off_at = 0;
 
 // BOOT 键
-static bool key_down = false;
-static uint32_t key_change = 0;
+static bool key_down = false, key_long_done = false;
+static uint32_t key_change = 0, key_press_at = 0;
+
+// 时间
+static uint32_t last_tap = 0, clock_until = 0;
+static int greeted_day = -1;
+static bool was_connected = false;
 
 // ---------- 小工具 ----------
 static float rnd(float a, float b) { return a + (b - a) * (random(10000) / 10000.0f); }
@@ -111,8 +130,37 @@ static void schedule_blink(uint32_t t) {
 }
 
 // ---------- 触摸 ----------
+static bool is_night() {
+  struct tm tm;
+  if (!net_now(tm)) return false;
+  return tm.tm_hour >= NIGHT_FROM || tm.tm_hour < NIGHT_TO;
+}
+
+static void show_clock() {
+  struct tm tm;
+  if (net_now(tm)) face_show_clock(true, tm.tm_hour, tm.tm_min);
+  else face_show_clock(true);
+  clock_until = millis() + CLOCK_SHOW_MS;
+}
+
+// 早上第一次见面：特别开心一下
+static void morning_check() {
+  struct tm tm;
+  if (!net_now(tm) || tm.tm_hour < 6 || tm.tm_hour >= 11 || tm.tm_yday == greeted_day) return;
+  greeted_day = tm.tm_yday;
+  react(EXPR_HAPPY, 2200);
+  blush_target = 1;
+  play(SND_HAPPY);
+}
+
 static void on_tap() {
   uint32_t t = millis();
+  if (last_tap && t - last_tap < DOUBLE_TAP_MS) {
+    last_tap = 0;
+    show_clock();
+    return;
+  }
+  last_tap = t;
   int n = 0;
   pokes[poke_n++ % 8] = t;
   for (int i = 0; i < 8; i++)
@@ -139,6 +187,7 @@ static void handle_touch(uint32_t t) {
         holding = false;
         touch_start = t;
         if (mood != MOOD_AWAKE) wake(false);
+        morning_check();
       }
       touch_seen = t;
       touch_x = x;
@@ -202,11 +251,14 @@ static void handle_sound(uint32_t t) {
 
   if (lv > max(noise_floor * TALK_RATIO, TALK_MIN)) {
     talk_ms += FRAME_MS;
-    if (talk_ms > 300) {
+    if (talk_ms > TALK_HOLD_MS) {
       if (mood == MOOD_SLEEPY) wake(false);  // 睡着了只有大声或者摸才叫得醒
       if (mood == MOOD_AWAKE) {
-        listening_until = t + 1200;
+        // 安静了一阵之后第一次听到人声：嗯？
+        if (t >= listening_until && t - listening_until > 4000) play(SND_HUH);
+        listening_until = t + 1500;
         last_activity = t;
+        morning_check();
       }
     }
   } else {
@@ -214,15 +266,9 @@ static void handle_sound(uint32_t t) {
   }
 }
 
-// ---------- BOOT 键：开关声音 ----------
-static void handle_key(uint32_t t) {
-  bool down = digitalRead(PIN_BOOT_KEY) == LOW;
-  if (down == key_down || t - key_change < 40) return;
-  key_down = down;
-  key_change = t;
-  if (!down || !has_voice) return;
-  last_activity = t;
-  if (mood != MOOD_AWAKE) wake(false);
+// ---------- BOOT 键：按一下开关声音，按住 3 秒开 WiFi 设置 ----------
+static void toggle_sound(uint32_t t) {
+  if (!has_voice) return;
   bool on = !voice_enabled();
   prefs.putBool("sound", on);
   if (on) {
@@ -236,6 +282,27 @@ static void handle_key(uint32_t t) {
   }
 }
 
+static void handle_key(uint32_t t) {
+  bool down = digitalRead(PIN_BOOT_KEY) == LOW;
+  if (down && key_down && !key_long_done && t - key_press_at > 3000) {
+    key_long_done = true;
+    net_start_portal();
+    react(EXPR_LISTEN, 1500);
+    play(SND_HUH);
+  }
+  if (down == key_down || t - key_change < 40) return;
+  key_down = down;
+  key_change = t;
+  last_activity = t;
+  if (mood != MOOD_AWAKE) wake(false);
+  if (down) {
+    key_press_at = t;
+    key_long_done = false;
+  } else if (!key_long_done) {
+    toggle_sound(t);
+  }
+}
+
 // ---------- 每一帧 ----------
 static void update(uint32_t t) {
   Face &f = face();
@@ -245,14 +312,38 @@ static void update(uint32_t t) {
     sound_off_at = 0;
   }
 
-  // 没人理就犯困、睡着
+  if (clock_until && t >= clock_until) {
+    clock_until = 0;
+    face_show_clock(false);
+  }
+
+  // 刚连上 WiFi（在设置页里设好的）：开心一下
+  bool conn = net_connected();
+  if (conn && !was_connected && net_portal_on()) {
+    react(EXPR_HAPPY, 1500);
+    play(SND_HAPPY);
+  }
+  was_connected = conn;
+
+  // 夜里屏幕暗一点
+  static int bl = -1;
+  bool night = is_night();
+  int want_bl = night ? 30 : 80;
+  if (want_bl != bl) {
+    bl = want_bl;
+    backlight(bl);
+  }
+
+  // 没人理就犯困、睡着（夜里更快）
   uint32_t idle = t - last_activity;
-  if (mood == MOOD_AWAKE && idle > SLEEPY_AFTER_MS) {
+  uint32_t sleepy_ms = night ? NIGHT_SLEEPY_MS : SLEEPY_AFTER_MS;
+  uint32_t asleep_ms = night ? NIGHT_ASLEEP_MS : ASLEEP_AFTER_MS;
+  if (mood == MOOD_AWAKE && idle > sleepy_ms) {
     mood = MOOD_SLEEPY;
     play(SND_YAWN);
     schedule_blink(t);
   }
-  if (mood == MOOD_SLEEPY && idle > ASLEEP_AFTER_MS) mood = MOOD_ASLEEP;
+  if (mood == MOOD_SLEEPY && idle > asleep_ms) mood = MOOD_ASLEEP;
 
   bool listening = t < listening_until;
 
@@ -315,7 +406,7 @@ static void update(uint32_t t) {
   float bright_t = mood == MOOD_ASLEEP ? 0.35f + 0.15f * sinf(t * 2 * PI / 4000) : 1.0f;
   f.bright += (bright_t - f.bright) * 0.1f;
 
-  if (!holding) blush_target = 0;
+  if (!holding && !reacting()) blush_target = 0;
   f.blush += (blush_target - f.blush) * 0.08f;
 }
 
@@ -340,6 +431,7 @@ void setup() {
   has_touch = touch_init();
   has_voice = voice_init(VOLUME);
   if (has_voice) voice_enable(prefs.getBool("sound", true));
+  net_init();
 
   randomSeed(esp_random());
   uint32_t t = millis();
@@ -358,6 +450,7 @@ void loop() {
     return;
   }
   uint32_t t = millis();
+  net_loop();
   handle_key(t);
   handle_touch(t);
   handle_sound(t);
@@ -367,7 +460,8 @@ void loop() {
   static uint32_t last_log = 0;
   if (t - last_log > 1000) {
     last_log = t;
-    if (has_voice) Serial.printf("麦克风 %.0f（环境 %.0f）%s\n", voice_level(), noise_floor, touching ? "  被摸着" : "");
+    if (has_voice) Serial.printf("麦克风 %.0f（环境 %.0f，说话线 %.0f）%s%s\n", voice_level(), noise_floor,
+                                 max(noise_floor * TALK_RATIO, TALK_MIN), touching ? "  被摸着" : "", net_connected() ? "  WiFi✓" : "");
   }
 
   uint32_t spent = millis() - t;

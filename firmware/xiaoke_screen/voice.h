@@ -13,6 +13,7 @@ enum Sound {
   SND_SURPRISE,  // 吓一跳：往上蹿一下
   SND_YAWN,      // 打哈欠：慢慢往下
   SND_OFF,       // 关声音时的提示
+  SND_HUH,       // 听到有人叫：嗯？
 };
 
 bool voice_init(int volume);   // 0~100

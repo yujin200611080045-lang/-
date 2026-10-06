@@ -32,6 +32,7 @@ static const Note S_GRUMBLE[]  = {{420, 300, 160, 65, 14}, {0, 0, 50, 0, 0}, {38
 static const Note S_SURPRISE[] = {{500, 1500, 80, 65, 0}};
 static const Note S_YAWN[]     = {{760, 900, 180, 45, 0}, {900, 380, 650, 50, 5}};
 static const Note S_OFF[]      = {{800, 400, 140, 50, 0}};
+static const Note S_HUH[]      = {{620, 980, 110, 45, 0}};
 
 #define LEN(a) (sizeof(a) / sizeof(a[0]))
 static const Note *seq = NULL;
@@ -48,6 +49,7 @@ static void start(Sound s) {
     case SND_SURPRISE: seq = S_SURPRISE; seq_len = LEN(S_SURPRISE); break;
     case SND_YAWN:     seq = S_YAWN;     seq_len = LEN(S_YAWN); break;
     case SND_OFF:      seq = S_OFF;      seq_len = LEN(S_OFF); break;
+    case SND_HUH:      seq = S_HUH;      seq_len = LEN(S_HUH); break;
     default: seq = NULL; seq_len = 0; break;
   }
   seq_i = 0;
@@ -175,7 +177,8 @@ bool voice_init(int volume) {
     cc.mic_bias = ES7210_MIC_BIAS_2V87;
     cc.mic_gain = ES7210_MIC_GAIN_30DB;
     cc.flags.tdm_enable = false;
-    mic_ok = es7210_config_codec(mic, &cc) == ESP_OK && es7210_config_volume(mic, 0) == ESP_OK;
+    // 音量比默认再大 6dB，喊一声也听得见
+    mic_ok = es7210_config_codec(mic, &cc) == ESP_OK && es7210_config_volume(mic, 6) == ESP_OK;
   }
   if (!mic_ok) Serial.println("麦克风芯片 ES7210 没有应答，只出声不听");
 
