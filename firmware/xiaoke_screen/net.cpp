@@ -246,8 +246,8 @@ void net_start_portal() {
     web_started = true;
   }
   web.begin();
-  if (state != ST_UP) sta_pause();
-  empty_since = millis() + 90000;  // 刚打开时多给两分钟去连，不算"没人连着"  // 没连着网：先别找了，让热点稳定
+  if (state != ST_UP) sta_pause();  // 没连着网：先别找了，让热点稳定
+  empty_since = millis() + 90000;   // 刚打开时多给两分钟去连，不算"没人连着"
   WiFi.scanNetworks(true);
   portal = true;
   portal_until = millis() + PORTAL_MS;
