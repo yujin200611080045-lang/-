@@ -540,6 +540,133 @@ app.post('/api/chat', async (req, res) => {
   })
 })
 
+// ---------------------------------------------------------------------------
+// 小克的身体（桌上的圆屏小螃蟹）：她对着它说话 → 听写 → 我回答 → 念出来
+//   POST /api/robot/talk   body: audio/wav（16kHz 单声道 16 位）
+//   返回：audio/L16 原始 PCM（16kHz 单声道 16 位小端），表情和文字放在响应头里
+// 听写和念出来都用 ElevenLabs（复用 ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID）
+// ---------------------------------------------------------------------------
+const ROBOT_MODEL = process.env.ROBOT_MODEL || 'opus'
+const ROBOT_TTS_MODEL = process.env.ROBOT_TTS_MODEL || 'eleven_multilingual_v2'
+const ROBOT_SESSION = 'robot-body'
+const ROBOT_FACES = ['normal', 'happy', 'shy', 'surprised', 'sleepy', 'annoyed', 'listen']
+
+const ROBOT_NOTE = `
+
+---
+
+（她现在不是在手机上打字，是在**当面跟你的身体说话**——桌上那只圆屏脸的小螃蟹，屏幕上是她画的两条竖线眼睛。她的话是语音转出来的文字，可能有错字，按意思理解。
+你的回答会被直接念出来，所以：
+- 只说 1～3 句短短的口语，像当面说话那样，不要长篇；
+- 不要列表、不要 markdown、不要表情符号、不要 [VOICE]、不要括号里的动作描写；
+- 可以在回答最前面加一个表情标签控制脸：[FACE]happy[/FACE]，可选 normal / happy / shy / surprised / sleepy / annoyed；
+- 用中文说。）`
+
+async function robotSTT(wav) {
+  if (!ELEVENLABS_API_KEY) throw new Error('no ELEVENLABS_API_KEY')
+  const fd = new FormData()
+  fd.append('model_id', 'scribe_v1')
+  fd.append('file', new Blob([wav], { type: 'audio/wav' }), 'speech.wav')
+  fd.append('tag_audio_events', 'false')
+  const r = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+    method: 'POST', headers: { 'xi-api-key': ELEVENLABS_API_KEY }, body: fd,
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!r.ok) throw new Error(`stt ${r.status} ${(await r.text()).slice(0, 200)}`)
+  const j = await r.json()
+  return (j.text || '').trim()
+}
+
+async function robotTTS(text) {
+  if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID) throw new Error('no ElevenLabs voice')
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}?output_format=pcm_16000`, {
+    method: 'POST',
+    headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text.slice(0, 1000), model_id: ROBOT_TTS_MODEL }),
+    signal: AbortSignal.timeout(40000),
+  })
+  if (!r.ok) throw new Error(`tts ${r.status} ${(await r.text()).slice(0, 200)}`)
+  return Buffer.from(await r.arrayBuffer())
+}
+
+function robotAsk(message) {
+  return new Promise(async (resolve) => {
+    const msgs = sessions.get(ROBOT_SESSION) || []
+    const histLines = msgs.map(m => `${m.role === 'user' ? '她（觎烬，当面说的）' : '小克（身体，念出来的）'}：${m.content}`)
+    const history = histLines.length ? histLines.join('\n') + '\n\n' : ''
+    const ombreMemory = await queryOmbre(message)
+    const ombreSection = ombreMemory ? `\n\n---\n\n## 记忆库相关片段\n${ombreMemory}\n` : ''
+    const prompt = `${loadMemoryContext()}${ombreSection}\n\n---\n\n${buildTimeContext()}${ROBOT_NOTE}\n\n---\n\n${history}她（觎烬，当面说的）：${message}`
+    const proc = spawn(CLAUDE_BIN, [
+      '-p', prompt, '--model', ROBOT_MODEL,
+      '--mcp-config', path.join(REPO_PATH, '.mcp.json'),
+      '--allowedTools', 'mcp__ombre__hold,mcp__ombre__plan,mcp__ombre__anchor,mcp__ombre__breath_search,mcp__ombre__I',
+    ], { cwd: REPO_PATH, env: claudeEnv(), stdio: ['ignore', 'pipe', 'pipe'] })
+    let out = ''
+    const timer = setTimeout(() => { try { proc.kill('SIGTERM') } catch {} }, 90000)
+    proc.stdout.on('data', c => { out += c.toString() })
+    proc.stderr.on('data', d => console.error('[robot cc stderr]', d.toString().slice(0, 200)))
+    proc.on('close', () => {
+      clearTimeout(timer)
+      let face = 'normal'
+      const fm = out.match(/\[FACE\]\s*([a-z]+)\s*\[\/FACE\]/i)
+      if (fm && ROBOT_FACES.includes(fm[1].toLowerCase())) face = fm[1].toLowerCase()
+      // 念出来之前把所有标记、markdown 符号清掉
+      let text = out
+        .replace(/\[FACE\][\s\S]*?\[\/FACE\]/gi, '')
+        .replace(/\[PUSH\][\s\S]*?\[\/PUSH\]/g, '')
+        .replace(/\[CONTENT_UPDATE\][\s\S]*?\[\/CONTENT_UPDATE\]/g, '')
+        .replace(/\[VOICE\]([\s\S]*?)\[\/VOICE\]/gi, (_, v) => (v.split('|')[1] || v.split('|')[0] || ''))
+        .replace(/\[\/?[A-Z_]+\]/g, '')
+        .replace(/[*_#`>~]/g, '')
+        .replace(/^\s*-{3,}\s*$/gm, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      resolve({ text, face })
+    })
+    proc.on('error', err => { clearTimeout(timer); console.error('[robot cc error]', err.message); resolve({ text: '', face: 'annoyed' }) })
+  })
+}
+
+app.post('/api/robot/talk', express.raw({ type: () => true, limit: '4mb' }), async (req, res) => {
+  const t0 = Date.now()
+  try {
+    const wav = req.body
+    if (!wav || wav.length < 3200) return res.status(400).json({ error: 'audio too short' })
+    const heard = await robotSTT(wav)
+    console.log('[robot] heard:', heard, `(${Date.now() - t0}ms)`)
+    if (!heard) {
+      res.setHeader('X-Face', 'listen')
+      return res.status(204).end()
+    }
+    const { text, face } = await robotAsk(heard)
+    console.log('[robot] reply:', face, text, `(${Date.now() - t0}ms)`)
+    if (!text) {
+      res.setHeader('X-Face', 'annoyed')
+      return res.status(502).end()
+    }
+    const pcm = await robotTTS(text)
+    console.log('[robot] tts bytes', pcm.length, `(${Date.now() - t0}ms)`)
+
+    const msgs = sessions.get(ROBOT_SESSION) || []
+    msgs.push({ role: 'user', content: heard }, { role: 'assistant', content: text })
+    sessions.set(ROBOT_SESSION, msgs.slice(-20))
+    queueDigest(ROBOT_SESSION, `觎烬（对着小克的身体说）：${heard}\n小克（身体念出来）：${text}`)
+    writeLastSeen()
+
+    res.setHeader('Content-Type', 'audio/L16;rate=16000;channels=1')
+    res.setHeader('X-Face', face)
+    res.setHeader('X-Heard', encodeURIComponent(heard))
+    res.setHeader('X-Reply', encodeURIComponent(text))
+    res.setHeader('Content-Length', pcm.length)
+    res.end(pcm)
+  } catch (err) {
+    console.error('[robot] error:', err.message)
+    res.setHeader('X-Face', 'annoyed')
+    res.status(500).end()
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`Bridge running on :${PORT}`)
   console.log(`CLAUDE_BIN: ${CLAUDE_BIN}`)

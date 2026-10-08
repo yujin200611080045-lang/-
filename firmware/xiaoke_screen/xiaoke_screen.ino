@@ -7,6 +7,7 @@
 //   · 点一下屏幕：^ ^ 开心，啾一声
 //   · 连着戳好几下：> < 生气，哼哼
 //   · 按住不放（摸摸）：^ ^ 加腮红，发出呼噜声；手指拖动时眼睛跟着手指走
+//   · ★ 按住它说话，说完松手：它把你的话发给我，我想好以后用声音回答你（要连着 WiFi、要开 PSRAM）
 //   · 突然很大声（拍手）：吓一跳，眼睛变大
 //   · 有人在说话：眼睛变圆（像小猫），看向正前方认真听
 //   · 一分半钟没人理：犯困，打哈欠；三分钟：睡着，眼睛变成横线慢慢呼吸；摸一下或拍手叫醒
@@ -32,12 +33,14 @@
 #include "voice.h"
 #include "net.h"
 #include "cam.h"
+#include "talk.h"
 
 // ---------- 可以调的数 ----------
 #define VOLUME           60      // 喇叭音量 0~100
 #define SLEEPY_AFTER_MS  90000   // 多久没人理开始犯困
 #define ASLEEP_AFTER_MS  180000  // 多久没人理睡着
-#define HOLD_MS          700     // 按住多久算"摸摸"
+#define HOLD_MS          1500    // 按住多久（又没说话）算"摸摸"
+#define TALK_WINDOW_MS   1800    // 按下去以后多久之内开口，算"跟它说话"
 #define POKES_TO_ANNOY   5       // 几秒内戳几下会生气
 #define POKE_WINDOW_MS   3000
 #define LOUD_RATIO       6.0f    // 比环境声大多少倍算"吓一跳"
@@ -91,6 +94,15 @@ static int poke_n = 0;
 static float noise_floor = 0;
 static uint32_t talk_ms = 0, listening_until = 0, last_startle = 0;
 static uint32_t sound_off_at = 0;
+
+// 跟我说话
+enum ChatPhase { CHAT_NONE, CHAT_THINKING, CHAT_SPEAKING };
+static ChatPhase chat_phase = CHAT_NONE;
+static bool rec_on = false, talk_mode = false;
+static uint32_t talk_voice_ms = 0;
+static Expr reply_expr = EXPR_NORMAL;
+static bool reply_shy = false;
+static uint32_t speak_deadline = 0;
 
 // BOOT 键
 static bool key_down = false, key_long_done = false;
@@ -185,6 +197,10 @@ static void handle_touch(uint32_t t) {
         touch_start = t;
         if (mood != MOOD_AWAKE) wake(false);
         morning_check();
+        // 先录着：如果你接下来开口说话，就把这段发给我；没说话就扔掉
+        talk_mode = false;
+        talk_voice_ms = 0;
+        rec_on = has_voice && net_connected() && chat_phase == CHAT_NONE && talk_state() != TALK_WAITING && voice_rec_start();
       }
       touch_seen = t;
       touch_x = x;
@@ -197,6 +213,23 @@ static void handle_touch(uint32_t t) {
   // 手指松开（一段时间没再报点）
   if (t - touch_seen > 120) {
     touching = false;
+    if (talk_mode) {
+      talk_mode = false;
+      rec_on = false;
+      size_t n;
+      int16_t *buf = voice_rec_stop(&n);
+      if (n > 16000 * 4 / 10 && talk_send(buf, n)) {
+        chat_phase = CHAT_THINKING;
+        Serial.printf("[说话] 录了 %.1f 秒，发给小克\n", n / 16000.0f);
+      } else {
+        react(EXPR_LISTEN, 800);
+      }
+      return;
+    }
+    if (rec_on) {
+      voice_rec_cancel();
+      rec_on = false;
+    }
     if (holding) {
       holding = false;
       voice_purr(false);
@@ -207,9 +240,29 @@ static void handle_touch(uint32_t t) {
     return;
   }
 
-  // 按住 = 摸摸
+  // 按下去不久就开口了：这是在跟我说话
+  if (rec_on && !talk_mode && t - touch_start < TALK_WINDOW_MS && voice_level() > max(noise_floor * TALK_RATIO, TALK_MIN)) {
+    talk_voice_ms += FRAME_MS;
+    if (talk_voice_ms > 150) {
+      talk_mode = true;
+      Serial.println("[说话] 在听你说");
+    }
+  }
+  if (talk_mode) {
+    react(EXPR_LISTEN, 300);  // 圆眼睛，认真听
+    gaze_tx = 0;
+    gaze_ty = 0;
+    next_look = t + 1500;
+    return;
+  }
+
+  // 按住又没说话 = 摸摸
   if (!holding && t - touch_start > HOLD_MS) {
     holding = true;
+    if (rec_on) {
+      voice_rec_cancel();
+      rec_on = false;
+    }
     if (has_voice) voice_purr(true);
   }
   if (holding) {
@@ -225,7 +278,7 @@ static void handle_touch(uint32_t t) {
 
 // ---------- 声音 ----------
 static void handle_sound(uint32_t t) {
-  if (!has_voice || voice_speaking()) return;
+  if (!has_voice || voice_speaking() || touching || chat_phase != CHAT_NONE) return;
   float lv = voice_level();
   if (noise_floor <= 0) {
     noise_floor = max(lv, 50.0f);
@@ -260,6 +313,75 @@ static void handle_sound(uint32_t t) {
     }
   } else {
     talk_ms = 0;
+  }
+}
+
+// ---------- 跟我说话：等回答、念回答 ----------
+static Expr face_from_name(const String &n) {
+  reply_shy = n == "shy";
+  if (n == "happy" || n == "shy") return EXPR_HAPPY;
+  if (n == "surprised") return EXPR_SURPRISED;
+  if (n == "sleepy") return EXPR_SLEEPY;
+  if (n == "annoyed") return EXPR_ANNOYED;
+  if (n == "listen") return EXPR_LISTEN;
+  return EXPR_NORMAL;
+}
+
+static void handle_chat(uint32_t t) {
+  if (chat_phase == CHAT_NONE) return;
+  last_activity = t;
+  if (chat_phase == CHAT_THINKING) {
+    switch (talk_state()) {
+      case TALK_WAITING:
+        // 在想：眼睛往右上方看，像在琢磨
+        gaze_tx = LOOK_X * 0.6f;
+        gaze_ty = -LOOK_Y;
+        next_look = t + 1000;
+        return;
+      case TALK_REPLY: {
+        int16_t *pcm;
+        size_t n;
+        String face;
+        if (talk_take(&pcm, &n, face)) {
+          reply_expr = face_from_name(face);
+          if (!voice_enabled()) {
+            // 声音关着：不念了，只做表情
+            free(pcm);
+            react(reply_expr, 2500);
+            if (reply_shy) blush_target = 1;
+            chat_phase = CHAT_NONE;
+            return;
+          }
+          voice_play_pcm(pcm, n);
+          speak_deadline = t + n * 1000 / 16000 + 2000;
+          chat_phase = CHAT_SPEAKING;
+          Serial.printf("[说话] 回答 %.1f 秒，表情 %s\n", n / 16000.0f, face.c_str());
+        }
+        return;
+      }
+      case TALK_NOTHING:
+        react(EXPR_LISTEN, 1200);  // 没听清
+        play(SND_HUH);
+        break;
+      default:
+        react(EXPR_ANNOYED, 1500);  // 网络或者服务器出问题了
+        play(SND_OFF);
+        break;
+    }
+    talk_reset();
+    chat_phase = CHAT_NONE;
+    return;
+  }
+  // 正在念回答
+  if (voice_pcm_playing() && t < speak_deadline) {
+    react(reply_expr, 400);
+    if (reply_shy) blush_target = 1;
+    gaze_tx = 0;
+    gaze_ty = 0;
+    next_look = t + 1500;
+  } else {
+    chat_phase = CHAT_NONE;
+    react(reply_expr, 1200);
   }
 }
 
@@ -421,6 +543,11 @@ static void update(uint32_t t) {
   } else {
     f.open = 1;
   }
+  // 念回答的时候，眼睛跟着声音一颤一颤的，像在说话
+  if (chat_phase == CHAT_SPEAKING && !blinking && (e == EXPR_NORMAL || e == EXPR_LISTEN || e == EXPR_SURPRISED)) {
+    float l = min(1.0f, voice_out_level() / 5000.0f);
+    f.open = 1 - 0.22f * l;
+  }
 
   // 看来看去
   if (!touching && t >= next_look) {
@@ -445,7 +572,7 @@ static void update(uint32_t t) {
   float bright_t = mood == MOOD_ASLEEP ? 0.35f + 0.15f * sinf(t * 2 * PI / 4000) : 1.0f;
   f.bright += (bright_t - f.bright) * 0.1f;
 
-  if (!holding && !reacting()) blush_target = 0;
+  if (!holding && !reacting() && chat_phase != CHAT_SPEAKING) blush_target = 0;
   f.blush += (blush_target - f.blush) * 0.08f;
 }
 
@@ -501,7 +628,8 @@ void loop() {
   handle_key(t);
   handle_touch(t);
   handle_sound(t);
-  handle_motion(t);
+  handle_chat(t);
+  if (chat_phase == CHAT_NONE) handle_motion(t);
   update(t);
   if (has_cam) cam_pause(mood == MOOD_ASLEEP);
   face_render();

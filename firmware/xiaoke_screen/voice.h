@@ -23,3 +23,12 @@ void voice_enable(bool on);    // 总开关（关了以后不出声，但还在�
 bool voice_enabled();
 float voice_level();           // 麦克风当前音量（均方根）
 bool voice_speaking();         // 自己正在出声（这时候不算听到的声音）
+
+// 跟我说话用：录音（要开 PSRAM）、播放服务器回来的声音
+bool voice_rec_start();
+void voice_rec_cancel();
+int16_t *voice_rec_stop(size_t *samples);   // 返回的缓冲区前 22 个采样空着（留给 WAV 头）
+bool voice_recording();
+void voice_play_pcm(int16_t *data, size_t n);  // 16kHz 单声道；data 交给它管，播完下次会自动释放
+bool voice_pcm_playing();
+float voice_out_level();       // 正在放的声音有多响（说话时眼睛跟着动）

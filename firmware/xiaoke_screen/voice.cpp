@@ -17,6 +17,17 @@ static volatile bool purr_on = false;
 static volatile float level = 0;
 static volatile uint32_t speak_until = 0;
 
+// 录音（给"跟我说话"用）：存在 PSRAM 里，最长 REC_MAX 个采样；最前面空出 22 个采样的位置放 WAV 文件头
+#define REC_MAX (RATE * 15)
+static int16_t *rec_buf = NULL;
+static volatile size_t rec_n = 0;
+static volatile bool recording = false;
+
+// 播放一段别人给的声音（我的回答）
+static int16_t *pcm = NULL;
+static volatile size_t pcm_n = 0, pcm_pos = 0;
+static volatile float out_level = 0;
+
 // ---------- 音效：一串"音符"，每个音符是一段滑音 ----------
 struct Note {
   uint16_t f0, f1;   // 起止频率（Hz），0 = 停顿
@@ -61,6 +72,13 @@ static inline float tone(float ph) { return sinf(ph) * 0.8f + sinf(ph * 2) * 0.2
 
 static int16_t next_sample() {
   float out = 0;
+  if (pcm) {
+    if (pcm_pos < pcm_n) {
+      // 回答的声音：音量压到六成，跟音效差不多响
+      int16_t v = pcm[pcm_pos++];
+      return (int16_t)(v * 0.6f);
+    }
+  }
   if (seq) {
     const Note &n = seq[seq_i];
     uint32_t total = (uint32_t)n.ms * RATE / 1000;
@@ -110,6 +128,10 @@ static void task(void *) {
         r += (double)in[i * 2 + 1] * in[i * 2 + 1];
       }
       level = sqrt(max(l, r) / BLOCK);
+      if (recording && rec_buf) {
+        for (int i = 0; i < BLOCK && rec_n < REC_MAX; i++)
+          rec_buf[22 + rec_n++] = (int16_t)(((int32_t)in[i * 2] + in[i * 2 + 1]) / 2);
+      }
     }
 
     // 说
@@ -118,21 +140,26 @@ static void task(void *) {
       pending = SND_NONE;
       if (enabled) start((Sound)p);
     }
-    bool active = enabled && (seq != NULL || purr_on || purr_env > 0.001f);
+    bool pcm_active = pcm && pcm_pos < pcm_n;
+    bool active = enabled && (seq != NULL || purr_on || purr_env > 0.001f || pcm_active);
     if (active) {
       if (!pa) {
         exio_set(EXIO_PA_EN, true);  // 这里是另一个核碰 I2C，只在开关功放时碰一下
         pa = true;
       }
+      double acc = 0;
       for (int i = 0; i < BLOCK; i++) {
         int16_t s = next_sample();
         outb[i * 2] = s;
         outb[i * 2 + 1] = s;
+        acc += (double)s * s;
       }
+      out_level = sqrt(acc / BLOCK);
       speak_until = millis() + 250;
       quiet_since = millis();
     } else {
       memset(outb, 0, sizeof(outb));
+      out_level = 0;
       // 安静两秒以后关功放，省电也没有底噪
       if (pa && millis() - quiet_since > 2000) {
         exio_set(EXIO_PA_EN, false);
@@ -202,3 +229,41 @@ void voice_enable(bool on) {
 bool voice_enabled() { return enabled; }
 float voice_level() { return level; }
 bool voice_speaking() { return millis() < speak_until; }
+
+// ---------- 录音 / 播放回答 ----------
+bool voice_rec_start() {
+  if (!ok) return false;
+  if (!rec_buf) {
+    if (!psramFound()) return false;  // 15 秒录音要 480KB，只能放 PSRAM
+    rec_buf = (int16_t *)ps_malloc((REC_MAX + 22) * sizeof(int16_t));
+    if (!rec_buf) return false;
+  }
+  rec_n = 0;
+  recording = true;
+  return true;
+}
+
+void voice_rec_cancel() { recording = false; }
+
+int16_t *voice_rec_stop(size_t *samples) {
+  recording = false;
+  *samples = rec_n;
+  return rec_buf;  // rec_buf[0..21] 留给 WAV 头，声音从 rec_buf[22] 开始
+}
+
+bool voice_recording() { return recording; }
+
+void voice_play_pcm(int16_t *data, size_t n) {
+  int16_t *old = pcm;
+  pcm = NULL;
+  pcm_n = n;
+  pcm_pos = 0;
+  pcm = data;
+  if (old && old != data) {
+    delay(20);
+    free(old);
+  }
+}
+
+bool voice_pcm_playing() { return pcm && pcm_pos < pcm_n; }
+float voice_out_level() { return out_level; }
