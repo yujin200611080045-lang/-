@@ -3,6 +3,7 @@
 // 手机连上去会自动弹出设置页面（没弹就用浏览器打开 192.168.4.1）
 #pragma once
 #include <Arduino.h>
+#include <WebServer.h>
 
 #define NET_AP_NAME  "XiaoKe"
 #define NET_AP_PASS  "cendres615"   // 连 XiaoKe 热点的密码
@@ -16,3 +17,7 @@ bool net_portal_on();
 bool net_connected();
 bool net_time_ok();              // 已经对上时间
 bool net_now(struct tm &t);      // 取本地时间（北京时间）
+
+// 网页：连上 WiFi 以后，同一个网络里的手机用浏览器打开 http://xiaoke.local（或者串口里打出来的 IP）
+WebServer &net_web();            // 给别的模块挂网页用
+void net_set_home(void (*fn)()); // 平时首页显示什么

@@ -4,6 +4,7 @@
 #include <DNSServer.h>
 #include <Preferences.h>
 #include <time.h>
+#include <ESPmDNS.h>
 
 #define MAX_NETS       3
 #define TRY_MS         12000     // 每个 WiFi 试多久
@@ -159,7 +160,7 @@ input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1p
 .eyes{font-size:30px;letter-spacing:10px;text-align:center;margin:6px 0 14px}
 </style></head><body><div class="eyes">❘ ❘</div>)";
 
-static void page_root() {
+static void page_wifi() {
   String h = FPSTR(HEAD);
   h += "<h1>给小克连 WiFi</h1><p>家里的 WiFi 或手机热点都可以（只能用 2.4G；iPhone 热点要打开「最大兼容性」）。最多记 3 个，会挨个试。</p>";
 
@@ -224,9 +225,34 @@ static void page_del() {
 }
 
 static void redirect() {
+  if (!portal) {
+    web.send(404, "text/plain", "not found");
+    return;
+  }
   web.sendHeader("Location", "http://192.168.4.1/");
   web.send(302);
 }
+
+// 首页：开着设置热点时是 WiFi 设置页，平时是别的模块挂上来的页面（比如摄像头）
+static void (*home_fn)() = NULL;
+static void page_root() {
+  if (portal || !home_fn) page_wifi();
+  else home_fn();
+}
+
+static void web_setup() {
+  if (web_started) return;
+  web.on("/", page_root);
+  web.on("/wifi", page_wifi);
+  web.on("/save", HTTP_POST, page_save);
+  web.on("/del", HTTP_POST, page_del);
+  web.onNotFound(redirect);  // 开着热点时，手机检测上网的请求都转到设置页，好自动弹出来
+  web.begin();
+  web_started = true;
+}
+
+WebServer &net_web() { return web; }
+void net_set_home(void (*fn)()) { home_fn = fn; }
 
 // ---------- 对外 ----------
 void net_start_portal() {
@@ -238,14 +264,7 @@ void net_start_portal() {
   else WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(NET_AP_NAME, NET_AP_PASS);
   dns.start(53, "*", WiFi.softAPIP());
-  if (!web_started) {
-    web.on("/", page_root);
-    web.on("/save", HTTP_POST, page_save);
-    web.on("/del", HTTP_POST, page_del);
-    web.onNotFound(redirect);  // 手机检测上网的请求都转到设置页，好自动弹出来
-    web_started = true;
-  }
-  web.begin();
+  web_setup();
   if (state != ST_UP) sta_pause();  // 没连着网：先别找了，让热点稳定
   empty_since = millis() + 90000;   // 刚打开时多给两分钟去连，不算"没人连着"
   WiFi.scanNetworks(true);
@@ -257,7 +276,6 @@ void net_start_portal() {
 static void stop_portal() {
   if (!portal) return;
   dns.stop();
-  web.stop();
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_STA);
   portal = false;
@@ -279,15 +297,16 @@ void net_start_radio() {
     return;
   }
   radio_up(WIFI_STA);
+  web_setup();
   sta_try(0);
 }
 
 void net_loop() {
   if (!radio_on) return;
   uint32_t t = millis();
+  if (web_started) web.handleClient();
   if (portal) {
     dns.processNextRequest();
-    web.handleClient();
     // 连上了就过一分钟关热点；一直没人设置，十分钟后也关
     if (state == ST_UP && (int32_t)(portal_until - t) > 60000) portal_until = t + 60000;
     if ((int32_t)(t - portal_until) > 0 && net_count > 0) stop_portal();
@@ -301,6 +320,12 @@ void net_loop() {
       if (WiFi.status() == WL_CONNECTED) {
         state = ST_UP;
         Serial.printf("WiFi 连上了：%s  %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+        static bool mdns_on = false;
+        if (!mdns_on && MDNS.begin("xiaoke")) {
+          MDNS.addService("http", "tcp", 80);
+          mdns_on = true;
+        }
+        Serial.println("手机和它连同一个网络时，浏览器打开 http://xiaoke.local 能看到它");
         if (!time_started) {
           // 北京时间，国内的对时服务器优先
           configTzTime("CST-8", "ntp.aliyun.com", "ntp.tencent.com", "pool.ntp.org");

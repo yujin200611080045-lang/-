@@ -11,11 +11,15 @@
 //   · 有人在说话：眼睛变圆（像小猫），看向正前方认真听
 //   · 一分半钟没人理：犯困，打哈欠；三分钟：睡着，眼睛变成横线慢慢呼吸；摸一下或拍手叫醒
 //   · 喊它一声：眼睛变圆，"嗯？"一声
+//   · 摄像头看到有东西在动：眼睛转过去看；犯困时有人在面前晃，会醒过来
+//   · 手机和它连同一个 WiFi，浏览器打开 http://xiaoke.local 能看到它眼里的画面
 //   · 夜里 11 点到早上 7 点：屏幕调暗，更快犯困；早上第一次见面会特别开心
 //   · 板子上的 BOOT 键：按一下开关声音（会记住）；按住 3 秒打开 WiFi 设置热点
 //
 // 第一次连 WiFi：手机连「XiaoKe」热点（密码 cendres615），会自动弹出设置页，
 // 没弹的话用浏览器打开 192.168.4.1。家里 WiFi、手机热点都能记，最多 3 个。
+//
+// 有摄像头以后，Arduino 的 Tools 里要设：PSRAM → OPI PSRAM；Partition Scheme → Huge APP (3MB No OTA/1MB SPIFFS)
 //
 // 某个部件没接好或者没应答时，那个功能会自己跳过，眼睛照样动。
 // 串口监视器（115200）每秒会打印一次麦克风音量，方便调灵敏度。
@@ -27,6 +31,7 @@
 #include "touch.h"
 #include "voice.h"
 #include "net.h"
+#include "cam.h"
 
 // ---------- 可以调的数 ----------
 #define VOLUME           60      // 喇叭音量 0~100
@@ -258,6 +263,45 @@ static void handle_sound(uint32_t t) {
   }
 }
 
+// ---------- 摄像头：看到动静就转过去看 ----------
+static void handle_motion(uint32_t t) {
+  float x, y, a;
+  if (touching || !cam_motion(x, y, a)) return;
+  if (mood == MOOD_ASLEEP) return;              // 睡着了闭着眼，看不见
+  if (mood == MOOD_SLEEPY && a > 0.05f) wake(false);  // 有人在面前晃，醒了
+  if (mood != MOOD_AWAKE) return;
+  gaze_tx = constrain(x * LOOK_X * 1.2f, -LOOK_X, LOOK_X);
+  gaze_ty = constrain(y * LOOK_Y * 1.2f, -LOOK_Y, LOOK_Y);
+  next_look = t + 1200;  // 先盯一会儿，别马上又看别处
+  if (a > 0.03f) last_activity = t;
+}
+
+// 网页：手机打开 http://xiaoke.local 看摄像头画面
+static void page_home() {
+  WebServer &w = net_web();
+  w.send(200, "text/html; charset=utf-8", F(R"(<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>小克看到的</title>
+<style>body{margin:0;background:#111;color:#eee;font:15px -apple-system,sans-serif;text-align:center;padding:18px}
+img{width:100%;max-width:480px;border-radius:14px;background:#000}a{color:#999}</style></head><body>
+<p>小克眼里的画面</p><img id="i" src="/cam.jpg"><p id="m"></p><p><a href="/wifi">WiFi 设置</a></p>
+<script>const i=document.getElementById('i');i.onload=()=>setTimeout(()=>i.src='/cam.jpg?'+Date.now(),150);
+i.onerror=()=>{document.getElementById('m').textContent='摄像头没有画面：没插好，或者没开 PSRAM';setTimeout(()=>i.src='/cam.jpg?'+Date.now(),2000)};</script>
+</body></html>)"));
+}
+
+static void page_jpg() {
+  WebServer &w = net_web();
+  uint8_t *buf;
+  size_t len;
+  if (!cam_jpg(&buf, &len)) {
+    w.send(503, "text/plain", "no camera");
+    return;
+  }
+  w.sendHeader("Cache-Control", "no-store");
+  w.send_P(200, "image/jpeg", (const char *)buf, len);
+  cam_free_jpg(buf);
+}
+
 // ---------- BOOT 键：按一下开关声音，按住 3 秒开 WiFi 设置 ----------
 static void toggle_sound(uint32_t t) {
   if (!has_voice) return;
@@ -430,6 +474,10 @@ void setup() {
   has_voice = voice_init(VOLUME);
   if (has_voice) voice_enable(prefs.getBool("sound", true));
   net_init();
+  if (cam_init()) {
+    net_web().on("/cam.jpg", page_jpg);
+    net_set_home(page_home);
+  }
 
   randomSeed(esp_random());
   uint32_t t = millis();
@@ -452,6 +500,7 @@ void loop() {
   handle_key(t);
   handle_touch(t);
   handle_sound(t);
+  handle_motion(t);
   update(t);
   face_render();
 
