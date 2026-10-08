@@ -9,6 +9,7 @@
 
 bool cam_init();
 bool cam_ok();
+void cam_pause(bool p);  // 睡着时不看了，省电
 // 最近一次看到的动静：x、y 在 -1~1（画面中心是 0），amount 是动的面积占比 0~1
 // 返回 false 表示最近 300 毫秒里没看到明显的动静
 bool cam_motion(float &x, float &y, float &amount);

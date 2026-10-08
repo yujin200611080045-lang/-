@@ -74,6 +74,7 @@ static void radio_up(wifi_mode_t mode) {
   WiFi.mode(mode);
   WiFi.setTxPower(WIFI_POWER_11dBm);
   WiFi.setAutoReconnect(true);
+  WiFi.setSleep(true);  // 没数据的时候射频小睡，省电少发热
   WiFi.onEvent(on_wifi_event);
   radio_on = true;
 }

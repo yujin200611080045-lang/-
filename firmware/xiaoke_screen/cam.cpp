@@ -7,6 +7,7 @@ static SemaphoreHandle_t lock = NULL;  // 网页拍照和看动静不能同时�
 
 static volatile float mx = 0, my = 0, mamt = 0;
 static volatile uint32_t mtime = 0;
+static volatile bool paused = false;
 
 // 把画面缩成 40×30 的小格子，每格是亮度平均值，跟上一帧比
 #define GW 40
@@ -35,7 +36,7 @@ static void shrink(const camera_fb_t *fb) {
 
 static void motion_task(void *) {
   for (;;) {
-    if (!ok) {
+    if (!ok || paused) {
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
@@ -80,7 +81,8 @@ static void motion_task(void *) {
     }
     memcpy(prev, cur, sizeof(prev));
     have_prev = true;
-    vTaskDelay(pdMS_TO_TICKS(80));  // 大约 8~10 帧每秒，够用了
+    // 最近有动静就看勤一点（约 8 帧每秒），一直没动静就放慢（约 3 帧每秒），省电少发热
+    vTaskDelay(pdMS_TO_TICKS(millis() - mtime < 5000 ? 120 : 330));
   }
 }
 
@@ -107,7 +109,7 @@ bool cam_init() {
   c.sccb_i2c_port = 0;
   c.pin_pwdn = -1;      // 电源脚走 IO 扩展，开机已经是通电状态
   c.pin_reset = -1;
-  c.xclk_freq_hz = 20000000;
+  c.xclk_freq_hz = 10000000;  // 降到 10MHz：帧率够看动静，少发热
   c.pixel_format = PIXFORMAT_RGB565;
   c.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   c.fb_count = 1;
@@ -135,6 +137,7 @@ bool cam_init() {
 }
 
 bool cam_ok() { return ok; }
+void cam_pause(bool p) { paused = p; }
 
 bool cam_motion(float &x, float &y, float &amount) {
   if (!ok || !mtime || millis() - mtime > 300) return false;

@@ -143,8 +143,23 @@ static inline uint8_t blush_cover(float px, float py, float cx, float cy) {
   return (uint8_t)(min(1.0f, v * 2.2f) * 255);
 }
 
-void face_render() {
+// 上一次真正画出去的样子
+static Face last;
+static bool has_last = false;
+
+static float face_diff(const Face &a, const Face &b) {
+  const float *pa = (const float *)&a, *pb = (const float *)&b;
+  float m = 0;
+  for (size_t i = 0; i < sizeof(Face) / sizeof(float); i++) m = max(m, fabsf(pa[i] - pb[i]));
+  return m;
+}
+
+void face_render(bool force) {
   if (!lcd_ready()) return;
+  // 眼睛几乎没动（差不到 0.3 像素、亮度差不到 1%）就不重画：屏幕不用一直刷，芯片能歇着
+  if (!force && has_last && face_diff(f, last) < 0.3f && fabsf(f.bright - last.bright) < 0.01f && fabsf(f.blush - last.blush) < 0.01f) return;
+  last = f;
+  has_last = true;
   float gx = f.gaze_x, gy = f.gaze_y + f.lift;
   float lcx = CX - EYE_GAP / 2 + gx, rcx = CX + EYE_GAP / 2 + gx;
   float ecy = CY + gy;

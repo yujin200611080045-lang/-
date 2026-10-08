@@ -60,7 +60,7 @@
 enum Mood { MOOD_AWAKE, MOOD_SLEEPY, MOOD_ASLEEP };
 
 static Preferences prefs;
-static bool has_touch = false, has_voice = false;
+static bool has_touch = false, has_voice = false, has_cam = false;
 
 static Mood mood = MOOD_AWAKE;
 static uint32_t last_activity = 0;
@@ -367,7 +367,7 @@ static void update(uint32_t t) {
 
   // 夜里屏幕暗一点
   bool night = is_night();
-  int want_bl = t < quiet_until ? 15 : (night ? 30 : 80);
+  int want_bl = t < quiet_until ? 15 : (night ? 30 : 65);
   if (want_bl != bl) {
     bl = want_bl;
     backlight(bl);
@@ -450,6 +450,7 @@ static void update(uint32_t t) {
 }
 
 void setup() {
+  setCpuFrequencyMhz(160);  // 从 240MHz 降到 160MHz：干这些活足够，发热少不少
 #if IGNORE_BROWNOUT
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
 #endif
@@ -464,8 +465,8 @@ void setup() {
 
   face_init();
   face().open = 0;  // 从闭着眼开始，开机就是睁眼
-  face_render();
-  backlight(80);
+  face_render(true);
+  backlight(65);
 
   pinMode(PIN_BOOT_KEY, INPUT_PULLUP);
   prefs.begin("xiaoke", false);
@@ -474,7 +475,7 @@ void setup() {
   has_voice = voice_init(VOLUME);
   if (has_voice) voice_enable(prefs.getBool("sound", true));
   net_init();
-  if (cam_init()) {
+  if ((has_cam = cam_init())) {
     net_web().on("/cam.jpg", page_jpg);
     net_set_home(page_home);
   }
@@ -502,6 +503,7 @@ void loop() {
   handle_sound(t);
   handle_motion(t);
   update(t);
+  if (has_cam) cam_pause(mood == MOOD_ASLEEP);
   face_render();
 
   static uint32_t last_log = 0;
