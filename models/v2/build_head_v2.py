@@ -50,7 +50,7 @@ def polar(a,r): return r*math.cos(math.radians(a)),r*math.sin(math.radians(a))
 mid=dup(outer,'外形_缩1');d=mid.modifiers.new('d','DISPLACE');d.strength=-1.0*mm;d.mid_level=0;d.direction='NORMAL'
 sel(mid);bpy.ops.object.modifier_apply(modifier='d')
 # ================= 1. 压圈 + 主板支架（单独打印） =================
-br=tube('支架',RING_IN,RING_OUT,RING_Y0,FL_Y0+0.01)
+br=tube('支架',RING_IN,RING_OUT,RING_Y0,FL_Y0+0.5)
 fl=tube('fl',RING_IN,RING_OUT,FL_Y0,FL_Y1);boolean(br,fl,'UNION')
 for a,r in EARS:
     x,z=polar(a,r);lobe=cyl('lobe',2.6,FL_Y0,FL_Y1,x,z,48)
